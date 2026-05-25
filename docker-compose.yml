@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: movieBookingTicketDb
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-congressprep}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-congressprep_dev}
+      POSTGRES_DB: ${DB_NAME:-congressprep}
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_network
+networks:
+  backend_network:
+    driver: bridge
+volumes:
+  postgres_data:
