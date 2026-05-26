@@ -1,0 +1,264 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Cines {
+  id         BigInt   @id @default(autoincrement())
+  nombre     String   @db.VarChar(150)
+  direccion  String?  @db.VarChar(255)
+  id_ciudad  BigInt
+  ciudades   Ciudades @relation(fields: [id_ciudad], references: [id])
+  created_at DateTime @default(now()) @db.Timestamptz
+  salas      Salas[]
+
+  @@map("cines")
+}
+
+model Ciudades {
+  id         BigInt   @id @default(autoincrement())
+  nombre     String   @unique @db.VarChar(100)
+  created_at DateTime @default(now()) @db.Timestamptz
+  cines      Cines[]
+
+  @@map("ciudades")
+}
+
+model Salas {
+  id         BigInt      @id @default(autoincrement())
+  nombre     String      @db.VarChar(50)
+  id_cine    BigInt
+  cines      Cines       @relation(fields: [id_cine], references: [id])
+  filas      Int
+  columnas   Int
+  created_at DateTime    @default(now()) @db.Timestamptz
+  asientos   Asientos[]
+  funciones  Funciones[]
+
+  @@map("salas")
+}
+
+model Asientos {
+  id               BigInt            @id @default(autoincrement())
+  id_sala          BigInt
+  salas            Salas             @relation(fields: [id_sala], references: [id])
+  fila             String            @db.Char(2)
+  columna          Int
+  codigo           String            @db.VarChar(10)
+  tipo             String            @db.VarChar(30)
+  asientosFuncions AsientosFuncion[]
+
+  @@unique([id_sala, fila, columna])
+  @@map("asientos")
+}
+
+model AsientosFuncion {
+  id              BigInt            @id @default(autoincrement())
+  id_asiento      BigInt
+  asientos        Asientos          @relation(fields: [id_asiento], references: [id])
+  id_funcion      BigInt
+  funciones       Funciones         @relation(fields: [id_funcion], references: [id])
+  estado          String            @db.VarChar(20)
+  id_usuario      BigInt?
+  usuarios        Usuarios?         @relation(fields: [id_usuario], references: [id])
+  bloqueado_hasta DateTime          @default(now()) @db.Timestamptz
+  version         Int
+  reservaAsientos ReservaAsientos[]
+
+  @@map("asientos_funcion")
+}
+
+model Reservas {
+  id              BigInt            @id @default(autoincrement())
+  numero_reserva  String            @unique @db.VarChar(20)
+  id_usuario      BigInt
+  usuarios        Usuarios          @relation(fields: [id_usuario], references: [id])
+  id_funcion      BigInt
+  funciones       Funciones         @relation(fields: [id_funcion], references: [id])
+  estado          String            @db.VarChar(30)
+  created_at      DateTime          @default(now()) @db.Timestamptz
+  updated_at      DateTime          @updatedAt @db.Timestamptz
+  reservaAsientos ReservaAsientos[]
+  pagos           Pagos[]
+
+  @@map("reservas")
+}
+
+model ReservaAsientos {
+  id                 BigInt          @id @default(autoincrement())
+  id_reserva         BigInt
+  reservas           Reservas        @relation(fields: [id_reserva], references: [id])
+  id_asiento_funcion BigInt
+  asientosfuncion    AsientosFuncion @relation(fields: [id_asiento_funcion], references: [id])
+
+  @@map("reserva_asientos")
+}
+
+model Pagos {
+  id                 BigInt       @id @default(autoincrement())
+  id_reserva         BigInt
+  reservas           Reservas     @relation(fields: [id_reserva], references: [id])
+  id_cupon           BigInt?
+  cupones            Cupones?     @relation(fields: [id_cupon], references: [id])
+  monto_original     Decimal      @db.Decimal(10, 2)
+  monto_descuento    Decimal      @db.Decimal(10, 2)
+  monto_final        Decimal      @db.Decimal(10, 2)
+  metodo             String       @db.VarChar(20)
+  estado             String       @db.VarChar(20)
+  referencia_externa String?      @db.VarChar(255)
+  created_at         DateTime     @default(now()) @db.Timestamptz
+  reembolsos         Reembolsos[]
+
+  @@map("pagos")
+}
+
+model Cupones {
+  id               BigInt   @id @default(autoincrement())
+  codigo           String   @unique @db.VarChar(50)
+  tipo             String   @db.VarChar(20)
+  valor            Decimal  @db.Decimal(10, 2)
+  fecha_expiracion DateTime @db.Date
+  usos_maximos     Int?
+  usos_actuales    Int      @default(0)
+  activo           Boolean  @default(true)
+  created_at       DateTime @default(now()) @db.Timestamptz
+  pagos            Pagos[]
+
+  @@map("cupones")
+}
+
+model PoliticaCancelacion {
+  id                   BigInt  @id @default(autoincrement())
+  horas_antes_minimo   Int
+  horas_antes_maximo   Int?
+  porcentaje_reembolso Decimal @db.Decimal(5, 2)
+
+  @@map("politica_cancelacion")
+}
+
+model Reembolsos {
+  id              BigInt   @id @default(autoincrement())
+  id_pago         BigInt
+  pagos           Pagos    @relation(fields: [id_pago], references: [id])
+  monto           Decimal  @db.Decimal(10, 2)
+  estado          String   @db.VarChar(20)
+  fecha_procesado DateTime? @db.Timestamptz
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@map("reembolsos")
+}
+
+model Funciones {
+  id               BigInt            @id @default(autoincrement())
+  id_pelicula      BigInt
+  peliculas        Peliculas         @relation(fields: [id_pelicula], references: [id])
+  id_sala          BigInt
+  salas            Salas             @relation(fields: [id_sala], references: [id])
+  fecha_hora       DateTime          @db.Timestamptz
+  estado           String            @db.VarChar(20)
+  created_at       DateTime          @default(now()) @db.Timestamptz
+  asientosFuncions AsientosFuncion[]
+  reservas         Reservas[]
+
+  @@map("funciones")
+}
+
+model Peliculas {
+  id            BigInt      @id @default(autoincrement())
+  titulo        String      @db.VarChar(200)
+  sinopsis      String?     @db.Text
+  poster_url    String?     @db.VarChar(500)
+  id_idioma     BigInt?
+  idiomas       Idiomas?    @relation(fields: [id_idioma], references: [id])
+  id_genero     BigInt?
+  generos       Generos?    @relation(fields: [id_genero], references: [id])
+  fecha_estreno DateTime?   @db.Date
+  activo        Boolean     @default(true)
+  created_at    DateTime    @default(now()) @db.Timestamptz
+  updated_at    DateTime    @updatedAt @db.Timestamptz
+  id_usuario    BigInt
+  usuarios      Usuarios    @relation(fields: [id_usuario], references: [id])
+  funciones     Funciones[]
+
+  @@map("peliculas")
+}
+
+model Roles {
+  id       BigInt     @id @default(autoincrement())
+  nombre   String     @unique @db.VarChar(30)
+  usuarios Usuarios[]
+
+  @@map("roles")
+}
+
+model Usuarios {
+  id                     BigInt               @id @default(autoincrement())
+  nombre                 String               @db.VarChar(150)
+  email                  String               @unique @db.VarChar(200)
+  password_hash          String               @db.VarChar(255)
+  telefono               String?              @db.VarChar(20)
+  id_rol                 BigInt
+  roles                  Roles                @relation(fields: [id_rol], references: [id])
+  estado                 String               @db.VarChar(20)
+  notificaciones_activas Boolean              @default(false)
+  created_at             DateTime             @default(now()) @db.Timestamptz
+  updated_at             DateTime             @updatedAt @db.Timestamptz
+  audit_logs_usuario     AuditLog[]           @relation("AuditLogUsuario")
+  audit_logs_auditor     AuditLog[]           @relation("AuditLogAuditor")
+  asientosFuncions       AsientosFuncion[]
+  reservas               Reservas[]
+  peliculas              Peliculas[]
+  passwordResetTokens    PasswordResetToken[]
+
+  @@map("usuarios")
+}
+
+model Idiomas {
+  id        BigInt      @id @default(autoincrement())
+  nombre    String      @unique @db.VarChar(60)
+  peliculas Peliculas[]
+
+  @@map("idiomas")
+}
+
+model Generos {
+  id        BigInt      @id @default(autoincrement())
+  nombre    String      @unique @db.VarChar(60)
+  peliculas Peliculas[]
+
+  @@map("generos")
+}
+
+model AuditLog {
+  id            BigInt   @id @default(autoincrement())
+  id_usuario    BigInt
+  usuarios      Usuarios @relation("AuditLogUsuario", fields: [id_usuario], references: [id])
+  id_auditor    BigInt
+  realizado_por Usuarios @relation("AuditLogAuditor", fields: [id_auditor], references: [id])
+  accion        String   @db.VarChar(100)
+  detalle       String?  @db.Text
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  @@map("audit_log")
+}
+
+model PasswordResetToken {
+  id         BigInt   @id @default(autoincrement())
+  id_usuario BigInt
+  usuarios   Usuarios @relation(fields: [id_usuario], references: [id])
+  token      String   @unique @db.VarChar(255)
+  expires_at DateTime @db.Timestamptz
+  usado      Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@map("password_reset_token")
+}
