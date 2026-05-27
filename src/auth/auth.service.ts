@@ -2,18 +2,25 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './login.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './register.dto';
+import { MailService } from '../mail/mail.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly successMessage =
+    'Si el correo existe, se enviaran instrucciones para restablecer la contrasena';
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async hashPassword(password: string): Promise<string> {
@@ -52,7 +59,6 @@ export class AuthService {
     return this.serializeUser(userWithoutPassword);
   }
 
-
   async register(registerDto: RegisterDto) {
     const existingUser = await this.prisma.usuarios.findUnique({
       where: { email: registerDto.email },
@@ -68,7 +74,7 @@ export class AuthService {
         email: registerDto.email,
         password_hash: hashedPassword,
         telefono: registerDto.phone,
-        estado: 'ACTIVO', 
+        estado: 'ACTIVO',
         notificaciones_activas: false,
         roles: {
           connect: { id: BigInt(registerDto.roleId) }
@@ -85,7 +91,6 @@ export class AuthService {
     };
 
     const access_token = this.jwtService.sign(payload);
-
 
     return {
       access_token,
@@ -112,5 +117,69 @@ export class AuthService {
       access_token,
       user,
     };
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const email = this.normalizeEmail(forgotPasswordDto.email);
+
+    if (!this.isValidEmail(email)) {
+      throw new BadRequestException('El email es requerido y debe ser valido');
+    }
+
+    const user = await this.prisma.usuarios.findUnique({
+      where: { email },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      return { message: this.successMessage };
+    }
+
+    await this.prisma.passwordResetToken.updateMany({
+      where: {
+        id_usuario: user.id,
+        usado: false,
+      },
+      data: { usado: true },
+    });
+
+    const token = this.generateToken(email);
+    const tokenHash = await bcrypt.hash(token, 10);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        id_usuario: user.id,
+        token: tokenHash,
+        expires_at: this.getExpirationDate(),
+      },
+    });
+
+    await this.mailService.sendPasswordResetEmail(user.email, token);
+
+    return { message: this.successMessage };
+  }
+
+  private normalizeEmail(email?: string) {
+    return email?.trim().toLowerCase() ?? '';
+  }
+
+  private isValidEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  private generateToken(email: string) {
+    const timestamp = Date.now().toString(36);
+    const firstPart = Math.random().toString(36).slice(2);
+    const secondPart = Math.random().toString(36).slice(2);
+
+    return `${email}.${timestamp}.${firstPart}.${secondPart}`;
+  }
+
+  private getExpirationDate() {
+    const ttlMinutes = Number(
+      process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES ?? 15,
+    );
+
+    return new Date(Date.now() + ttlMinutes * 60 * 1000);
   }
 }
