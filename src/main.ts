@@ -17,6 +17,7 @@ async function bootstrap() {
   // 'api' será la ruta en el navegador (ej: http://localhost:3001/api)
   SwaggerModule.setup('api', app, document);
 
+  // Primero revisa si existe un PORT en el .env y si no hay entonces toma el puerto 3001
   await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();
