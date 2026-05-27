@@ -1,15 +1,24 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { AppModule } from './app.module.js'; 
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Habilitar validaciones globales (elimina campos que no estén en el DTO automáticamente)
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
+  // Configuración de Swagger para la documentación de la API
   const config = new DocumentBuilder()
     .setTitle('API de Movie Ticket Booking System')
     .setDescription('Documentación de las rutas del backend')
     .setVersion('1.0')
-    .addBearerAuth() // Para la autenticacion por JWT
+    .addBearerAuth() // Para la autenticación por JWT
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
