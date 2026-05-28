@@ -1,6 +1,6 @@
 import { IsDateString, IsOptional, IsString, Length } from 'class-validator';
 
-export class createPeliculas {
+export class CreatePeliculaDto {
   @IsString()
   @Length(1, 200)
   titulo: string;
