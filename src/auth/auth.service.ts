@@ -10,6 +10,17 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  async register(email: string, password: string) {
+    const existingUser = await this.usersService.findOneByEmail(email);
+    if (existingUser) {
+      throw new BadRequestException('Email already in use');
+    }
+    const hashed_password = await bcrypt.hash(password, 10);
+    const user = await this.usersService.create(email, hashed_password);
+    const payload = { userId: user.id, email: user.email, role: user.id_rol };
+    return { access_token: await this.jwtService.signAsync(payload) };
+  }
+
   async login(email: string, password: string) {
     const user = await this.usersService.findOneByEmail(email);
     const hashed_password = await bcrypt.hash(password, 10);
