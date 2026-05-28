@@ -4,15 +4,15 @@ import { roles } from '@prisma/client';
 export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  name: string;
+  name!: string;
 
   @IsEmail({}, { message: 'El email no es válido' })
   @IsNotEmpty({ message: 'El email es obligatorio' })
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'La contraseña es obligatoria' })
-  password: string;
+  password!: string;
 
   @IsOptional()
   @IsString()
