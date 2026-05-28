@@ -1,11 +1,11 @@
-import { PrismaClient } from "generated/prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ParamDto } from "./dto/passwordreset.param.dto";
 import { BodyDto } from "./dto/passwordreset.body.dto"
 
 @Injectable()
 export class PasswordResetService{
-    constructor(private readonly prisma: PrismaClient){}
+    constructor(private readonly prisma: PrismaService){}
 
     async forgotPassword(dto: BodyDto){
         const newToken = await this.prisma.passwordResetToken.create({
