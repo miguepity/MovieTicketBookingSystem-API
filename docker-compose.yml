@@ -4,11 +4,11 @@ services:
     container_name: movieBookingTicketDb
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-congressprep}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-congressprep_dev}
-      POSTGRES_DB: ${DB_NAME:-congressprep}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: postgres
     ports:
-      - '5434:5432'
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
