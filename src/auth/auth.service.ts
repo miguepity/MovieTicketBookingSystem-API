@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from 'src/prisma/prisma.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
