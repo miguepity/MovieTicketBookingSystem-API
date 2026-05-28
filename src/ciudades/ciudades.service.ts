@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Ciudad } from './entities/ciudades.entity';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
+import { UpdateCiudadesDto } from './dto/update-ciudades.dto';
 
 @Injectable()
 export class CiudadesService {
@@ -14,6 +15,16 @@ export class CiudadesService {
   async create(createCiudadesDto: CreateCiudadesDto): Promise<Ciudad> {
     return this.prisma.ciudades.create({
       data: createCiudadesDto,
+    });
+  }
+
+  async update(
+    id: string,
+    updateCiudadesDto: UpdateCiudadesDto,
+  ): Promise<Ciudad> {
+    return this.prisma.ciudades.update({
+      where: { id: Number(id) },
+      data: updateCiudadesDto,
     });
   }
 }

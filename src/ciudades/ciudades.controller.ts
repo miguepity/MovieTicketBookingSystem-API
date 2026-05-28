@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CiudadesService } from './ciudades.service';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
+import { UpdateCiudadesDto } from './dto/update-ciudades.dto';
 
 @ApiTags('Ciudades')
 @Controller('Ciudades')
@@ -31,5 +32,21 @@ export class CiudadesController {
   })
   create(@Body() createCiudadesDto: CreateCiudadesDto) {
     return this.ciudadesService.create(createCiudadesDto);
+  }
+
+  @Put(':id')
+  @ApiOperation({
+    summary: 'Actualizar una ciudad',
+    description: 'Permite actualizar los datos de una ciudad existente.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ciudad actualizada exitosamente.',
+  })
+  update(
+    @Param('id') id: string,
+    @Body() updateCiudadesDto: UpdateCiudadesDto,
+  ) {
+    return this.ciudadesService.update(id, updateCiudadesDto);
   }
 }
