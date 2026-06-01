@@ -71,6 +71,24 @@ export class PeliculaService {
     });
   }
 
+  async toggleActivo(id: string) {
+    const peliculaId = this.parseId(id);
+
+    const existing = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { activo: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    return this.prisma.peliculas.update({
+      where: { id: peliculaId },
+      data: { activo: !existing.activo },
+      select: { id: true, activo: true },
+    });
+  }
+
   private parseId(id: string): bigint {
     try {
       return BigInt(id);
