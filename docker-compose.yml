@@ -1,12 +1,12 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: movieBookingTicketDb
+    container_name: movieBookingTicketDbGroup2
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-congressprep}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-congressprep_dev}
-      POSTGRES_DB: ${DB_NAME:-congressprep}
+      POSTGRES_USER: MovieTicketBookingSystem_Group2
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: MovieTicketBookingSystem_dbGroup2
     ports:
       - '5434:5432'
     volumes:
