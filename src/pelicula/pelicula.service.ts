@@ -1,40 +1,21 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
+import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 
 @Injectable()
 export class PeliculaService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createPelicula(data: CreatePeliculaDto): Promise<{ id: bigint }> {
-    const usuario = await this.prisma.usuarios.findUnique({
-      where: { id: data.id_usuario },
-      select: { id: true },
-    });
-    if (!usuario) {
-      throw new BadRequestException('Usuario no existe');
-    }
-
-    if (data.id_idioma !== undefined && data.id_idioma !== null) {
-      const idioma = await this.prisma.idiomas.findUnique({
-        where: { id: data.id_idioma },
-        select: { id: true },
-      });
-      if (!idioma) {
-        throw new BadRequestException('Idioma no existe');
-      }
-    }
-
-    if (data.id_genero !== undefined && data.id_genero !== null) {
-      const genero = await this.prisma.generos.findUnique({
-        where: { id: data.id_genero },
-        select: { id: true },
-      });
-      if (!genero) {
-        throw new BadRequestException('Género no existe');
-      }
-    }
+    await this.assertUsuarioExists(data.id_usuario);
+    await this.assertIdiomaExists(data.id_idioma);
+    await this.assertGeneroExists(data.id_genero);
 
     const pelicula = await this.prisma.peliculas.create({
       data: {
@@ -53,5 +34,84 @@ export class PeliculaService {
     });
 
     return { id: pelicula.id };
+  }
+
+  async updatePelicula(id: string, data: UpdatePeliculaDto) {
+    const peliculaId = this.parseId(id);
+
+    const existing = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    if (data.id_usuario !== undefined) {
+      await this.assertUsuarioExists(data.id_usuario);
+    }
+
+    await this.assertIdiomaExists(data.id_idioma);
+    await this.assertGeneroExists(data.id_genero);
+
+    return this.prisma.peliculas.update({
+      where: { id: peliculaId },
+      data: {
+        titulo: data.titulo,
+        sinopsis: data.sinopsis,
+        poster_url: data.poster_url,
+        id_idioma: data.id_idioma,
+        id_genero: data.id_genero,
+        fecha_estreno: data.fecha_estreno
+          ? new Date(data.fecha_estreno)
+          : undefined,
+        activo: data.activo,
+        id_usuario: data.id_usuario,
+      },
+    });
+  }
+
+  private parseId(id: string): bigint {
+    try {
+      return BigInt(id);
+    } catch {
+      throw new BadRequestException('ID inválido');
+    }
+  }
+
+  private async assertUsuarioExists(id: bigint): Promise<void> {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!usuario) {
+      throw new BadRequestException('Usuario no existe');
+    }
+  }
+
+  private async assertIdiomaExists(
+    id: bigint | null | undefined,
+  ): Promise<void> {
+    if (id === undefined || id === null) return;
+    const idioma = await this.prisma.idiomas.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!idioma) {
+      throw new BadRequestException('Idioma no existe');
+    }
+  }
+
+  private async assertGeneroExists(
+    id: bigint | null | undefined,
+  ): Promise<void> {
+    if (id === undefined || id === null) return;
+    const genero = await this.prisma.generos.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!genero) {
+      throw new BadRequestException('Género no existe');
+    }
   }
 }
