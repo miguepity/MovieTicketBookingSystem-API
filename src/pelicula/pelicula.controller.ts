@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
 } from '@nestjs/common';
@@ -40,5 +41,15 @@ export class PeliculaController {
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   updatePelicula(@Param('id') id: string, @Body() data: UpdatePeliculaDto) {
     return this.peliculaService.updatePelicula(id, data);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Alternar el estado activo/inactivo de una película',
+  })
+  @ApiOkResponse({ description: 'Estado de la película actualizado' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  toggleActivo(@Param('id') id: string) {
+    return this.peliculaService.toggleActivo(id);
   }
 }
