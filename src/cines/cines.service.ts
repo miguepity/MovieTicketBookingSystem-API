@@ -1,0 +1,36 @@
+import { Injectable, NotFoundException } from "@nestjs/common"
+import { PrismaService } from "src/prisma/prisma.service"
+import { BodyDto } from "./dto/cine.body"
+import { ParamDto } from "./dto/cine.param"
+
+@Injectable()
+export class CineService{
+    constructor(private readonly prisma: PrismaService){}
+
+    async createCine(dto: BodyDto){
+        const findCity = await this.prisma.ciudades.findFirst({
+            where: {id: dto.id_ciudad}
+        });
+        if(!findCity){
+            throw new NotFoundException('City not Found');
+        }
+        const newCine = await this.prisma.cines.create({
+            data: dto
+        });
+        return newCine;
+    }
+
+    async editCine(dtoP: ParamDto, dtoB: BodyDto){
+        const findCinema = await this.prisma.cines.findFirst({
+            where: {id: dtoP.id}
+        });
+        if(!findCinema){
+            throw new NotFoundException('Cinema not Found');
+        }
+        await this.prisma.cines.update({
+            where: {id: dtoP.id},
+            data: dtoB
+        });
+        return 'Cinema edited succesfully'
+    }
+}
