@@ -16,13 +16,9 @@ export class PeliculasService {
         id_genero: dto.genero ? BigInt(dto.genero) : null,
         fecha_estreno: dto.fecha_estreno,
         id_usuario: BigInt(dto.uploaded_by),
-      }
+      },
     });
   }
-
-@Injectable()
-export class PeliculasService {
-  constructor(private readonly prisma: PrismaService) {}
 
   async getTitulo(titulo?: string) {
     if (!titulo) {
