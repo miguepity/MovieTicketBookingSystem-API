@@ -8,6 +8,7 @@ import { PasswordResetTokenModule } from './password reset/passwordresetmodule';
 import { CiudadesModule } from './ciudades/ciudades.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { GenerosModule } from './generos/generos.module';
+import { RolesModule } from './roles/roles.module';
 @Module({
   imports: [
     PasswordResetTokenModule,
@@ -17,6 +18,7 @@ import { GenerosModule } from './generos/generos.module';
     PeliculasModule,
     CiudadesModule,
     GenerosModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
