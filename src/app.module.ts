@@ -8,6 +8,8 @@ import { PeliculaModule } from './modules/pelicula/pelicula.module';
 import { UsersModule } from './modules/users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GenerosModule } from './modules/generos/generos.module';
+import { IdiomasModule } from './modules/idiomas/idiomas.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { AuthModule } from './modules/auth/auth.module';
     SalasModule,
     AuthModule,
     UsersModule,
+    GenerosModule,
+    IdiomasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
