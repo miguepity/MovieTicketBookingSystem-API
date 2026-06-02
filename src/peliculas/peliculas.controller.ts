@@ -19,6 +19,7 @@ import { PeliculasService } from './peliculas.service';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Peliculas')
