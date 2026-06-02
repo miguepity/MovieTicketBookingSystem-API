@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCineDto } from './dto/create-cine.dto';
 import { CineCreatedResponseDto } from './dto/cine-created-response.dto';
 import { UpdateCineDto } from './dto/update-cine.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class CineService {
@@ -11,7 +11,7 @@ export class CineService {
   async create(createCineDto: CreateCineDto): Promise<CineCreatedResponseDto> {
     const city = await this.prisma.ciudades.findUnique({
       where: { id: createCineDto.id_ciudad },
-      select: { id: true},
+      select: { id: true },
     });
     if (!city) {
       throw new BadRequestException('Ciudad no existe');

@@ -3,12 +3,10 @@ import { CreateSalaDto } from './dto/create-sala.dto';
 import { UpdateSalaDto } from './dto/update-sala.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-
 @Injectable()
 export class SalasService {
   constructor(private readonly prisma: PrismaService) {}
   async create(createSalaDto: CreateSalaDto) {
-
     const existing = await this.prisma.salas.findFirst({
       where: { nombre: createSalaDto.nombre },
       select: { id: true },
@@ -19,9 +17,14 @@ export class SalasService {
         `Ya existe una sala con el nombre "${createSalaDto.nombre}"`,
       );
     }
-    
+
     const created = await this.prisma.salas.create({
-      data: { nombre: createSalaDto.nombre, id_cine: createSalaDto.id_cine, filas: createSalaDto.filas, columnas: createSalaDto.columnas },
+      data: {
+        nombre: createSalaDto.nombre,
+        id_cine: createSalaDto.id_cine,
+        filas: createSalaDto.filas,
+        columnas: createSalaDto.columnas,
+      },
     });
     return created;
   }
