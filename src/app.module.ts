@@ -5,9 +5,16 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CineModule } from './cine/cine.module';
 import { CiudadesModule } from './ciudades/ciudades.module';
 import { PeliculaModule } from './pelicula/pelicula.module';
+import { SalasModule } from './modules/salas/salas.module';
 
 @Module({
-  imports: [PrismaModule, CineModule, CiudadesModule, PeliculaModule],
+  imports: [
+    PrismaModule,
+    CineModule,
+    CiudadesModule,
+    PeliculaModule,
+    SalasModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
