@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { CineModule } from './cine/cine.module';
-import { CiudadesModule } from './ciudades/ciudades.module';
-import { PeliculaModule } from './pelicula/pelicula.module';
-import { UsersModule } from './users/users.module';
+import { CineModule } from './modules/cine/cine.module';
+import { CiudadesModule } from './modules/ciudades/ciudades.module';
+import { PeliculaModule } from './modules/pelicula/pelicula.module';
+import { UsersModule } from './modules/users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { AuthModule } from './auth/auth.module';
     PeliculaModule,
     SalasModule,
     AuthModule,
-    UsersModule
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
