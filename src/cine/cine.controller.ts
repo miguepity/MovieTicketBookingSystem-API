@@ -8,17 +8,21 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { CineService } from './cine.service';
 import { CreateCineDto } from './dto/create-cine.dto';
+import { ListCinesQueryDto} from './dto/list-cines-query.dto';
 import { CineCreatedResponseDto } from './dto/cine-created-response.dto';
+import { CinesPageResponseDto } from './dto/cines-page.response.dto';
 import { UpdateCineDto } from './dto/update-cine.dto';
 
 @ApiTags('Cines')
@@ -40,9 +44,11 @@ export class CineController {
     return this.cineService.create(createCineDto);
   }
 
+  @ApiOperation({ summary: 'Listar Cines' })
+  @ApiOkResponse({ type: CinesPageResponseDto })
   @Get()
-  findAll() {
-    return this.cineService.findAll();
+  findAll(@Query() query: ListCinesQueryDto): Promise<CinesPageResponseDto> {
+    return this.cineService.findAll(query);
   }
 
   @Get(':id')
