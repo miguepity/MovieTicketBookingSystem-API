@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
+import { UploadPosterDto } from './dto/upload-poster.dto';
 
 @Injectable()
 export class PeliculasService {
@@ -40,6 +41,17 @@ export class PeliculasService {
         fecha_estreno: true,
         idiomas: { select: { nombre: true } },
         generos: { select: { nombre: true } },
+      },
+    });
+  }
+
+  async uploadPoster(id: bigint, dto: UploadPosterDto) {
+    return this.prisma.peliculas.update({
+      where: {
+        id,
+      },
+      data: {
+        poster_url: dto.posterUrl,
       },
     });
   }

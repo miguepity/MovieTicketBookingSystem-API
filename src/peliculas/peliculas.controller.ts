@@ -1,16 +1,9 @@
-import {
-  Body,
-  Controller,
-  Post,
-  Get,
-  Query,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Body, Controller, Post, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PeliculasService } from './peliculas.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadPosterDto } from './dto/upload-poster.dto';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Peliculas')
@@ -56,5 +49,20 @@ export class PeliculasController {
   })
   buscar(@Query() query: QueryPeliculaDto) {
     return this.peliculasService.getTitulo(query.titulo);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  @ApiOperation({
+    description: 'Upload the poster for a movie by its id.',
+    responses: {
+      201: {
+        description: 'Poster uploaded succesfully',
+      },
+    },
+  })
+  @Post(':id/poster')
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  uploadPoster(@Param('id') id: string, @Body() dto: UploadPosterDto) {
+    return this.peliculasService.uploadPoster(BigInt(id), dto);
   }
 }
