@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CineModule } from './cine/cine.module';
 import { CiudadesModule } from './ciudades/ciudades.module';
 import { PeliculaModule } from './pelicula/pelicula.module';
+import { UsersModule } from './users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
 import { AuthModule } from './auth/auth.module';
 
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
     PeliculaModule,
     SalasModule,
     AuthModule,
+    UsersModule
   ],
   controllers: [AppController],
   providers: [AppService],
