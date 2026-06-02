@@ -1,0 +1,5 @@
+{
+    "js/ts.tsdk.path": "node_modules\\typescript\\lib",
+    "webPreview.schemaPath": "C:\\Users\\lenovo\\Documents\\Desarrollo_Web\\MovieTicketBookingSystem-API\\prisma\\schema.prisma",
+    "webPreview.mediaScreenOverride": true
+}

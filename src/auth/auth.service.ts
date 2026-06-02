@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { LoginDto } from './login.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './register.dto';
 
@@ -27,25 +28,33 @@ export class AuthService {
     return bcrypt.compare(password, hashedPassword);
   }
 
+  private serializeUser(user: any) {
+    return {
+      ...user,
+      id: user.id ? Number(user.id) : undefined,
+      id_rol: user.id_rol ? Number(user.id_rol) : undefined,
+    };
+  }
+
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.users.findUnique({
+    const user = await this.prisma.usuarios.findUnique({
       where: { email },
     });
 
     if (!user) {
       return null;
     }
-    const isPasswordValid = await this.comparePassword(password, user.password);
+    const isPasswordValid = await this.comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       return null;
     }
-    const { password: _, ...userWithoutPassword } = user;
+    const { password_hash: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.prisma.users.findUnique({
+    const existingUser = await this.prisma.usuarios.findUnique({
       where: { email: registerDto.email },
     });
 
@@ -53,36 +62,55 @@ export class AuthService {
       throw new ConflictException('El email ya esta registrado');
     }
     const hashedPassword = await this.hashPassword(registerDto.password);
-    const newUser = await this.prisma.users.create({
-      data: {
-        name: registerDto.name,
+    const newUser = await this.prisma.usuarios.create({
+     data: {
+        nombre: registerDto.name,
         email: registerDto.email,
-        password: hashedPassword,
-        phone: registerDto.phone,
-        role: registerDto.role,
+        password_hash: hashedPassword,
+        telefono: registerDto.phone,
+        estado: 'ACTIVO', 
+        notificaciones_activas: false,
+        roles: {
+          connect: { id: BigInt(registerDto.roleId) }
+        }
       },
     });
 
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { password_hash: _, ...userWithoutPassword } = newUser;
 
     const payload = {
-      id: newUser.id,
+      id: Number(newUser.id),
       email: newUser.email,
-      role: newUser.role,
+      roleId: Number(newUser.id_rol),
     };
 
     const access_token = this.jwtService.sign(payload);
 
-    await this.auditService.createLog(
-      newUser.id,
-      entities.USERS,
-      newUser.id,
-      audit_action.CREATE,
-    );
 
     return {
       access_token,
-      user: userWithoutPassword,
+      user: this.serializeUser(userWithoutPassword),
+    };
+  }
+
+  async login(loginDto: LoginDto) {
+    const user = await this.validateUser(loginDto.email, loginDto.password_hash);
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciales invalidas');
+    }
+
+    const payload = {
+      id: Number(user.id),
+      email: user.email,
+      roleId: Number(user.id_rol),
+    };
+
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: this.serializeUser(user),
     };
   }
 }
