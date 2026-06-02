@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -14,7 +15,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async login(loginDto: LoginDto) {
     const usuario = await this.prisma.usuarios.findUnique({
@@ -57,6 +58,16 @@ export class AuthService {
       throw new ConflictException('El email ya está registrado');
     }
 
+    const rolDefault = await this.prisma.roles.findFirst({
+      where: { nombre: 'cliente' },
+    }) ?? await this.prisma.roles.findFirst();
+
+    if (!rolDefault) {
+      throw new InternalServerErrorException(
+        'No hay roles configurados en la base de datos. Ejecuta el seed primero.',
+      );
+    }
+
     const password_hash = await bcrypt.hash(registerDto.password, 10);
 
     const usuario = await this.prisma.usuarios.create({
@@ -65,7 +76,7 @@ export class AuthService {
         email: registerDto.email,
         password_hash,
         telefono: registerDto.telefono,
-        id_rol: 1n,
+        id_rol: rolDefault.id,
         estado: 'activo',
       },
     });
