@@ -3,17 +3,15 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PeliculasModule } from './peliculas/peliculas.module';
 import { PrismaModule } from './prisma/prisma.module';
-
+import { AuthModule } from './auth/auth.module';
+import { PasswordResetTokenModule } from './password reset/passwordresetmodule';
 @Module({
-  imports: [PeliculasModule, PrismaModule],
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
-import { PrismaModule } from './prisma/prisma.module.js';
-import { AuthModule } from './auth/auth.module.js';
-import { PasswordResetTokenModule } from './password reset/passwordresetmodule.js';
-
-@Module({
-  imports: [PasswordResetTokenModule, PrismaModule, AuthModule],
+  imports: [
+    PasswordResetTokenModule,
+    PrismaModule,
+    AuthModule,
+    PeliculasModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

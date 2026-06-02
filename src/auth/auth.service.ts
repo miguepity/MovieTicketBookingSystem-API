@@ -3,9 +3,9 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
-import { PrismaService } from 'src/prisma/prisma.service.js';
-import { RegisterDto } from './dto/register.dto.js';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma/prisma.service';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
