@@ -55,8 +55,15 @@ export class AuthService {
     if (!isPasswordValid) {
       return null;
     }
-    const { password_hash: _, ...userWithoutPassword } = user;
-    return this.serializeUser(userWithoutPassword);
+
+    const { password_hash, ...userWithoutPassword } = user;
+    void password_hash;
+
+    return {
+      ...userWithoutPassword,
+      id: Number(userWithoutPassword.id),
+      id_rol: Number(userWithoutPassword.id_rol),
+    };
   }
 
   async register(registerDto: RegisterDto) {

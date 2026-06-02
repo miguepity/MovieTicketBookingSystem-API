@@ -3,11 +3,9 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
+import { createTransport } from 'nodemailer';
 
-type ResendEmailResponse = {
-  id?: string;
-  message?: string;
-};
+const DEFAULT_MAIL_PORT = 1025;
 
 @Injectable()
 export class MailService {
@@ -15,36 +13,34 @@ export class MailService {
 
   async sendPasswordResetEmail(email: string, token: string) {
     const resetUrl = this.buildResetUrl(token);
-    const apiKey = process.env.RESEND_API_KEY;
+    const recipient = process.env.MAIL_TEST_TO ?? email;
 
-    if (!apiKey) {
-      this.logger.log(`Password reset link for ${email}: ${resetUrl}`);
-      return;
-    }
+    try {
+      const mailUser = process.env.MAIL_USER;
+      const mailPassword = process.env.MAIL_PASSWORD;
+      const transporter = createTransport({
+        host: process.env.MAIL_HOST ?? 'localhost',
+        port: Number(process.env.MAIL_PORT ?? DEFAULT_MAIL_PORT),
+        secure: process.env.MAIL_SECURE === 'true',
+        auth:
+          mailUser && mailPassword
+            ? {
+                user: mailUser,
+                pass: mailPassword,
+              }
+            : undefined,
+      });
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.MAIL_FROM ?? 'Movie Tickets <onboarding@resend.dev>',
-        to: email,
+      await transporter.sendMail({
+        from: process.env.MAIL_FROM ?? 'Movie Tickets <no-reply@localhost>',
+        to: recipient,
         subject: 'Restablece tu contrasena',
         html: this.buildPasswordResetHtml(resetUrl),
-      }),
-    });
+      });
 
-    if (!response.ok) {
-      const body = (await response
-        .json()
-        .catch(() => null)) as ResendEmailResponse | null;
-      this.logger.error(
-        `Could not send password reset email: ${
-          body?.message ?? response.statusText
-        }`,
-      );
+      this.logger.log(`Password reset email sent to ${recipient}`);
+    } catch (error) {
+      this.logger.error('Could not send password reset email', error);
       throw new InternalServerErrorException(
         'No se pudo enviar el correo de recuperacion',
       );
