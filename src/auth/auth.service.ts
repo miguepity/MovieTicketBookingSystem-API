@@ -49,7 +49,7 @@ export class AuthService {
       return null;
     }
     const { password_hash: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return this.serializeUser(userWithoutPassword);
   }
 
 
@@ -101,16 +101,16 @@ export class AuthService {
     }
 
     const payload = {
-      id: Number(user.id),
+      id: user.id,
       email: user.email,
-      roleId: Number(user.id_rol),
+      roleId: user.id_rol,
     };
 
     const access_token = this.jwtService.sign(payload);
 
     return {
       access_token,
-      user: this.serializeUser(user),
+      user,
     };
   }
 }

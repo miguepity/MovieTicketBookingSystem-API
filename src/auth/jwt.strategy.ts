@@ -13,15 +13,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { id: number; email: string; role: string }) {
+  async validate(payload: { id: number; email: string; roleId: number }) {
     const user = await this.prisma.usuarios.findUnique({
-      where: { id: payload.id },
+      where: { id: BigInt(payload.id) },
+      include: {
+        roles: true, 
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('Usuario no autorizado');
     }
+
+    if (user.estado !== 'ACTIVO') {
+      throw new UnauthorizedException('El usuario se encuentra inactivo');
+    }
+
     const { password_hash: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+
+    return {
+      id: Number(userWithoutPassword.id),
+      nombre: userWithoutPassword.nombre,
+      email: userWithoutPassword.email,
+      id_rol: Number(userWithoutPassword.id_rol),
+      role: user.roles.nombre, 
+    };
   }
 }
