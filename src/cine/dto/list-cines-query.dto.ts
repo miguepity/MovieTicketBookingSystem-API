@@ -21,4 +21,11 @@ export class ListCinesQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'Filter by city id' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_ciudad?: number;
 }

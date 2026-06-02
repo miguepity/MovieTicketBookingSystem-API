@@ -15,8 +15,9 @@ export class CineService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCineDto: CreateCineDto): Promise<CineCreatedResponseDto> {
+    const idCiudad = BigInt(createCineDto.id_ciudad);
     const city = await this.prisma.ciudades.findUnique({
-      where: { id: createCineDto.id_ciudad },
+      where: { id: idCiudad },
       select: { id: true},
     });
     if (!city) {
@@ -27,7 +28,7 @@ export class CineService {
       data: {
         nombre: createCineDto.nombre,
         direccion: createCineDto.direccion,
-        id_ciudad: createCineDto.id_ciudad,
+        id_ciudad: idCiudad,
       },
       select: { id: true },
     });
@@ -47,6 +48,14 @@ export class CineService {
 
     if (name) {
       where.nombre = { contains: name, mode: 'insensitive' };
+    }
+
+    if (typeof query.id_ciudad !== 'undefined') {
+      try {
+        where.id_ciudad = BigInt(query.id_ciudad);
+      } catch (e) {
+        where.id_ciudad = Number(query.id_ciudad);
+      }
     }
 
     const [total, cines] = await this.prisma.$transaction([
