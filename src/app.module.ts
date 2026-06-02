@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { PasswordResetTokenModule } from './password reset/passwordresetmodule';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { GenerosModule } from './generos/generos.module';
 @Module({
   imports: [
     PasswordResetTokenModule,
@@ -13,6 +14,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     AuthModule,
     UsuariosModule,
     PeliculasModule,
+    GenerosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
