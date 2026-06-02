@@ -9,12 +9,14 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
   ) { }
 
   async login(loginDto: LoginDto) {
@@ -82,6 +84,18 @@ export class AuthService {
     });
 
     const payload = { email: usuario.email, sub: usuario.id.toString() };
+
+    await this.mailService.sendEmail({
+      to: { email: usuario.email, name: usuario.nombre },
+      subject: '¡Bienvenido a Movie Ticket Booking!',
+      htmlContent: `
+        <h2>¡Hola, ${usuario.nombre}!</h2>
+        <p>Tu cuenta ha sido creada exitosamente.</p>
+        <p>Ya puedes iniciar sesión y comenzar a reservar tus entradas de cine.</p>
+        <br/>
+        <p>— El equipo de Movie Ticket Booking</p>
+      `,
+    });
 
     return {
       access_token: this.jwtService.sign(payload),
