@@ -12,6 +12,16 @@ import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 export class PeliculaService {
   constructor(private readonly prisma: PrismaService) {}
 
+  findAll(titulo?: string) {
+    const trimmed = titulo?.trim();
+    return this.prisma.peliculas.findMany({
+      where: trimmed
+        ? { titulo: { contains: trimmed, mode: 'insensitive' } }
+        : undefined,
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
   async createPelicula(data: CreatePeliculaDto): Promise<{ id: bigint }> {
     await this.assertUsuarioExists(data.id_usuario);
     await this.assertIdiomaExists(data.id_idioma);

@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -14,6 +16,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { PeliculaService } from './pelicula.service';
@@ -24,6 +27,20 @@ import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 @Controller('peliculas')
 export class PeliculaController {
   constructor(private readonly peliculaService: PeliculaService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Listar películas con búsqueda parcial por título',
+  })
+  @ApiQuery({
+    name: 'titulo',
+    required: false,
+    description: 'Coincidencia parcial sobre el título (case-insensitive)',
+  })
+  @ApiOkResponse({ description: 'Listado de películas' })
+  findAll(@Query('titulo') titulo?: string) {
+    return this.peliculaService.findAll(titulo);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

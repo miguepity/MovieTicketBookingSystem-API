@@ -4,11 +4,15 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCineDto } from './dto/create-cine.dto';
 import { CineCreatedResponseDto } from './dto/cine-created-response.dto';
 import { UpdateCineDto } from './dto/update-cine.dto';
+<<<<<<< HEAD:src/cine/cine.service.ts
 
 import { ListCinesQueryDto } from './dto/list-cines-query.dto';
 import { CinesPageResponseDto } from './dto/cines-page.response.dto';
 import { CineListItemResponseDto } from './dto/cine-list-item.response.dto';
 
+=======
+import { PrismaService } from '../../prisma/prisma.service';
+>>>>>>> 4583dad659e8b653d8a07c19bfb484f2b865664f:src/modules/cine/cine.service.ts
 
 @Injectable()
 export class CineService {
@@ -17,8 +21,13 @@ export class CineService {
   async create(createCineDto: CreateCineDto): Promise<CineCreatedResponseDto> {
     const idCiudad = BigInt(createCineDto.id_ciudad);
     const city = await this.prisma.ciudades.findUnique({
+<<<<<<< HEAD:src/cine/cine.service.ts
       where: { id: idCiudad },
       select: { id: true},
+=======
+      where: { id: createCineDto.id_ciudad },
+      select: { id: true },
+>>>>>>> 4583dad659e8b653d8a07c19bfb484f2b865664f:src/modules/cine/cine.service.ts
     });
     if (!city) {
       throw new BadRequestException('Ciudad no existe');
