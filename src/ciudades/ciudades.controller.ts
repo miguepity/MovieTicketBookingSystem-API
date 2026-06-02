@@ -1,34 +1,33 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { CiudadesService } from './ciudades.service';
 import { CreateCiudadeDto } from './dto/create-ciudade.dto';
-import { UpdateCiudadeDto } from './dto/update-ciudade.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { ApiOperation } from '@nestjs/swagger';
 
 @Controller('ciudades')
 export class CiudadesController {
   constructor(private readonly ciudadesService: CiudadesService) {}
 
+  @ApiOperation({
+    description: 'Create a new city',
+    responses: {
+      201: {
+        description: 'City created successfully',
+        content: {
+          'application/json': {
+            example: {
+              id: 1,
+              nombre: 'San Pedro Sula',
+            },
+          },
+        },
+      },
+      401: { description: 'Unauthorized' },
+    },
+  })
   @Post()
+  @UseGuards(AuthGuard)
   create(@Body() createCiudadeDto: CreateCiudadeDto) {
     return this.ciudadesService.create(createCiudadeDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.ciudadesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ciudadesService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCiudadeDto: UpdateCiudadeDto) {
-    return this.ciudadesService.update(+id, updateCiudadeDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ciudadesService.remove(+id);
   }
 }
