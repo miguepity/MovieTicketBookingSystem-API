@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { CiudadesModule } from './ciudades/ciudad.module';
 import { CinesModule } from './cines/cine.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CinesModule } from './cines/cine.module';
     AuthModule,
     CiudadesModule,
     CinesModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
