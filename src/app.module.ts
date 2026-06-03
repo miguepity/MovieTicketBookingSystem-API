@@ -12,6 +12,7 @@ import { IdiomasModule } from './idiomas/idiomas.module';
 import { RolesModule } from './roles/roles.module';
 import { CineModule } from './cines/cines.module';
 import { CuponesModule } from './cupones/cupones.module';
+import { FuncionesModule } from './funciones/funciones.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CuponesModule } from './cupones/cupones.module';
     RolesModule,
     CineModule,
     CuponesModule,
+    FuncionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
