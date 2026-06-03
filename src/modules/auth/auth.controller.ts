@@ -10,6 +10,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthResponse } from './entities/auth-response.entity';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -68,6 +69,22 @@ export class AuthController {
   })
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({
+    summary: 'Restablecer contraseña',
+    description:
+      'Valida el token de recuperación y actualiza la contraseña del usuario.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada exitosamente.',
+    schema: { example: { message: 'Contraseña actualizada exitosamente' } },
+  })
+  @ApiResponse({ status: 400, description: 'Token inválido, ya usado o expirado.' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Put('change-email')

@@ -177,6 +177,35 @@ export class AuthService {
     return respuestaGenerica;
   }
 
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token: dto.token },
+    });
+
+    if (!resetToken || resetToken.usado) {
+      throw new BadRequestException('El token no es válido o ya fue utilizado');
+    }
+
+    if (resetToken.expires_at < new Date()) {
+      throw new BadRequestException('El token ha expirado');
+    }
+
+    const password_hash = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.usuarios.update({
+        where: { id: resetToken.id_usuario },
+        data: { password_hash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usado: true },
+      }),
+    ]);
+
+    return { message: 'Contraseña actualizada exitosamente' };
+  }
+
   async changeEmail(userId: string, dto: ChangeEmailDto) {
     const emailEnUso = await this.prisma.usuarios.findUnique({
       where: { email: dto.newEmail },
