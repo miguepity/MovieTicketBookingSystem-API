@@ -7,9 +7,10 @@ import { UsersModule } from './users/users.module';
 import { PeliculasModule } from './peliculas/peliculas.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CiudadesModule } from './ciudades/ciudades.module';
+import { FuncionesModule } from './funciones/funciones.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, PeliculasModule, PrismaModule, CiudadesModule],
+  imports: [AuthModule, UsersModule, PeliculasModule, PrismaModule, CiudadesModule, FuncionesModule],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
