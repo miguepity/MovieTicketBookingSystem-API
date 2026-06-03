@@ -9,6 +9,8 @@ import { UsersModule } from './modules/users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
 import { MailModule } from './mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GenerosModule } from './modules/generos/generos.module';
+import { IdiomasModule } from './modules/idiomas/idiomas.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { AuthModule } from './modules/auth/auth.module';
     SalasModule,
     AuthModule,
     UsersModule,
+    GenerosModule,
+    IdiomasModule,
     MailModule
   ],
   controllers: [AppController],
