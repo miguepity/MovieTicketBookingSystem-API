@@ -7,6 +7,7 @@ import { CiudadesModule } from './modules/ciudades/ciudades.module';
 import { PeliculaModule } from './modules/pelicula/pelicula.module';
 import { UsersModule } from './modules/users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
+import { MailModule } from './mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GenerosModule } from './modules/generos/generos.module';
 import { IdiomasModule } from './modules/idiomas/idiomas.module';
@@ -14,6 +15,7 @@ import { IdiomasModule } from './modules/idiomas/idiomas.module';
 @Module({
   imports: [
     PrismaModule,
+    MailModule,
     CineModule,
     CiudadesModule,
     PeliculaModule,
@@ -22,8 +24,9 @@ import { IdiomasModule } from './modules/idiomas/idiomas.module';
     UsersModule,
     GenerosModule,
     IdiomasModule,
+    MailModule
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
