@@ -7,6 +7,8 @@ import { ConfigModule } from '@nestjs/config';
 import { CiudadesModule } from './ciudades/ciudad.module';
 import { CinesModule } from './cines/cine.module';
 import { RolesModule } from './roles/roles.module';
+import { GenerosModule } from './generos/generos.module';
+import { IdiomasModule } from './idiomas/idiomas.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { RolesModule } from './roles/roles.module';
     CiudadesModule,
     CinesModule,
     RolesModule,
+    GenerosModule,
+    IdiomasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
