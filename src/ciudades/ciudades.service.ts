@@ -6,7 +6,18 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class CiudadesService {
   constructor(private prismaService: PrismaService) {}
 
-  create(createCiudadeDto: CreateCiudadeDto) {
-    return this.prismaService.ciudades.create({ data: createCiudadeDto });
+  async create(createCiudadeDto: CreateCiudadeDto) {
+    return await this.prismaService.ciudades.create({ data: createCiudadeDto });
+  }
+
+  async findAll() {
+    return await this.prismaService.ciudades.findMany();
+  }
+
+  async update(id: number, updateCiudadeDto: CreateCiudadeDto) {
+    return await this.prismaService.ciudades.update({
+      where: { id },
+      data: updateCiudadeDto,
+    });
   }
 }
