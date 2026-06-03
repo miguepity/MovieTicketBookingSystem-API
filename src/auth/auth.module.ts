@@ -9,12 +9,12 @@ import { UsersModule } from 'src/users/users.module';
   controllers: [AuthController],
   providers: [PrismaService, AuthService],
   imports: [
+    UsersModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
-    UsersModule,
   ],
 })
 export class AuthModule {}

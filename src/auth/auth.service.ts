@@ -12,14 +12,26 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.usersService.findOneByEmail(email);
-    const hashed_password = await bcrypt.hash(password, 10);
 
-    if (!user || user.password_hash !== hashed_password) {
+    if (!user) throw new BadRequestException('Invalid credentials');
+
+    const hashed_password = await bcrypt.compare(password, user.password_hash);
+
+    if (!user || !hashed_password) {
       throw new BadRequestException('Invalid credentials');
     }
 
-    const payload = { userId: user.id, email: user.email, role: user.id_rol };
+    const payload = {
+      userId: user.id.toString(),
+      email: user.email,
+      name: user.nombre,
+      role: user.id_rol.toString(),
+    };
 
-    return { access_token: await this.jwtService.signAsync(payload) };
+    return {
+      access_token: await this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_SECRET,
+      }),
+    };
   }
 }
