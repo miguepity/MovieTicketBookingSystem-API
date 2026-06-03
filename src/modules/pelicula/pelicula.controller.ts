@@ -27,13 +27,13 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { PeliculaService } from './pelicula.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -45,16 +45,12 @@ export class PeliculaController {
 
   @Get()
   @ApiOperation({
-    summary: 'Listar películas con búsqueda parcial por título',
-  })
-  @ApiQuery({
-    name: 'titulo',
-    required: false,
-    description: 'Coincidencia parcial sobre el título (case-insensitive)',
+    summary:
+      'Listar películas con filtros por título, género, idioma, ciudad y rango de funciones',
   })
   @ApiOkResponse({ description: 'Listado de películas' })
-  findAll(@Query('titulo') titulo?: string) {
-    return this.peliculaService.findAll(titulo);
+  findAll(@Query() query: QueryPeliculaDto) {
+    return this.peliculaService.findAll(query);
   }
 
   @Post()

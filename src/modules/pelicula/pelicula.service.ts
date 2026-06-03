@@ -8,7 +8,9 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { CloudinaryService } from './cloudinary.service';
+import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
 export class PeliculaService {
@@ -43,12 +45,38 @@ export class PeliculaService {
     });
   }
 
-  findAll(titulo?: string) {
+  findAll(query: QueryPeliculaDto = {}) {
+    const { titulo, genero, idioma, fecha_inicio, fecha_fin, ciudad_id } =
+      query;
+
+    const where: Prisma.PeliculasWhereInput = {};
+
     const trimmed = titulo?.trim();
+    if (trimmed) {
+      where.titulo = { contains: trimmed, mode: 'insensitive' };
+    }
+    if (genero !== undefined) {
+      where.id_genero = genero;
+    }
+    if (idioma !== undefined) {
+      where.id_idioma = idioma;
+    }
+
+    if (fecha_inicio || fecha_fin) {
+      where.fecha_estreno = {
+        ...(fecha_inicio ? { gte: new Date(fecha_inicio) } : {}),
+        ...(fecha_fin ? { lte: new Date(fecha_fin) } : {}),
+      };
+    }
+
+    if (ciudad_id !== undefined) {
+      where.funciones = {
+        some: { salas: { cines: { id_ciudad: ciudad_id } } },
+      };
+    }
+
     return this.prisma.peliculas.findMany({
-      where: trimmed
-        ? { titulo: { contains: trimmed, mode: 'insensitive' } }
-        : undefined,
+      where,
       orderBy: { created_at: 'desc' },
     });
   }
