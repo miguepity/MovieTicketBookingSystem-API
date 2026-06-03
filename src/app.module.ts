@@ -12,6 +12,7 @@ import { RolesModule } from './roles/roles.module';
 import { MailModule } from './mail/mail.module';
 import { CuponesModule } from './cupones/cupones.module';
 import { PoliticaCancelacionModule } from './politica-cancelacion/politica-cancelacion.module';
+import { SalasModule } from './salas/salas.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PoliticaCancelacionModule } from './politica-cancelacion/politica-cance
     MailModule,
     CuponesModule,
     PoliticaCancelacionModule,
+    SalasModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -3,6 +3,10 @@ allowBuilds:
   '@prisma/engines': false
   '@scarf/scarf': true
   bcrypt: true
+<<<<<<< HEAD
   esbuild: false
+=======
+  esbuild: true
+>>>>>>> 4476fa1 (dto, controller, service de salas. Aun en proceso)
   prisma: false
   'unrs-resolver': true
