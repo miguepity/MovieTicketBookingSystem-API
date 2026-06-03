@@ -114,6 +114,16 @@ export class PeliculaController {
     return this.peliculaService.uploadPoster(id, file);
   }
 
+  @Get(':id/cines')
+  @ApiOperation({
+    summary: 'Obtener cines con funciones activas para una película',
+  })
+  @ApiOkResponse({ description: 'Listado de cines con sus funciones activas' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  getCinesByPelicula(@Param('id') id: string) {
+    return this.peliculaService.findCinesByPelicula(id);
+  }
+
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
