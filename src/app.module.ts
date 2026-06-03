@@ -8,6 +8,7 @@ import { PasswordResetTokenModule } from './password reset/passwordresetmodule';
 import { CiudadesModule } from './ciudades/ciudades.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { GenerosModule } from './generos/generos.module';
+import { RolesModule } from './roles/roles.module';
 import { CineModule } from './cines/cines.module';
 import { CuponesModule } from './cupones/cupones.module';
 
@@ -20,6 +21,7 @@ import { CuponesModule } from './cupones/cupones.module';
     PeliculasModule,
     CiudadesModule,
     GenerosModule,
+    RolesModule,
     CineModule,
     CuponesModule,
   ],
