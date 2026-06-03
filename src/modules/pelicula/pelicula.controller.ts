@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import {
   Body,
   Controller,
@@ -5,13 +6,21 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseFilePipe,
   Patch,
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
+  FileTypeValidator,
+  MaxFileSizeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
+  ApiBody,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -58,6 +67,38 @@ export class PeliculaController {
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   updatePelicula(@Param('id') id: string, @Body() data: UpdatePeliculaDto) {
     return this.peliculaService.updatePelicula(id, data);
+  }
+
+  @Post(':id/poster')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Subir poster de una película a Cloudinary' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiOkResponse({ description: 'Poster subido y URL actualizada' })
+  @ApiBadRequestResponse({ description: 'Archivo inválido o faltante' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  uploadPoster(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp|jpg)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.peliculaService.uploadPoster(id, file);
   }
 
   @Patch(':id/status')

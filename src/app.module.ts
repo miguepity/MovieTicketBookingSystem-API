@@ -24,9 +24,9 @@ import { IdiomasModule } from './modules/idiomas/idiomas.module';
     UsersModule,
     GenerosModule,
     IdiomasModule,
-    MailModule
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

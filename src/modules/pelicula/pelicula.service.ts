@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import {
   BadRequestException,
   Injectable,
@@ -7,10 +8,40 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { CloudinaryService } from './cloudinary.service';
 
 @Injectable()
 export class PeliculaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinary: CloudinaryService,
+  ) {}
+
+  async uploadPoster(id: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Archivo de imagen requerido');
+    }
+
+    const peliculaId = this.parseId(id);
+    const existing = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    const result = await this.cloudinary.uploadPoster(
+      file,
+      `pelicula_${peliculaId.toString()}`,
+    );
+
+    return this.prisma.peliculas.update({
+      where: { id: peliculaId },
+      data: { poster_url: result.secure_url },
+      select: { id: true, poster_url: true },
+    });
+  }
 
   findAll(titulo?: string) {
     const trimmed = titulo?.trim();
