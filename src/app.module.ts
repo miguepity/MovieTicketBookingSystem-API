@@ -20,7 +20,7 @@ import { CuponesModule } from './cupones/cupones.module';
     PeliculasModule,
     CiudadesModule,
     GenerosModule,
-    CineModule
+    CineModule,
     CuponesModule,
   ],
   controllers: [AppController],
