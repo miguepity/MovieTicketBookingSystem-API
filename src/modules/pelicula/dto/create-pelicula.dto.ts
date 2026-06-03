@@ -63,11 +63,4 @@ export class CreatePeliculaDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
-
-  @ApiProperty({
-    description: 'ID del usuario que creó la película',
-    example: '1',
-  })
-  @Transform(({ value }) => BigInt(value as string | number))
-  id_usuario!: bigint;
 }

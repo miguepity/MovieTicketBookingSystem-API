@@ -53,8 +53,11 @@ export class PeliculaService {
     });
   }
 
-  async createPelicula(data: CreatePeliculaDto): Promise<{ id: bigint }> {
-    await this.assertUsuarioExists(data.id_usuario);
+  async createPelicula(
+    data: CreatePeliculaDto,
+    userId: bigint,
+  ): Promise<{ id: bigint }> {
+    await this.assertUsuarioExists(userId);
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
@@ -69,7 +72,7 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
-        id_usuario: data.id_usuario,
+        id_usuario: userId,
       },
       select: { id: true },
     });
@@ -88,10 +91,6 @@ export class PeliculaService {
       throw new NotFoundException('Película no encontrada');
     }
 
-    if (data.id_usuario !== undefined) {
-      await this.assertUsuarioExists(data.id_usuario);
-    }
-
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
@@ -107,7 +106,6 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
-        id_usuario: data.id_usuario,
       },
     });
   }
