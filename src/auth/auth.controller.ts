@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './register.dto';
 import { LoginDto } from './login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Autenticación') 
 @Controller('auth')
@@ -30,5 +31,10 @@ export class AuthController {
   @Post('forgot-password')
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

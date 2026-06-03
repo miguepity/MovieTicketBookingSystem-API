@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './register.dto';
 import { MailService } from '../mail/mail.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -166,12 +167,97 @@ export class AuthService {
     return { message: this.successMessage };
   }
 
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const token = this.normalizeResetToken(resetPasswordDto.token);
+    const newPassword = resetPasswordDto.newPassword?.trim() ?? '';
+
+    if (!token) {
+      throw new BadRequestException('El token es requerido');
+    }
+
+    if (!this.isValidPassword(newPassword)) {
+      throw new BadRequestException(
+        'La nueva contrasena debe tener al menos 8 caracteres',
+      );
+    }
+
+    const validTokens = await this.prisma.passwordResetToken.findMany({
+      where: {
+        usado: false,
+        expires_at: {
+          gt: new Date(),
+        },
+      },
+      select: {
+        id: true,
+        id_usuario: true,
+        token: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    const passwordResetToken = await this.findMatchingResetToken(
+      token,
+      validTokens,
+    );
+
+    if (!passwordResetToken) {
+      throw new BadRequestException('Token invalido o expirado');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.usuarios.update({
+        where: { id: passwordResetToken.id_usuario },
+        data: { password_hash: passwordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: passwordResetToken.id },
+        data: { usado: true },
+      }),
+    ]);
+
+    return { message: 'Contrasena restablecida correctamente' };
+  }
+
   private normalizeEmail(email?: string) {
     return email?.trim().toLowerCase() ?? '';
   }
 
   private isValidEmail(email: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  private isValidPassword(password: string) {
+    return password.length >= 8;
+  }
+
+  private normalizeResetToken(token?: string) {
+    const trimmedToken = token?.trim() ?? '';
+
+    try {
+      return decodeURIComponent(trimmedToken);
+    } catch {
+      return trimmedToken;
+    }
+  }
+
+  private async findMatchingResetToken(
+    token: string,
+    resetTokens: Array<{ id: bigint; id_usuario: bigint; token: string }>,
+  ) {
+    for (const resetToken of resetTokens) {
+      const isMatch = await bcrypt.compare(token, resetToken.token);
+
+      if (isMatch) {
+        return resetToken;
+      }
+    }
+
+    return null;
   }
 
   private generateToken(email: string) {
