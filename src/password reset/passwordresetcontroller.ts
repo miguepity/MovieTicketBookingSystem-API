@@ -1,6 +1,5 @@
-import { Controller, Post, Body, Param } from "@nestjs/common";
+import { Controller, Post, Body, Param, ParseIntPipe } from "@nestjs/common";
 import { PasswordResetService } from "./passwordresetservices";
-import { ParamDto } from "./dto/passwordreset.param.dto";
 import { BodyDto } from "./dto/passwordreset.body.dto"
 
 @Controller('auth')
@@ -12,7 +11,7 @@ export class PasswordResetTokenController{
         @Body() dto: BodyDto,
     ){
         try{
-            return this.forgotPassword(dto);
+            return this.passwordReset.forgotPassword(dto);
         }catch(error){
             return 'Internal error';
         }
@@ -20,10 +19,10 @@ export class PasswordResetTokenController{
 
     @Post('reset-password/:id')
     resetPassword(
-        @Param() dto: ParamDto
+        @Param('id', ParseIntPipe) id_usuario: number,
     ){
         try{
-            return this.resetPassword(dto);
+            return this.passwordReset.resetPassword({id_usuario});
         }catch(error){
             return 'Internal error';
         }

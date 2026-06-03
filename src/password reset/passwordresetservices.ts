@@ -8,6 +8,12 @@ export class PasswordResetService{
     constructor(private readonly prisma: PrismaService){}
 
     async forgotPassword(dto: BodyDto){
+        const findeUser = await this.prisma.usuarios.findFirst({
+            where: {id: dto.id_usuario}
+        });
+        if(!findeUser){
+            throw new NotFoundException('User not found.');
+        }
         const newToken = await this.prisma.passwordResetToken.create({
             data: dto
         });
@@ -31,5 +37,6 @@ export class PasswordResetService{
         await this.prisma.passwordResetToken.create({
             data: {id_usuario: dto.id_usuario, token: foundToken.token, expires_at: new Date()}
         });
+        return 'Password actualizada con exito.';
     }
 }
