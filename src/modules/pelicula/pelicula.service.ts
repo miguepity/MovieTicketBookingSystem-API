@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import {
   BadRequestException,
   Injectable,
@@ -7,10 +8,40 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { CloudinaryService } from './cloudinary.service';
 
 @Injectable()
 export class PeliculaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinary: CloudinaryService,
+  ) {}
+
+  async uploadPoster(id: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Archivo de imagen requerido');
+    }
+
+    const peliculaId = this.parseId(id);
+    const existing = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    const result = await this.cloudinary.uploadPoster(
+      file,
+      `pelicula_${peliculaId.toString()}`,
+    );
+
+    return this.prisma.peliculas.update({
+      where: { id: peliculaId },
+      data: { poster_url: result.secure_url },
+      select: { id: true, poster_url: true },
+    });
+  }
 
   findAll(titulo?: string) {
     const trimmed = titulo?.trim();
@@ -22,8 +53,11 @@ export class PeliculaService {
     });
   }
 
-  async createPelicula(data: CreatePeliculaDto): Promise<{ id: bigint }> {
-    await this.assertUsuarioExists(data.id_usuario);
+  async createPelicula(
+    data: CreatePeliculaDto,
+    userId: bigint,
+  ): Promise<{ id: bigint }> {
+    await this.assertUsuarioExists(userId);
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
@@ -38,7 +72,7 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
-        id_usuario: data.id_usuario,
+        id_usuario: userId,
       },
       select: { id: true },
     });
@@ -57,10 +91,6 @@ export class PeliculaService {
       throw new NotFoundException('Película no encontrada');
     }
 
-    if (data.id_usuario !== undefined) {
-      await this.assertUsuarioExists(data.id_usuario);
-    }
-
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
@@ -76,7 +106,6 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
-        id_usuario: data.id_usuario,
       },
     });
   }

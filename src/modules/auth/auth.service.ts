@@ -9,8 +9,8 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { MailService } from 'src/mail/mail.service';
 import { ChangeEmailDto } from './dto/change-email.dto';
+import { MailService } from 'src/modules/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -18,8 +18,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
-  ) { }
-
+  ) {}
   async login(loginDto: LoginDto) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { email: loginDto.email },
@@ -61,9 +60,10 @@ export class AuthService {
       throw new ConflictException('El email ya está registrado');
     }
 
-    const rolDefault = await this.prisma.roles.findFirst({
-      where: { nombre: 'cliente' },
-    }) ?? await this.prisma.roles.findFirst();
+    const rolDefault =
+      (await this.prisma.roles.findFirst({
+        where: { nombre: 'cliente' },
+      })) ?? (await this.prisma.roles.findFirst());
 
     if (!rolDefault) {
       throw new InternalServerErrorException(

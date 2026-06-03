@@ -1,8 +1,22 @@
-import { Controller, Get, Post, Body, Put, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CiudadesService } from './ciudades.service';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
 import { UpdateCiudadesDto } from './dto/update-ciudades.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Ciudades')
 @Controller('Ciudades')
@@ -22,6 +36,8 @@ export class CiudadesController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Crear una nueva ciudad',
     description: 'Permite crear una nueva ciudad con los datos proporcionados.',
@@ -30,11 +46,14 @@ export class CiudadesController {
     status: 201,
     description: 'Ciudad creada exitosamente.',
   })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   create(@Body() createCiudadesDto: CreateCiudadesDto) {
     return this.ciudadesService.create(createCiudadesDto);
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar una ciudad',
     description: 'Permite actualizar los datos de una ciudad existente.',
@@ -43,6 +62,7 @@ export class CiudadesController {
     status: 200,
     description: 'Ciudad actualizada exitosamente.',
   })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   update(
     @Param('id') id: string,
     @Body() updateCiudadesDto: UpdateCiudadesDto,
