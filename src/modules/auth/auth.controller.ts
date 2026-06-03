@@ -9,6 +9,8 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthResponse } from './entities/auth-response.entity';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -47,6 +49,42 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'El email ya está registrado.' })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({
+    summary: 'Solicitar restablecimiento de contraseña',
+    description:
+      'Genera un token de recuperación y envía un email con el enlace para restablecer la contraseña.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email de recuperación enviado (respuesta genérica por seguridad).',
+    schema: {
+      example: {
+        message:
+          'Si el email está registrado, recibirás un enlace para restablecer tu contraseña.',
+      },
+    },
+  })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({
+    summary: 'Restablecer contraseña',
+    description:
+      'Valida el token de recuperación y actualiza la contraseña del usuario.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada exitosamente.',
+    schema: { example: { message: 'Contraseña actualizada exitosamente' } },
+  })
+  @ApiResponse({ status: 400, description: 'Token inválido, ya usado o expirado.' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Put('change-email')
