@@ -9,6 +9,10 @@ import { CiudadesModule } from './ciudades/ciudades.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { GenerosModule } from './generos/generos.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
+import { RolesModule } from './roles/roles.module';
+import { CineModule } from './cines/cines.module';
+import { CuponesModule } from './cupones/cupones.module';
+
 @Module({
   imports: [
     PasswordResetTokenModule,
@@ -19,6 +23,9 @@ import { IdiomasModule } from './idiomas/idiomas.module';
     CiudadesModule,
     GenerosModule,
     IdiomasModule,
+    RolesModule,
+    CineModule,
+    CuponesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
