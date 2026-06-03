@@ -5,6 +5,8 @@ import { CreateCiudadDto } from './create-ciudad.dto';
 import { UpdateCiudadDto } from './update-ciudad.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
 
 @ApiTags('Ciudades') 
 @Controller('ciudades')
@@ -14,6 +16,7 @@ export class CiudadesController {
   @Post()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una nueva ciudad ' })
   @ApiResponse({ status: 201, description: 'Ciudad creada con éxito.' })
   @ApiResponse({ status: 409, description: 'La ciudad ya existe.' })
@@ -40,6 +43,7 @@ export class CiudadesController {
   @Patch(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar una ciudad por ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico de la ciudad a modificar' })
   @ApiResponse({ status: 200, description: 'Ciudad actualizada con éxito.' })
@@ -51,7 +55,8 @@ export class CiudadesController {
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Eliminar una ciudad por ID )' })
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Eliminar una ciudad por ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico de la ciudad a eliminar' })
   @ApiResponse({ status: 200, description: 'Ciudad eliminada con éxito.' })
   @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
