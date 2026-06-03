@@ -1,25 +1,35 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Patch, Post, Put } from '@nestjs/common';
 import { PeliculasService } from './peliculas.service.js';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto.js';
+import { UpdatePeliculaDto } from './dto/update-pelicula.dto.js';
+import { ToggleStatusPeliculaDto } from './dto/toggle-status-pelicula.dto.js';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
+import { RolesGuard } from '../guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 
 @Controller('peliculas')
 export class PeliculasController {
   constructor(private readonly peliculasService: PeliculasService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   create(@Body() body: CreatePeliculaDto) {
-    if (!body.titulo || body.titulo.trim() === '') {
-      throw new BadRequestException('Title is required');
-    }
-    if (body.id_usuario === undefined || body.id_usuario === null) {
-      throw new BadRequestException('User ID is required');
-    }
-    if (body.titulo.length > 200) {
-      throw new BadRequestException('Title cannot exceed 200 characters');
-    }
-    if (body.poster_url && body.poster_url.length > 500) {
-      throw new BadRequestException('Poster URL cannot exceed 500 characters');
-    }
     return this.peliculasService.create(body);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  update(@Param('id') id: string, @Body() body: UpdatePeliculaDto) {
+    return this.peliculasService.update(id, body);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  toggleStatus(@Param('id') id: string, @Body() body: ToggleStatusPeliculaDto) {
+    return this.peliculasService.toggleStatus(id, body);
   }
 }
