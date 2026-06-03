@@ -1,6 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsPositive, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateSalaDto {
   @ApiProperty({ example: 'Sala 1' })
@@ -12,11 +19,13 @@ export class CreateSalaDto {
   @ApiProperty({ example: 10 })
   @IsInt()
   @Min(1)
+  @IsPositive()
   filas!: number;
 
   @ApiProperty({ example: 10 })
   @IsInt()
   @Min(1)
+  @IsPositive()
   columnas!: number;
 
   @ApiProperty({ type: String, example: '1' })
