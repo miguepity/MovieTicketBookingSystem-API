@@ -11,6 +11,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GenerosModule } from './modules/generos/generos.module';
 import { IdiomasModule } from './modules/idiomas/idiomas.module';
+import { RolesModule } from './modules/roles/roles.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { IdiomasModule } from './modules/idiomas/idiomas.module';
     UsersModule,
     GenerosModule,
     IdiomasModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
