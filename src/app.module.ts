@@ -5,6 +5,11 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { SalaModule } from './sala/sala.module';
+import { CiudadesModule } from './ciudades/ciudad.module';
+import { CinesModule } from './cines/cine.module';
+import { RolesModule } from './roles/roles.module';
+import { GenerosModule } from './generos/generos.module';
+import { IdiomasModule } from './idiomas/idiomas.module';
 
 @Module({
   imports: [
@@ -12,6 +17,11 @@ import { SalaModule } from './sala/sala.module';
     PrismaModule,
     AuthModule,
     SalaModule,
+    CiudadesModule,
+    CinesModule,
+    RolesModule,
+    GenerosModule,
+    IdiomasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
