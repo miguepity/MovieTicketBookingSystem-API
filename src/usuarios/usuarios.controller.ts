@@ -2,6 +2,7 @@ import { Controller, ValidationPipe, ParseIntPipe } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { Body, Put, Param, Patch } from '@nestjs/common';
 import { UpdateEmailDto } from './dto/update-email.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Controller('usuarios')
@@ -17,6 +18,14 @@ export class UsuariosController {
     return this.usuariosService.updateUserEmail(id, updateEmailDto.newEmail);
   }
 
+  @Put(':id/password')
+  updatePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ) {
+    return this.usuariosService.updatePassword(id, updatePasswordDto);
+  }
+  
   @Patch(':id/status')
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
