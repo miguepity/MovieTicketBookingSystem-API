@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 (BigInt.prototype as any).toJSON = function () {
-  return this.toString();
+  return Number(this);
 };
 
 async function bootstrap() {
@@ -17,6 +17,20 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  if (document.paths) {
+    Object.keys(document.paths).forEach((path) => {
+      const methods = document.paths[path];
+      Object.keys(methods).forEach((method) => {
+        if (!methods[method].responses) {
+          methods[method].responses = {};
+        }
+        methods[method].responses['500'] = {
+          description: 'Error interno del servidor. Ocurrió un error inesperado al procesar la solicitud.',
+        };
+      });
+    });
+  }
 
   SwaggerModule.setup('api', app, document);
 

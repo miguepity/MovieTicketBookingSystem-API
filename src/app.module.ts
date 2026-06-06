@@ -10,6 +10,7 @@ import { RolesModule } from './roles/roles.module';
 import { GenerosModule } from './generos/generos.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
 import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_cancelacion.module';
+import { FuncionesModule } from './funciones/funciones.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_ca
     GenerosModule,
     IdiomasModule,
     PoliticasCancelacionModule,
+    FuncionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
