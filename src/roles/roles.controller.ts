@@ -18,6 +18,8 @@ export class RolesController {
   @Post()
   @ApiOperation({ summary: 'Crear un nuevo rol ' })
   @ApiResponse({ status: 201, description: 'Rol creado con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'El nombre del rol ya existe.' })
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.rolesService.create(createRoleDto);
@@ -26,6 +28,8 @@ export class RolesController {
   @Get()
   @ApiOperation({ summary: 'Obtener todos los roles registrados' })
   @ApiResponse({ status: 200, description: 'Lista de roles retornada.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'No se encontraron roles.' })
   findAll() {
     return this.rolesService.findAll();
   }
@@ -34,6 +38,7 @@ export class RolesController {
   @ApiOperation({ summary: 'Obtener un rol por su ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico del rol' })
   @ApiResponse({ status: 200, description: 'Rol encontrado.' })
+  @ApiResponse({ status:401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Rol no encontrado.' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.findOne(id);
@@ -43,6 +48,8 @@ export class RolesController {
   @ApiOperation({ summary: 'Actualizar un rol por ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico del rol a modificar' })
   @ApiResponse({ status: 200, description: 'Rol actualizado con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Rol no encontrado.' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateRoleDto: UpdateRoleDto) {
     return this.rolesService.update(id, updateRoleDto);
@@ -52,6 +59,8 @@ export class RolesController {
   @ApiOperation({ summary: 'Eliminar un rol por ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico del rol a eliminar' })
   @ApiResponse({ status: 200, description: 'Rol eliminado con éxito.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'Rol no encontrado.' })
   @ApiResponse({ status: 409, description: 'No se puede eliminar (Tiene usuarios asignados).' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.remove(id);

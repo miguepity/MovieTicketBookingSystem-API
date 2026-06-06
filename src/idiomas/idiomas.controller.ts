@@ -18,6 +18,8 @@ export class IdiomasController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Registrar un nuevo idioma ' })
   @ApiResponse({ status: 201, description: 'Idioma creado con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'El nombre del idioma ya existe.' })
   create(@Body() createIdiomaDto: CreateIdiomaDto) {
     return this.idiomasService.create(createIdiomaDto);
@@ -26,6 +28,7 @@ export class IdiomasController {
   @Get()
   @ApiOperation({ summary: 'Listar todos los idiomas ' })
   @ApiResponse({ status: 200, description: 'Lista de idiomas retornada con éxito.' })
+  @ApiResponse({ status: 404, description: 'No se encontraron idiomas.' })
   findAll() {
     return this.idiomasService.findAll();
   }
@@ -44,6 +47,7 @@ export class IdiomasController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar un idioma por ID ' })
   @ApiResponse({ status: 200, description: 'Idioma actualizado con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 404, description: 'Idioma no encontrado.' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateIdiomaDto: UpdateIdiomaDto) {
     return this.idiomasService.update(id, updateIdiomaDto);
