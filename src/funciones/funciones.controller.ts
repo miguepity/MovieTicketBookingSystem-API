@@ -1,0 +1,82 @@
+import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { FuncionesService } from './funciones.service';
+import { CreateFuncionDto } from './create-funciones.dto';
+import { UpdateFuncionDto } from './update-funciones.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+@ApiTags('Cartelera de Funciones')
+@Controller('funciones')
+export class FuncionesController {
+  constructor(private readonly funcionesService: FuncionesService) {}
+
+  @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Crear una función ' })
+  @ApiResponse({ status: 201, description: 'Función agendada con éxito.' })
+  @ApiResponse({ status: 409, description: 'La sala está ocupada en ese horario.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  create(@Body() createFuncionDto: CreateFuncionDto) {
+    return this.funcionesService.create(createFuncionDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Obtener todas las funciones vigentes ' })
+  @ApiResponse({ status: 200, description: 'Lista de funciones retornada con éxito.' })
+  @ApiResponse({ status: 404, description: 'No se encontraron funciones.' })
+  findAll() {
+    return this.funcionesService.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener detalles de una función por su ID' })
+  @ApiResponse({ status: 200, description: 'Detalles de la función retornados con éxito.' })
+  @ApiResponse({ status: 404, description: 'Función no encontrada.' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.findOne(id);
+  }
+
+  @Put(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Modificar una función completa  ' })
+  @ApiResponse({ status: 200, description: 'Función modificada con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'Función no encontrada.' })
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateFuncionDto: UpdateFuncionDto) {
+    return this.funcionesService.update(id, updateFuncionDto);
+  }
+
+  @Patch(':id/cancelar')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Cancelar una función por emergencia, liberando asientos y notificando usuarios' })
+  @ApiResponse({ status: 200, description: 'Función dada de baja. Correos emitidos.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'Función no encontrada.' })
+  cancelar(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.cancelar(id);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Eliminar físicamente una función de la base de datos' })
+  @ApiResponse({ status: 200, description: 'Función eliminada con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'Función no encontrada.' })
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.remove(id);
+  }
+}

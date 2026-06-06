@@ -18,6 +18,8 @@ export class GenerosController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear un nuevo género ' })
   @ApiResponse({ status: 201, description: 'Género creado con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'El nombre del género ya existe.' })
   create(@Body() createGeneroDto: CreateGeneroDto) {
     return this.generosService.create(createGeneroDto);
@@ -26,6 +28,7 @@ export class GenerosController {
   @Get()
   @ApiOperation({ summary: 'Listar todos los géneros ' })
   @ApiResponse({ status: 200, description: 'Lista de géneros retornada con éxito.' })
+  @ApiResponse({ status: 404, description: 'No se encontraron géneros.' })
   findAll() {
     return this.generosService.findAll();
   }
@@ -44,6 +47,8 @@ export class GenerosController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar un género ' })
   @ApiResponse({ status: 200, description: 'Género actualizado con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Género no encontrado.' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateGeneroDto: UpdateGeneroDto) {
     return this.generosService.update(id, updateGeneroDto);
@@ -55,6 +60,7 @@ export class GenerosController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar un género ' })
   @ApiResponse({ status: 200, description: 'Género eliminado con éxito.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Género no encontrado.' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.generosService.remove(id);

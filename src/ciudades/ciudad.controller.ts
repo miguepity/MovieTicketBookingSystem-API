@@ -19,6 +19,8 @@ export class CiudadesController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una nueva ciudad ' })
   @ApiResponse({ status: 201, description: 'Ciudad creada con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'La ciudad ya existe.' })
   create(@Body() createCiudadDto: CreateCiudadDto) {
     return this.ciudadesService.create(createCiudadDto);
@@ -27,6 +29,7 @@ export class CiudadesController {
   @Get()
   @ApiOperation({ summary: 'Obtener la lista de todas las ciudades '})
   @ApiResponse({ status: 200, description: 'Lista de ciudades retornada con éxito.' })
+  @ApiResponse({ status: 404, description: 'No se encontraron ciudades.' })
   findAll() {
     return this.ciudadesService.findAll();
   }
@@ -47,6 +50,8 @@ export class CiudadesController {
   @ApiOperation({ summary: 'Actualizar una ciudad por ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico de la ciudad a modificar' })
   @ApiResponse({ status: 200, description: 'Ciudad actualizada con éxito.' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateCiudadDto: UpdateCiudadDto) {
     return this.ciudadesService.update(id, updateCiudadDto);
@@ -59,6 +64,7 @@ export class CiudadesController {
   @ApiOperation({ summary: 'Eliminar una ciudad por ID ' })
   @ApiParam({ name: 'id', description: 'ID numérico de la ciudad a eliminar' })
   @ApiResponse({ status: 200, description: 'Ciudad eliminada con éxito.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
   @ApiResponse({ status: 409, description: 'No se puede eliminar (tiene cines vinculados).' })
   remove(@Param('id', ParseIntPipe) id: number) {

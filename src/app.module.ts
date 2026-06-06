@@ -9,6 +9,7 @@ import { CinesModule } from './cines/cine.module';
 import { RolesModule } from './roles/roles.module';
 import { GenerosModule } from './generos/generos.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
+import { FuncionesModule } from './funciones/funciones.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { IdiomasModule } from './idiomas/idiomas.module';
     RolesModule,
     GenerosModule,
     IdiomasModule,
+    FuncionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
