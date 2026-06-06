@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsuariosService {
@@ -38,5 +40,37 @@ export class UsuariosService {
       where: { id: userId },
       data: { email: newEmail },
     });
+  }
+
+  async updatePassword(id: number, dto: UpdatePasswordDto) {
+    // 1. Buscar al usuario por su ID usando BigInt
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado.`);
+    }
+
+    // 2. Verificar si la contraseña actual coincide con el hash
+    const isMatch = await bcrypt.compare(
+      dto.oldPassword,
+      usuario.password_hash,
+    );
+    if (!isMatch) {
+      throw new BadRequestException('La contraseña actual es incorrecta.');
+    }
+
+    // 3. Hashear la nueva contraseña con el factor de 10
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, salt);
+
+    // 4. Actualizar el registro en la base de datos
+    await this.prisma.usuarios.update({
+      where: { id: BigInt(id) },
+      data: { password_hash: newPasswordHash },
+    });
+
+    return { message: 'Contraseña actualizada exitosamente.' };
   }
 }
