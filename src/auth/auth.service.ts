@@ -6,10 +6,16 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { UnauthorizedException } from '@nestjs/common/exceptions';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.usuarios.findUnique({
@@ -48,6 +54,49 @@ export class AuthService {
       },
     });
 
-    return user;
+    return {
+      ...user,
+      id: user.id.toString(), // Prevención de error BigInt al serializar en registro
+    };
+  }
+
+  async login(dto: LoginDto) {
+    const user = await this.prisma.usuarios.findUnique({
+      where: { email: dto.email },
+      include: { roles: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciales incorrectas');
+    }
+
+    if (user.estado !== 'activo') {
+      throw new UnauthorizedException('Tu cuenta se encuentra inactiva');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.password_hash,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Credenciales incorrectas');
+    }
+
+    const payload = {
+      sub: user.id.toString(),
+      email: user.email,
+      role: user.roles.nombre,
+    };
+
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+      user: {
+        id: user.id.toString(),
+        nombre: user.nombre,
+        email: user.email,
+        telefono: user.telefono,
+        rol: user.roles.nombre,
+      },
+    };
   }
 }
