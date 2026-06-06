@@ -13,6 +13,7 @@ import { RolesModule } from './roles/roles.module';
 import { CineModule } from './cines/cines.module';
 import { CuponesModule } from './cupones/cupones.module';
 import { SalaModule } from './salas/salas.module';
+import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { SalaModule } from './salas/salas.module';
     RolesModule,
     CineModule,
     CuponesModule,
-    SalaModule
+    SalaModule,
+    PoliticasCancelacionModule
   ],
   controllers: [AppController],
   providers: [AppService],
