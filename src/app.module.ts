@@ -7,17 +7,25 @@ import { CiudadesModule } from './modules/ciudades/ciudades.module';
 import { PeliculaModule } from './modules/pelicula/pelicula.module';
 import { UsersModule } from './modules/users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
+import { MailModule } from './modules/mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GenerosModule } from './modules/generos/generos.module';
+import { IdiomasModule } from './modules/idiomas/idiomas.module';
+import { RolesModule } from './modules/roles/roles.module';
 
 @Module({
   imports: [
     PrismaModule,
+    MailModule,
     CineModule,
     CiudadesModule,
     PeliculaModule,
     SalasModule,
     AuthModule,
     UsersModule,
+    GenerosModule,
+    IdiomasModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

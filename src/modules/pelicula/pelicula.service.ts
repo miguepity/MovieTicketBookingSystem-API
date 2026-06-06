@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import {
   BadRequestException,
   Injectable,
@@ -7,23 +8,84 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { QueryPeliculaDto } from './dto/query-pelicula.dto';
+import { CloudinaryService } from './cloudinary.service';
+import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
 export class PeliculaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinary: CloudinaryService,
+  ) {}
 
-  findAll(titulo?: string) {
+  async uploadPoster(id: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Archivo de imagen requerido');
+    }
+
+    const peliculaId = this.parseId(id);
+    const existing = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    const result = await this.cloudinary.uploadPoster(
+      file,
+      `pelicula_${peliculaId.toString()}`,
+    );
+
+    return this.prisma.peliculas.update({
+      where: { id: peliculaId },
+      data: { poster_url: result.secure_url },
+      select: { id: true, poster_url: true },
+    });
+  }
+
+  findAll(query: QueryPeliculaDto = {}) {
+    const { titulo, genero, idioma, fecha_inicio, fecha_fin, ciudad_id } =
+      query;
+
+    const where: Prisma.PeliculasWhereInput = {};
+
     const trimmed = titulo?.trim();
+    if (trimmed) {
+      where.titulo = { contains: trimmed, mode: 'insensitive' };
+    }
+    if (genero !== undefined) {
+      where.id_genero = genero;
+    }
+    if (idioma !== undefined) {
+      where.id_idioma = idioma;
+    }
+
+    if (fecha_inicio || fecha_fin) {
+      where.fecha_estreno = {
+        ...(fecha_inicio ? { gte: new Date(fecha_inicio) } : {}),
+        ...(fecha_fin ? { lte: new Date(fecha_fin) } : {}),
+      };
+    }
+
+    if (ciudad_id !== undefined) {
+      where.funciones = {
+        some: { salas: { cines: { id_ciudad: ciudad_id } } },
+      };
+    }
+
     return this.prisma.peliculas.findMany({
-      where: trimmed
-        ? { titulo: { contains: trimmed, mode: 'insensitive' } }
-        : undefined,
+      where,
       orderBy: { created_at: 'desc' },
     });
   }
 
-  async createPelicula(data: CreatePeliculaDto): Promise<{ id: bigint }> {
-    await this.assertUsuarioExists(data.id_usuario);
+  async createPelicula(
+    data: CreatePeliculaDto,
+    userId: bigint,
+  ): Promise<{ id: bigint }> {
+    await this.assertUsuarioExists(userId);
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
@@ -38,7 +100,7 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
-        id_usuario: data.id_usuario,
+        id_usuario: userId,
       },
       select: { id: true },
     });
@@ -57,10 +119,6 @@ export class PeliculaService {
       throw new NotFoundException('Película no encontrada');
     }
 
-    if (data.id_usuario !== undefined) {
-      await this.assertUsuarioExists(data.id_usuario);
-    }
-
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
@@ -76,7 +134,6 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
-        id_usuario: data.id_usuario,
       },
     });
   }
