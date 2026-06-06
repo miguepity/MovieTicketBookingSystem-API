@@ -73,7 +73,7 @@ export class UsuariosService {
 
     try {
       const payload = this.jwtService.verify(dto.token);
-      userId = payload.sub; // Extraemos el ID del usuario del sub de tu payload JWT
+      userId = payload.sub; 
     } catch (error) {
       throw new BadRequestException(
         'El token de confirmación es inválido o ha expirado.',
