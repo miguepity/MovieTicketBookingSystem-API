@@ -1,0 +1,2 @@
+export const BLOQUEO_DURACION_MINUTOS = 5;
+export const LIMITE_ASIENTOS_POR_BLOQUEO = 10;
