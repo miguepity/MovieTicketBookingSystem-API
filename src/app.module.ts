@@ -9,6 +9,7 @@ import { CinesModule } from './cines/cine.module';
 import { RolesModule } from './roles/roles.module';
 import { GenerosModule } from './generos/generos.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
+import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_cancelacion.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { IdiomasModule } from './idiomas/idiomas.module';
     RolesModule,
     GenerosModule,
     IdiomasModule,
+    PoliticasCancelacionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
