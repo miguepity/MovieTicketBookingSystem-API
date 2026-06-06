@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Injectable()
 export class UsuariosService {
@@ -38,5 +39,27 @@ export class UsuariosService {
       where: { id: userId },
       data: { email: newEmail },
     });
+  }
+
+  async updateStatus(id: number, dto: UpdateStatusDto) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado.`);
+    }
+
+    // Se actualiza mapeando al campo 'estado' de la tabla usuarios
+    const usuarioActualizado = await this.prisma.usuarios.update({
+      where: { id: BigInt(id) },
+      data: { estado: dto.status },
+    });
+
+    return {
+      message: 'Estado del usuario actualizado exitosamente.',
+      id: Number(usuarioActualizado.id),
+      status: usuarioActualizado.estado,
+    };
   }
 }
