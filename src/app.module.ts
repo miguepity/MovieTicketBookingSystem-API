@@ -15,7 +15,7 @@ import { GenerosModule } from './modules/generos/generos.module';
 import { IdiomasModule } from './modules/idiomas/idiomas.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { AsientosModule } from './modules/asientos/asientos.module';
-
+import { ReservasModule } from './modules/reservas/reservas.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -32,6 +32,7 @@ import { AsientosModule } from './modules/asientos/asientos.module';
     IdiomasModule,
     RolesModule,
     AsientosModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
