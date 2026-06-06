@@ -2,6 +2,7 @@ import { Controller, Post, Body } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { ApiOperation } from '@nestjs/swagger';
+import { IS_DATE_STRING } from 'class-validator';
 @Controller('funciones')
 export class FuncionesController {
   constructor(private readonly funcionesService: FuncionesService) {}
@@ -43,7 +44,13 @@ export class FuncionesController {
       },
     },
   })
-  create(@Body() createFuncioneDto: CreateFuncioneDto) {
-    return this.funcionesService.create(createFuncioneDto);
+  async create(@Body() createFuncioneDto: CreateFuncioneDto) {
+    const newFuncion = await this.funcionesService.create(createFuncioneDto);
+    return {
+      ...newFuncion,
+      id: newFuncion.id.toString(),
+      id_sala: newFuncion.id_sala.toString(),
+      id_pelicula: newFuncion.id_pelicula.toString(),
+    };
   }
 }

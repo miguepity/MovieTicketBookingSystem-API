@@ -47,4 +47,19 @@ export class PeliculasController {
   ) {
     return this.peliculasService.update(id, dto, req.user.userId);
   }
+
+  @Get(':id/cines/:cineId/funciones')
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  @ApiOperation({
+    summary:
+      'Obtener funciones de una película en un cine específico con disponibilidad de asientos',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la película' })
+  @ApiParam({ name: 'cineId', description: 'ID del cine' })
+  getFunciones(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('cineId', ParseIntPipe) cineId: number,
+  ) {
+    return this.peliculasService.getFuncionesPorCine(id, cineId);
+  }
 }

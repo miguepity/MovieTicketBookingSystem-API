@@ -232,6 +232,39 @@ async function main() {
     ],
   });
 
+  // 10. Funciones and AsientosFuncion
+  console.log('[Seeding] Creating functions and seat instances...');
+  const peliculas = await prisma.peliculas.findMany();
+  const salas = await prisma.salas.findMany();
+
+  for (const pelicula of peliculas) {
+    for (const sala of salas) {
+      const funcion = await prisma.funciones.create({
+        data: {
+          id_pelicula: pelicula.id,
+          id_sala: sala.id,
+          fecha_hora: new Date(),
+          estado: 'active',
+        },
+      });
+
+      const asientosEnSala = await prisma.asientos.findMany({
+        where: { id_sala: sala.id },
+      });
+
+      if (asientosEnSala.length > 0) {
+        await prisma.asientosFuncion.createMany({
+          data: asientosEnSala.map((a) => ({
+            id_asiento: a.id,
+            id_funcion: funcion.id,
+            estado: 'disponible',
+            version: 1,
+          })),
+        });
+      }
+    }
+  }
+
   console.log('[Seeding] Seed completed!');
 }
 

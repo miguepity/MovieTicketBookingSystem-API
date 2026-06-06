@@ -68,4 +68,50 @@ export class PeliculasService {
       },
     });
   }
+
+  async getFuncionesPorCine(peliculaId: number, cineId: number) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const funciones = await this.prisma.funciones.findMany({
+      where: {
+        id_pelicula: BigInt(peliculaId),
+        salas: {
+          id_cine: BigInt(cineId),
+        },
+        estado: 'active',
+      },
+      select: {
+        id: true,
+        fecha_hora: true,
+        estado: true,
+        salas: {
+          select: {
+            id: true,
+            nombre: true,
+            cines: {
+              select: {
+                id: true,
+                nombre: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            asientosFuncions: {
+              where: {
+                estado: 'disponible',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return JSON.parse(
+      JSON.stringify(funciones, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    );
+  }
 }
