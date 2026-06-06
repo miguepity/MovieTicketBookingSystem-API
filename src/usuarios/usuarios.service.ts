@@ -7,10 +7,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { ConfirmarRegistroDto } from './dto/confirmar-registro.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsuariosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async updateUserEmail(userId: number, newEmail: string) {
     // Verificar que el usuario existe
@@ -64,7 +69,41 @@ export class UsuariosService {
       status: usuarioActualizado.estado,
     };
   }
-  
+
+  async confirmarRegistro(dto: ConfirmarRegistroDto) {
+    let userId: number;
+
+    try {
+      const payload = this.jwtService.verify(dto.token);
+      userId = payload.sub; 
+    } catch (error) {
+      throw new BadRequestException(
+        'El token de confirmación es inválido o ha expirado.',
+      );
+    }
+
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(userId) },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
+
+    if (usuario.estado === 'activo') {
+      throw new BadRequestException(
+        'Esta cuenta ya se encuentra verificada y activa.',
+      );
+    }
+
+    await this.prisma.usuarios.update({
+      where: { id: BigInt(userId) },
+      data: { estado: 'activo' },
+    });
+
+    return { message: 'Cuenta confirmada y activada exitosamente.' };
+  }
+
   async updatePassword(id: number, dto: UpdatePasswordDto) {
     // 1. Buscar al usuario por su ID usando BigInt
     const usuario = await this.prisma.usuarios.findUnique({
