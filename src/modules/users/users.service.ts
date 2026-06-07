@@ -49,6 +49,34 @@ export class UsersService {
     return { message: 'Contraseña actualizada exitosamente' };
   }
 
+  async toggleNotificaciones(
+    id: string,
+    requesterId: string,
+  ): Promise<{ notificaciones_activas: boolean }> {
+    if (id !== requesterId) {
+      throw new ForbiddenException(
+        'No puedes modificar las notificaciones de otro usuario',
+      );
+    }
+
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+      select: { id: true, notificaciones_activas: true },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const actualizado = await this.prisma.usuarios.update({
+      where: { id: usuario.id },
+      data: { notificaciones_activas: !usuario.notificaciones_activas },
+      select: { notificaciones_activas: true },
+    });
+
+    return { notificaciones_activas: actualizado.notificaciones_activas };
+  }
+
   async findAll(query: QueryUsersDto) {
     const { nombre, email, estado, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;

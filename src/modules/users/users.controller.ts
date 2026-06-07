@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -40,6 +40,27 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.usersService.updatePassword(id, user.userId, dto);
+  }
+
+  @Patch(':id/notificaciones')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Toggle notificaciones',
+    description: 'Activa o desactiva las notificaciones del usuario. Solo el propio usuario puede modificar su preferencia.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferencia actualizada.',
+    schema: { example: { notificaciones_activas: true } },
+  })
+  @ApiResponse({ status: 403, description: 'No puedes modificar las notificaciones de otro usuario.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  toggleNotificaciones(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.toggleNotificaciones(id, user.userId);
   }
 
   @Get()
