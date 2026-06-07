@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { RembolsosBodyDto } from "./dto/rembolsos.body.dto"
+import { FilterBodyDto } from "./dto/reembolsos.filters.dto";
 
 @Injectable()
 export class RembolsosService{
@@ -29,9 +30,14 @@ export class RembolsosService{
         };
     }
 
-    async getPaymentHistory(){
-        const findPagos = await this.prisma.pagos.findMany();
-        const findRembolsos = await this.prisma.reembolsos.findMany();
+    async getPaymentHistory(dto: FilterBodyDto){
+        const findPagos = await this.prisma.pagos.findMany({
+            where: dto
+        });
+        const findRembolsos = await this.prisma.reembolsos.findMany({
+            where: dto
+        });
+        
         if(findPagos.length === 0 && findRembolsos.length === 0){
             throw new NotFoundException('No existe historial de pago y rembolsos');
         }

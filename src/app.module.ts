@@ -16,7 +16,6 @@ import { SalaModule } from './salas/salas.module';
 import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
 import { RembolsosModule } from './rembolsos/rembolsos.module';
 
-
 @Module({
   imports: [
     PasswordResetTokenModule,

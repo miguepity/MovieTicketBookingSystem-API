@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body } from "@nestjs/common";
 import { RembolsosService } from "./rembolsos.services";
 import { RembolsosBodyDto } from "./dto/rembolsos.body.dto";
+import { FilterBodyDto } from "./dto/reembolsos.filters.dto";
 
 @Controller('rembolso')
 export class RemolsosController{
@@ -18,9 +19,11 @@ export class RemolsosController{
     }
 
     @Get('pagos')
-    getPaymentHistory(){
+    getPaymentHistory(
+        @Body() dto: FilterBodyDto
+    ){
         try{
-            return this.rembolsoService.getPaymentHistory();
+            return this.rembolsoService.getPaymentHistory(dto);
         }catch(error){
             return 'Internal server error'
         }
