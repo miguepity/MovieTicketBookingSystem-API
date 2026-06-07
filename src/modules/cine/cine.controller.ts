@@ -43,7 +43,7 @@ export class CineController {
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   create(
     @Body() createCineDto: CreateCineDto,
-  ):Promise<CineCreatedResponseDto> {
+  ): Promise<CineCreatedResponseDto> {
     return this.cineService.create(createCineDto);
   }
 

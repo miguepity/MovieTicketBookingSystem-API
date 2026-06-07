@@ -1,7 +1,4 @@
-export class AsientoDto {
-  codigo!: string;
-  tipo!: string;
-}
+import { AsientoDto } from './asiento.dto';
 
 export class CancelacionEmailDto {
   nombre!: string;

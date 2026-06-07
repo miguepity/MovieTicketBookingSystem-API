@@ -41,13 +41,23 @@ export class MailService {
     }
   }
 
+  private esc(value: string | undefined | null): string {
+    if (value === undefined || value === null) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   async sendConfirmacionEmail(input: ConfirmacionEmailDto): Promise<void> {
     const asientosFilas = input.asientos
       .map(
         (a) => `
         <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;">${a.codigo}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${a.tipo.toLowerCase()}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;">${this.esc(a.codigo)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${this.esc(a.tipo.toLowerCase())}</td>
         </tr>`,
       )
       .join('');
@@ -56,7 +66,7 @@ export class MailService {
       parseFloat(input.montoDescuento) > 0
         ? `<tr>
             <td style="padding:6px 16px;color:#555;font-size:14px;">Descuento:</td>
-            <td style="padding:6px 16px;text-align:right;font-size:14px;color:#27ae60;">-$${input.montoDescuento}</td>
+            <td style="padding:6px 16px;text-align:right;font-size:14px;color:#27ae60;">-$${this.esc(input.montoDescuento)}</td>
           </tr>`
         : '';
 
@@ -83,7 +93,7 @@ export class MailService {
         </tr>
         <tr>
           <td style="padding:30px 40px 10px;">
-            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">¡Reserva confirmada, ${input.nombre}!</h2>
+            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">¡Reserva confirmada, ${this.esc(input.nombre)}!</h2>
             <p style="color:#555;margin:0;font-size:15px;">Gracias por tu compra. Aquí están los detalles de tu reserva.</p>
           </td>
         </tr>
@@ -91,7 +101,7 @@ export class MailService {
           <td style="padding:16px 40px;">
             <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:12px 16px;display:inline-block;">
               <span style="font-size:13px;color:#888;">Número de reserva</span><br>
-              <strong style="font-size:20px;color:#1a1a1a;letter-spacing:2px;">${input.numeroReserva}</strong>
+              <strong style="font-size:20px;color:#1a1a1a;letter-spacing:2px;">${this.esc(input.numeroReserva)}</strong>
             </div>
           </td>
         </tr>
@@ -101,19 +111,19 @@ export class MailService {
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">PELÍCULA</span>
-                  <strong style="font-size:16px;color:#1a1a1a;">${input.pelicula}</strong>
+                  <strong style="font-size:16px;color:#1a1a1a;">${this.esc(input.pelicula)}</strong>
                 </td>
               </tr>
               <tr>
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">CINE</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.cine}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.cine)}</strong>
                 </td>
               </tr>
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;">
                   <span style="font-size:12px;color:#888;display:block;">FECHA Y HORA</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.fechaFuncion}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.fechaFuncion)}</strong>
                 </td>
               </tr>
             </table>
@@ -137,12 +147,12 @@ export class MailService {
             <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;overflow:hidden;background:#fafafa;">
               <tr>
                 <td style="padding:6px 16px;color:#555;font-size:14px;">Subtotal:</td>
-                <td style="padding:6px 16px;text-align:right;font-size:14px;color:#1a1a1a;">$${input.montoOriginal}</td>
+                <td style="padding:6px 16px;text-align:right;font-size:14px;color:#1a1a1a;">$${this.esc(input.montoOriginal)}</td>
               </tr>
               ${descuentoFila}
               <tr style="border-top:2px solid #eee;">
                 <td style="padding:10px 16px;font-weight:bold;font-size:16px;color:#1a1a1a;">Total pagado:</td>
-                <td style="padding:10px 16px;text-align:right;font-weight:bold;font-size:16px;color:#e50914;">$${input.montoFinal}</td>
+                <td style="padding:10px 16px;text-align:right;font-weight:bold;font-size:16px;color:#e50914;">$${this.esc(input.montoFinal)}</td>
               </tr>
               <tr>
                 <td style="padding:4px 16px 10px;color:#888;font-size:13px;">Método:</td>
@@ -170,8 +180,8 @@ export class MailService {
       .map(
         (a) => `
         <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;">${a.codigo}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${a.tipo.toLowerCase()}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;">${this.esc(a.codigo)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${this.esc(a.tipo.toLowerCase())}</td>
         </tr>`,
       )
       .join('');
@@ -189,9 +199,10 @@ export class MailService {
       sin_reembolso: 'Sin reembolso',
     };
 
-    const estadoKey = input.estadoReembolso in estadoColors
-      ? input.estadoReembolso
-      : 'sin_reembolso';
+    const estadoKey =
+      input.estadoReembolso in estadoColors
+        ? input.estadoReembolso
+        : 'sin_reembolso';
     const color = estadoColors[estadoKey];
     const label = estadoLabels[estadoKey];
 
@@ -209,7 +220,7 @@ export class MailService {
                     ${
                       input.montoReembolso
                         ? `<p style="margin:10px 0 0;font-size:14px;color:#555;">
-                            Monto del reembolso: <strong style="color:#1a1a1a;">$${input.montoReembolso}</strong>
+                            Monto del reembolso: <strong style="color:#1a1a1a;">$${this.esc(input.montoReembolso)}</strong>
                           </p>`
                         : ''
                     }
@@ -230,7 +241,7 @@ export class MailService {
     const montoPagadoFila = input.montoPagado
       ? `<tr>
           <td style="padding:10px 16px;color:#555;font-size:14px;">Monto pagado:</td>
-          <td style="padding:10px 16px;text-align:right;font-size:14px;color:#1a1a1a;">$${input.montoPagado}</td>
+          <td style="padding:10px 16px;text-align:right;font-size:14px;color:#1a1a1a;">$${this.esc(input.montoPagado)}</td>
         </tr>`
       : '';
 
@@ -254,7 +265,7 @@ export class MailService {
         </tr>
         <tr>
           <td style="padding:30px 40px 10px;">
-            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">Hola, ${input.nombre}</h2>
+            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">Hola, ${this.esc(input.nombre)}</h2>
             <p style="color:#555;margin:0;font-size:15px;">Tu reserva ha sido cancelada. A continuación encontrarás el detalle.</p>
           </td>
         </tr>
@@ -262,7 +273,7 @@ export class MailService {
           <td style="padding:16px 40px;">
             <div style="background:#fafafa;border:1px solid #ddd;border-radius:6px;padding:12px 16px;display:inline-block;">
               <span style="font-size:13px;color:#888;">Número de reserva</span><br>
-              <strong style="font-size:20px;color:#333;letter-spacing:2px;">${input.numeroReserva}</strong>
+              <strong style="font-size:20px;color:#333;letter-spacing:2px;">${this.esc(input.numeroReserva)}</strong>
             </div>
           </td>
         </tr>
@@ -272,19 +283,19 @@ export class MailService {
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">PELÍCULA</span>
-                  <strong style="font-size:16px;color:#1a1a1a;">${input.pelicula}</strong>
+                  <strong style="font-size:16px;color:#1a1a1a;">${this.esc(input.pelicula)}</strong>
                 </td>
               </tr>
               <tr>
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">CINE</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.cine}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.cine)}</strong>
                 </td>
               </tr>
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;">
                   <span style="font-size:12px;color:#888;display:block;">FECHA Y HORA</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.fechaFuncion}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.fechaFuncion)}</strong>
                 </td>
               </tr>
             </table>
@@ -332,7 +343,7 @@ export class MailService {
     const posterSection = input.posterUrl
       ? `<tr>
           <td style="padding:0 40px 20px;text-align:center;">
-            <img src="${input.posterUrl}" alt="Póster de ${input.titulo}"
+            <img src="${this.esc(input.posterUrl)}" alt="Póster de ${this.esc(input.titulo)}"
               style="max-width:200px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);" />
           </td>
         </tr>`
@@ -358,7 +369,7 @@ export class MailService {
         </tr>
         <tr>
           <td style="padding:30px 40px 20px;">
-            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">¡Hola, ${input.nombre}!</h2>
+            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">¡Hola, ${this.esc(input.nombre)}!</h2>
             <p style="color:#555;margin:0;font-size:15px;">Tenemos una nueva película en cartelera que creemos te va a encantar.</p>
           </td>
         </tr>
@@ -369,19 +380,19 @@ export class MailService {
               <tr style="background:#fafafa;">
                 <td style="padding:20px 16px;text-align:center;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;margin-bottom:4px;">TÍTULO</span>
-                  <strong style="font-size:22px;color:#1a1a1a;">${input.titulo}</strong>
+                  <strong style="font-size:22px;color:#1a1a1a;">${this.esc(input.titulo)}</strong>
                 </td>
               </tr>
               <tr>
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">GÉNERO</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.genero}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.genero)}</strong>
                 </td>
               </tr>
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;">
                   <span style="font-size:12px;color:#888;display:block;">FECHA DE ESTRENO</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.fechaEstreno}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.fechaEstreno)}</strong>
                 </td>
               </tr>
             </table>
@@ -389,7 +400,7 @@ export class MailService {
         </tr>
         <tr>
           <td style="padding:0 40px 20px;text-align:center;">
-            <a href="${input.link}"
+            <a href="${this.esc(input.link)}"
               style="display:inline-block;padding:14px 32px;background:#e50914;color:#fff;
                      text-decoration:none;border-radius:6px;font-size:16px;font-weight:bold;">
               Ver más información
@@ -418,7 +429,9 @@ export class MailService {
     });
   }
 
-  async sendFuncionCanceladaEmail(input: FuncionCanceladaEmailDto): Promise<void> {
+  async sendFuncionCanceladaEmail(
+    input: FuncionCanceladaEmailDto,
+  ): Promise<void> {
     const year = new Date().getFullYear();
 
     const reembolsoSection = input.tienePagoAprobado
@@ -429,7 +442,7 @@ export class MailService {
                 <td style="padding:16px 20px;">
                   <p style="margin:0 0 10px;font-size:15px;font-weight:bold;color:#b7770d;">💳 Información sobre tu reembolso</p>
                   <p style="margin:0 0 8px;font-size:14px;color:#555;">
-                    Monto a reembolsar: <strong style="color:#1a1a1a;">$${input.montoPagado}</strong>
+                    Monto a reembolsar: <strong style="color:#1a1a1a;">$${this.esc(input.montoPagado)}</strong>
                   </p>
                   <p style="margin:0 0 6px;font-size:14px;color:#555;">Para gestionar tu reembolso, sigue estos pasos:</p>
                   <ol style="margin:8px 0 0;padding-left:20px;color:#555;font-size:14px;line-height:1.8;">
@@ -477,7 +490,7 @@ export class MailService {
         </tr>
         <tr>
           <td style="padding:30px 40px 10px;">
-            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">Hola, ${input.nombre}</h2>
+            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">Hola, ${this.esc(input.nombre)}</h2>
             <p style="color:#555;margin:0;font-size:15px;">
               Lamentamos informarte que la siguiente función ha sido cancelada.
               Tu reserva ha sido anulada automáticamente.
@@ -488,7 +501,7 @@ export class MailService {
           <td style="padding:16px 40px;">
             <div style="background:#fafafa;border:1px solid #ddd;border-radius:6px;padding:12px 16px;display:inline-block;">
               <span style="font-size:13px;color:#888;">Número de reserva</span><br>
-              <strong style="font-size:20px;color:#333;letter-spacing:2px;">${input.numeroReserva}</strong>
+              <strong style="font-size:20px;color:#333;letter-spacing:2px;">${this.esc(input.numeroReserva)}</strong>
             </div>
           </td>
         </tr>
@@ -498,19 +511,19 @@ export class MailService {
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">PELÍCULA</span>
-                  <strong style="font-size:16px;color:#1a1a1a;">${input.pelicula}</strong>
+                  <strong style="font-size:16px;color:#1a1a1a;">${this.esc(input.pelicula)}</strong>
                 </td>
               </tr>
               <tr>
                 <td style="padding:14px 16px;border-bottom:1px solid #eee;">
                   <span style="font-size:12px;color:#888;display:block;">CINE</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.cine}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.cine)}</strong>
                 </td>
               </tr>
               <tr style="background:#fafafa;">
                 <td style="padding:14px 16px;">
                   <span style="font-size:12px;color:#888;display:block;">FECHA Y HORA</span>
-                  <strong style="font-size:15px;color:#1a1a1a;">${input.fechaFuncion}</strong>
+                  <strong style="font-size:15px;color:#1a1a1a;">${this.esc(input.fechaFuncion)}</strong>
                 </td>
               </tr>
             </table>

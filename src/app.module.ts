@@ -17,6 +17,8 @@ import { RolesModule } from './modules/roles/roles.module';
 import { AsientosModule } from './modules/asientos/asientos.module';
 import { ReservasModule } from './modules/reservas/reservas.module';
 import { PagosModule } from './modules/pagos/pagos.module';
+import { ReembolsosModule } from './modules/reembolsos/reembolsos.module';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { PagosModule } from './modules/pagos/pagos.module';
     AsientosModule,
     ReservasModule,
     PagosModule,
+    ReembolsosModule,
+    NotificacionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

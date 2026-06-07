@@ -36,6 +36,10 @@ export class AsientosController {
     @Body() dto: BloquearAsientosDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.asientosService.bloquear(id, dto.ids_asiento_funcion, user.userId);
+    return this.asientosService.bloquear(
+      id,
+      dto.ids_asiento_funcion,
+      user.userId,
+    );
   }
 }

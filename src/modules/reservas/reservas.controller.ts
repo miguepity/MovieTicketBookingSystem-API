@@ -1,4 +1,11 @@
-import { Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ReservasService } from './reservas.service';
 import { CrearReservaDto } from './dto/crear-reserva.dto';
@@ -14,10 +21,7 @@ export class ReservasController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  crear(
-    @Body() dto: CrearReservaDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  crear(@Body() dto: CrearReservaDto, @CurrentUser() user: CurrentUserPayload) {
     return this.reservasService.crear(
       dto.id_funcion,
       dto.ids_asiento_funcion,
@@ -28,10 +32,7 @@ export class ReservasController {
   @Patch(':id/cancelar')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  cancelar(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  cancelar(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.reservasService.cancelar(id, user.userId);
   }
 }

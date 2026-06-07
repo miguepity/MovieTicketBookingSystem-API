@@ -21,7 +21,9 @@ export class UsersService {
     dto: ChangePasswordDto,
   ): Promise<{ message: string }> {
     if (id !== requesterId) {
-      throw new ForbiddenException('No puedes modificar la contraseña de otro usuario');
+      throw new ForbiddenException(
+        'No puedes modificar la contraseña de otro usuario',
+      );
     }
 
     const usuario = await this.prisma.usuarios.findUnique({
@@ -56,6 +58,17 @@ export class UsersService {
     auditorId: string,
     dto: ChangeStatusDto,
   ): Promise<{ message: string }> {
+    const auditor = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(auditorId) },
+      include: { roles: { select: { nombre: true } } },
+    });
+    if (!auditor || auditor.roles.nombre !== 'admin') {
+      throw new ForbiddenException({
+        code: 'ROL_NO_AUTORIZADO',
+        message: 'Solo el rol admin puede cambiar el estado de un usuario',
+      });
+    }
+
     if (id === auditorId) {
       throw new BadRequestException('No puedes cambiar tu propio estado');
     }
@@ -70,7 +83,9 @@ export class UsersService {
     }
 
     if (usuario.estado === dto.estado) {
-      throw new BadRequestException(`El usuario ya tiene el estado "${dto.estado}"`);
+      throw new BadRequestException(
+        `El usuario ya tiene el estado "${dto.estado}"`,
+      );
     }
 
     await this.prisma.$transaction([
@@ -130,8 +145,12 @@ export class UsersService {
           { email: { contains: search, mode: 'insensitive' as const } },
         ],
       }),
-      ...(nombre && { nombre: { contains: nombre, mode: 'insensitive' as const } }),
-      ...(email && { email: { contains: email, mode: 'insensitive' as const } }),
+      ...(nombre && {
+        nombre: { contains: nombre, mode: 'insensitive' as const },
+      }),
+      ...(email && {
+        email: { contains: email, mode: 'insensitive' as const },
+      }),
       ...(estado && { estado }),
     };
 

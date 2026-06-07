@@ -112,11 +112,14 @@ export class PeliculaService {
         titulo: true,
         poster_url: true,
         fecha_estreno: true,
+        activo: true,
         generos: { select: { nombre: true } },
       },
     });
 
-    void this.notificarNuevaPelicula(pelicula);
+    if (pelicula.activo) {
+      void this.notificarNuevaPelicula(pelicula);
+    }
 
     return { id: pelicula.id };
   }
@@ -145,19 +148,23 @@ export class PeliculaService {
         : 'Por anunciar';
       const genero = pelicula.generos?.nombre ?? 'Sin clasificar';
 
-      await Promise.allSettled(
-        usuarios.map((u) =>
-          this.mailService.sendNuevaPeliculaEmail({
-            nombre: u.nombre,
-            email: u.email,
-            titulo: pelicula.titulo,
-            genero,
-            fechaEstreno,
-            posterUrl: pelicula.poster_url ?? undefined,
-            link,
-          }),
-        ),
-      );
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < usuarios.length; i += BATCH_SIZE) {
+        const batch = usuarios.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(
+          batch.map((u) =>
+            this.mailService.sendNuevaPeliculaEmail({
+              nombre: u.nombre,
+              email: u.email,
+              titulo: pelicula.titulo,
+              genero,
+              fechaEstreno,
+              posterUrl: pelicula.poster_url ?? undefined,
+              link,
+            }),
+          ),
+        );
+      }
 
       this.logger.log(
         `Notificación de nueva película "${pelicula.titulo}" enviada a ${usuarios.length} usuario(s)`,
