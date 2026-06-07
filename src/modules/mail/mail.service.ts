@@ -7,6 +7,7 @@ import { BrevoClient } from '@getbrevo/brevo';
 import { ConfirmacionEmailDto } from './dto/confirmacion-email.dto';
 import { CancelacionEmailDto } from './dto/cancelacion-email.dto';
 import { NuevaPeliculaEmailDto } from './dto/nueva-pelicula-email.dto';
+import { FuncionCanceladaEmailDto } from './dto/funcion-cancelada-email.dto';
 
 export interface SendMailOptions {
   to: { email: string; name?: string };
@@ -403,6 +404,119 @@ export class MailService {
             </p>
           </td>
         </tr>
+        <tr>
+          <td style="background:#1a1a1a;padding:20px 40px;text-align:center;">
+            <p style="color:#888;font-size:13px;margin:0;">Este correo fue generado automáticamente. Por favor no respondas a este mensaje.</p>
+            <p style="color:#555;font-size:12px;margin:8px 0 0;">© ${year} CineTickets — Todos los derechos reservados</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    });
+  }
+
+  async sendFuncionCanceladaEmail(input: FuncionCanceladaEmailDto): Promise<void> {
+    const year = new Date().getFullYear();
+
+    const reembolsoSection = input.tienePagoAprobado
+      ? `<tr>
+          <td style="padding:0 40px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f39c12;border-radius:6px;overflow:hidden;background:#fffbf0;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <p style="margin:0 0 10px;font-size:15px;font-weight:bold;color:#b7770d;">💳 Información sobre tu reembolso</p>
+                  <p style="margin:0 0 8px;font-size:14px;color:#555;">
+                    Monto a reembolsar: <strong style="color:#1a1a1a;">$${input.montoPagado}</strong>
+                  </p>
+                  <p style="margin:0 0 6px;font-size:14px;color:#555;">Para gestionar tu reembolso, sigue estos pasos:</p>
+                  <ol style="margin:8px 0 0;padding-left:20px;color:#555;font-size:14px;line-height:1.8;">
+                    <li>Inicia sesión en tu cuenta de CineTickets.</li>
+                    <li>Dirígete a <strong>Mis Reservas</strong> y localiza la reserva cancelada.</li>
+                    <li>Selecciona la opción <strong>Solicitar reembolso</strong>.</li>
+                    <li>El reembolso será procesado en un plazo de <strong>5 a 10 días hábiles</strong>.</li>
+                  </ol>
+                  <p style="margin:12px 0 0;font-size:13px;color:#888;">
+                    Si tienes dudas, contáctanos en <a href="mailto:soporte@cinetickets.com" style="color:#e50914;">soporte@cinetickets.com</a>.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`
+      : `<tr>
+          <td style="padding:0 40px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;background:#fafafa;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <p style="margin:0 0 6px;font-size:14px;color:#555;">Tu reserva aún no había sido pagada, por lo que no se generará ningún cargo.</p>
+                  <p style="margin:0;font-size:14px;color:#555;">Los asientos han sido liberados y puedes hacer una nueva reserva cuando quieras.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`;
+
+    await this.sendEmail({
+      to: { email: input.email, name: input.nombre },
+      subject: `Función cancelada — ${input.pelicula}`,
+      htmlContent: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;max-width:600px;">
+        <tr>
+          <td style="background:#333;padding:30px 40px;text-align:center;">
+            <h1 style="color:#fff;margin:0;font-size:24px;">🎬 CineTickets</h1>
+            <p style="color:#aaa;margin:8px 0 0;font-size:14px;">Función cancelada</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:30px 40px 10px;">
+            <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:20px;">Hola, ${input.nombre}</h2>
+            <p style="color:#555;margin:0;font-size:15px;">
+              Lamentamos informarte que la siguiente función ha sido cancelada.
+              Tu reserva ha sido anulada automáticamente.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 40px;">
+            <div style="background:#fafafa;border:1px solid #ddd;border-radius:6px;padding:12px 16px;display:inline-block;">
+              <span style="font-size:13px;color:#888;">Número de reserva</span><br>
+              <strong style="font-size:20px;color:#333;letter-spacing:2px;">${input.numeroReserva}</strong>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 40px 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;overflow:hidden;">
+              <tr style="background:#fafafa;">
+                <td style="padding:14px 16px;border-bottom:1px solid #eee;">
+                  <span style="font-size:12px;color:#888;display:block;">PELÍCULA</span>
+                  <strong style="font-size:16px;color:#1a1a1a;">${input.pelicula}</strong>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:14px 16px;border-bottom:1px solid #eee;">
+                  <span style="font-size:12px;color:#888;display:block;">CINE</span>
+                  <strong style="font-size:15px;color:#1a1a1a;">${input.cine}</strong>
+                </td>
+              </tr>
+              <tr style="background:#fafafa;">
+                <td style="padding:14px 16px;">
+                  <span style="font-size:12px;color:#888;display:block;">FECHA Y HORA</span>
+                  <strong style="font-size:15px;color:#1a1a1a;">${input.fechaFuncion}</strong>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ${reembolsoSection}
         <tr>
           <td style="background:#1a1a1a;padding:20px 40px;text-align:center;">
             <p style="color:#888;font-size:13px;margin:0;">Este correo fue generado automáticamente. Por favor no respondas a este mensaje.</p>
