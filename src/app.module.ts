@@ -12,6 +12,7 @@ import { GenerosModule } from './generos/generos.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
 import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_cancelacion.module';
 import { FuncionesModule } from './funciones/funciones.module';
+import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { FuncionesModule } from './funciones/funciones.module';
     IdiomasModule,
     PoliticasCancelacionModule,
     FuncionesModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
