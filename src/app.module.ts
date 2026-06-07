@@ -19,6 +19,8 @@ import { ReservasModule } from './modules/reservas/reservas.module';
 import { PagosModule } from './modules/pagos/pagos.module';
 import { ReembolsosModule } from './modules/reembolsos/reembolsos.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+import { TiposAsientoModule } from './modules/tipos-asiento/tipos-asiento.module';
+import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
     PagosModule,
     ReembolsosModule,
     NotificacionesModule,
+    TiposAsientoModule,
+    PreciosCineModule,
   ],
   controllers: [AppController],
   providers: [AppService],
