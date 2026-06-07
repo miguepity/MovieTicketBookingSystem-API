@@ -63,6 +63,7 @@ export class CineController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un cine por ID' })
+  @ApiBadRequestResponse({ description: 'ID de cine inválido' })
   @ApiOkResponse({ type: CineCreatedResponseDto })
   findOne(@Param('id') id: string) {
     return this.cineService.findOne(id);
