@@ -35,4 +35,43 @@ export class PeliculasService {
       where: { id },
     });
   }
+
+  cambiarEstado(id: number, activo: boolean) {
+    return this.prisma.peliculas.update({
+      where: { id },
+      data: { activo },
+    });
+  }
+
+  buscar(titulo?: string, id_genero?: number, id_idioma?: number) {
+    return this.prisma.peliculas.findMany({
+      where: {
+        ...(titulo && { titulo: { contains: titulo, mode: 'insensitive' } }),
+        ...(id_genero && { id_genero }),
+        ...(id_idioma && { id_idioma }),
+      },
+      include: {
+        generos: true,
+        idiomas: true,
+      },
+    });
+  }
+
+  buscarPorCine(id_cine: number) {
+    return this.prisma.peliculas.findMany({
+      where: {
+        funciones: {
+          some: {
+            salas: {
+              id_cine,
+            },
+          },
+        },
+      },
+      include: {
+        generos: true,
+        idiomas: true,
+      },
+    });
+  }
 }
