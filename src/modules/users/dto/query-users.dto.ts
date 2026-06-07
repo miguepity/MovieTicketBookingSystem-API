@@ -3,6 +3,14 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class QueryUsersDto {
+  @ApiPropertyOptional({
+    description: 'Búsqueda por nombre o email (búsqueda parcial en ambos campos)',
+    example: 'juan',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @ApiPropertyOptional({ description: 'Filtrar por nombre (búsqueda parcial)', example: 'Juan' })
   @IsOptional()
   @IsString()

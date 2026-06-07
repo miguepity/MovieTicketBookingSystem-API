@@ -8,6 +8,7 @@ import {
 import { UsersService } from './users.service';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangeStatusDto } from './dto/change-status.dto';
 import { UserListResponse } from './entities/user-list.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -40,6 +41,28 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.usersService.updatePassword(id, user.userId, dto);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cambiar estado de usuario',
+    description: 'Cambia el estado de un usuario (activo, inactivo, suspendido) y registra la acción en la bitácora.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado actualizado.',
+    schema: { example: { message: 'Estado del usuario actualizado a "inactivo"' } },
+  })
+  @ApiResponse({ status: 400, description: 'Estado inválido o igual al actual.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  updateStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ChangeStatusDto,
+  ) {
+    return this.usersService.updateStatus(id, user.userId, dto);
   }
 
   @Patch(':id/notificaciones')
