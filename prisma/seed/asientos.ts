@@ -1,5 +1,6 @@
 import { prisma } from './client';
 import type { SalasMap } from './salas';
+import type { TiposAsientoMap } from './tipos-asiento';
 
 export interface AsientoSeed {
   id: bigint;
@@ -12,8 +13,13 @@ export interface AsientosMap {
   bySala: Record<string, AsientoSeed[]>;
 }
 
-export async function seedAsientos(salas: SalasMap): Promise<AsientosMap> {
+export async function seedAsientos(
+  salas: SalasMap,
+  tipos: TiposAsientoMap,
+): Promise<AsientosMap> {
   const bySala: AsientosMap['bySala'] = {};
+  const idPreferencial = tipos.byNombre['preferencial'].id;
+  const idGeneral = tipos.byNombre['general'].id;
 
   for (const sala of salas.all) {
     const total = sala.filas * sala.columnas;
@@ -32,19 +38,19 @@ export async function seedAsientos(salas: SalasMap): Promise<AsientosMap> {
       fila: string;
       columna: number;
       codigo: string;
-      tipo: string;
+      id_tipo_asiento: bigint;
     }> = [];
 
     for (let f = 0; f < sala.filas; f++) {
       const fila = String.fromCharCode(65 + f);
       for (let c = 1; c <= sala.columnas; c++) {
-        const tipo = f === 0 ? 'preferencial' : 'general';
+        const id_tipo_asiento = f === 0 ? idPreferencial : idGeneral;
         data.push({
           id_sala: sala.id,
           fila,
           columna: c,
           codigo: `${fila}${c}`,
-          tipo,
+          id_tipo_asiento,
         });
       }
     }
