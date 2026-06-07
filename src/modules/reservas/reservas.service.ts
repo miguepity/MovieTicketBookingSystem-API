@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
@@ -11,10 +12,16 @@ import {
   PRECIO_POR_TIPO_ASIENTO,
   PRECIO_DEFAULT,
 } from 'src/common/constants/precios.constants';
+import { ReembolsosService } from '../reembolsos/reembolsos.service';
+import { ReservaCanceladaEvent } from './events/reserva-cancelada.event';
 
 @Injectable()
 export class ReservasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reembolsosService: ReembolsosService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async crear(
     idFuncion: string,
@@ -53,7 +60,8 @@ export class ReservasService {
         if ((a.estado as EstadoAsiento) !== EstadoAsiento.BLOQUEADO) {
           throw new ConflictException({
             code: 'BLOQUEO_EXPIRADO',
-            message: 'El bloqueo ya no es válido (estado actual: ' + a.estado + ')',
+            message:
+              'El bloqueo ya no es válido (estado actual: ' + a.estado + ')',
           });
         }
         if (a.id_usuario !== idUserBig) {
@@ -112,9 +120,90 @@ export class ReservasService {
     });
   }
 
-  private async generarNumeroUnico(
-    tx: { reservas: PrismaService['reservas'] },
-  ): Promise<string> {
+  async cancelar(idReserva: string, idUsuarioActual: string) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(idReserva) },
+      include: { reservaAsientos: { select: { id_asiento_funcion: true } } },
+    });
+    if (!reserva) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'La reserva no existe',
+      });
+    }
+    if (reserva.id_usuario !== BigInt(idUsuarioActual)) {
+      throw new ForbiddenException({
+        code: 'RESERVA_NO_ES_DEL_USUARIO',
+        message: 'Esta reserva no te pertenece',
+      });
+    }
+
+    const calculo = await this.reembolsosService.calcularMonto(reserva.id);
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.reservas.updateMany({
+        where: {
+          id: reserva.id,
+          estado: {
+            in: [EstadoReserva.PENDIENTE_PAGO, EstadoReserva.PAGADA],
+          },
+        },
+        data: { estado: EstadoReserva.CANCELADA },
+      });
+      if (claim.count !== 1) {
+        throw new ConflictException({
+          code: 'RESERVA_NO_CANCELABLE',
+          message: 'La reserva ya fue cancelada o cambió de estado',
+        });
+      }
+
+      const idsAsientoFuncion = reserva.reservaAsientos.map(
+        (ra) => ra.id_asiento_funcion,
+      );
+      if (idsAsientoFuncion.length > 0) {
+        await tx.asientosFuncion.updateMany({
+          where: { id: { in: idsAsientoFuncion } },
+          data: { estado: EstadoAsiento.DISPONIBLE, id_usuario: null },
+        });
+      }
+
+      let reembolso: { id: bigint; estado: string } | null = null;
+      if (calculo.pagoId !== null) {
+        reembolso = await this.reembolsosService.crearReembolso(
+          tx,
+          calculo.pagoId,
+          calculo.monto,
+        );
+      }
+
+      const refreshed = await tx.reservas.findUniqueOrThrow({
+        where: { id: reserva.id },
+      });
+
+      return { reserva: refreshed, reembolso };
+    });
+
+    this.eventEmitter.emit(
+      ReservaCanceladaEvent.NAME,
+      new ReservaCanceladaEvent(
+        result.reserva.id.toString(),
+        result.reserva.id_usuario.toString(),
+        result.reembolso?.id.toString() ?? null,
+      ),
+    );
+
+    return {
+      id_reserva: result.reserva.id.toString(),
+      estado: result.reserva.estado,
+      monto_reembolso: calculo.monto.toFixed(2),
+      id_reembolso: result.reembolso?.id.toString() ?? null,
+      fecha_cancelacion: result.reserva.updated_at.toISOString(),
+    };
+  }
+
+  private async generarNumeroUnico(tx: {
+    reservas: PrismaService['reservas'];
+  }): Promise<string> {
     const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     for (let i = 0; i < 3; i++) {
       const sufijo = Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -125,6 +214,8 @@ export class ReservasService {
       });
       if (!existente) return candidato;
     }
-    throw new Error('No se pudo generar numero_reserva único después de 3 intentos');
+    throw new Error(
+      'No se pudo generar numero_reserva único después de 3 intentos',
+    );
   }
 }
