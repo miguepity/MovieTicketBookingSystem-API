@@ -19,7 +19,9 @@ export class UsersService {
     dto: ChangePasswordDto,
   ): Promise<{ message: string }> {
     if (id !== requesterId) {
-      throw new ForbiddenException('No puedes modificar la contraseña de otro usuario');
+      throw new ForbiddenException(
+        'No puedes modificar la contraseña de otro usuario',
+      );
     }
 
     const usuario = await this.prisma.usuarios.findUnique({
@@ -54,8 +56,12 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     const where = {
-      ...(nombre && { nombre: { contains: nombre, mode: 'insensitive' as const } }),
-      ...(email && { email: { contains: email, mode: 'insensitive' as const } }),
+      ...(nombre && {
+        nombre: { contains: nombre, mode: 'insensitive' as const },
+      }),
+      ...(email && {
+        email: { contains: email, mode: 'insensitive' as const },
+      }),
       ...(estado && { estado }),
     };
 

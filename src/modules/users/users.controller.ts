@@ -1,4 +1,12 @@
-import { Controller, Get, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -31,8 +39,14 @@ export class UsersController {
     description: 'Contraseña actualizada exitosamente.',
     schema: { example: { message: 'Contraseña actualizada exitosamente' } },
   })
-  @ApiResponse({ status: 401, description: 'Contraseña actual incorrecta o no autenticado.' })
-  @ApiResponse({ status: 403, description: 'No puedes modificar la contraseña de otro usuario.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Contraseña actual incorrecta o no autenticado.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No puedes modificar la contraseña de otro usuario.',
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   updatePassword(
     @Param('id') id: string,
@@ -47,9 +61,14 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Listar usuarios',
-    description: 'Devuelve todos los usuarios con filtros opcionales por nombre, email y estado, más paginación.',
+    description:
+      'Devuelve todos los usuarios con filtros opcionales por nombre, email y estado, más paginación.',
   })
-  @ApiResponse({ status: 200, description: 'Lista de usuarios obtenida exitosamente.', type: UserListResponse })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios obtenida exitosamente.',
+    type: UserListResponse,
+  })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   findAll(@Query() query: QueryUsersDto) {
     return this.usersService.findAll(query);

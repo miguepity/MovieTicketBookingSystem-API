@@ -59,7 +59,8 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Email de recuperación enviado (respuesta genérica por seguridad).',
+    description:
+      'Email de recuperación enviado (respuesta genérica por seguridad).',
     schema: {
       example: {
         message:
@@ -82,7 +83,10 @@ export class AuthController {
     description: 'Contraseña actualizada exitosamente.',
     schema: { example: { message: 'Contraseña actualizada exitosamente' } },
   })
-  @ApiResponse({ status: 400, description: 'Token inválido, ya usado o expirado.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido, ya usado o expirado.',
+  })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
