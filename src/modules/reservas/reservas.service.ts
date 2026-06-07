@@ -8,10 +8,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
-import {
-  PRECIO_POR_TIPO_ASIENTO,
-  PRECIO_DEFAULT,
-} from 'src/common/constants/precios.constants';
 import { ReembolsosService } from '../reembolsos/reembolsos.service';
 import { ReservaCanceladaEvent } from './events/reserva-cancelada.event';
 
@@ -30,7 +26,7 @@ export class ReservasService {
   ) {
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(idFuncion) },
-      select: { id: true },
+      select: { id: true, salas: { select: { id_cine: true } } },
     });
     if (!funcion) {
       throw new NotFoundException({
@@ -39,13 +35,22 @@ export class ReservasService {
       });
     }
 
+    const idCine = funcion.salas.id_cine;
     const idsBig = idsAsientoFuncion.map((s) => BigInt(s));
     const idUserBig = BigInt(idUsuarioActual);
 
     return this.prisma.$transaction(async (tx) => {
       const asientos = await tx.asientosFuncion.findMany({
         where: { id: { in: idsBig }, id_funcion: funcion.id },
-        include: { asientos: { select: { tipo: true, codigo: true } } },
+        include: {
+          asientos: {
+            select: {
+              codigo: true,
+              id_tipo_asiento: true,
+              tipoAsiento: { select: { nombre: true } },
+            },
+          },
+        },
       });
 
       if (asientos.length !== idsBig.length) {
@@ -78,11 +83,27 @@ export class ReservasService {
         }
       }
 
-      const totalEstimado = asientos.reduce(
-        (acc, a) =>
-          acc + (PRECIO_POR_TIPO_ASIENTO[a.asientos.tipo] ?? PRECIO_DEFAULT),
-        0,
+      const tiposAsientoIds = Array.from(
+        new Set(asientos.map((a) => a.asientos.id_tipo_asiento)),
       );
+      const precios = await tx.preciosCine.findMany({
+        where: { id_cine: idCine, id_tipo_asiento: { in: tiposAsientoIds } },
+        select: { id_tipo_asiento: true, precio: true },
+      });
+      const precioPorTipo = new Map(
+        precios.map((p) => [p.id_tipo_asiento, Number(p.precio.toString())]),
+      );
+
+      const totalEstimado = asientos.reduce((acc, a) => {
+        const precio = precioPorTipo.get(a.asientos.id_tipo_asiento);
+        if (precio === undefined) {
+          throw new ConflictException({
+            code: 'PRECIO_NO_CONFIGURADO',
+            message: `El cine no tiene precio configurado para el tipo "${a.asientos.tipoAsiento.nombre}"`,
+          });
+        }
+        return acc + precio;
+      }, 0);
 
       const numeroReserva = await this.generarNumeroUnico(tx);
 
@@ -113,7 +134,7 @@ export class ReservasService {
         estado: reserva.estado,
         asientos: asientos.map((a) => ({
           codigo: a.asientos.codigo,
-          tipo: a.asientos.tipo,
+          tipo: a.asientos.tipoAsiento.nombre,
         })),
         total_estimado: totalEstimado.toFixed(2),
       };

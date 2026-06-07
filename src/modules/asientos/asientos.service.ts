@@ -30,7 +30,9 @@ export class AsientosService {
       include: {
         salas: { select: { filas: true, columnas: true } },
         asientosFuncions: {
-          include: { asientos: true },
+          include: {
+            asientos: { include: { tipoAsiento: { select: { nombre: true } } } },
+          },
           orderBy: [
             { asientos: { fila: 'asc' } },
             { asientos: { columna: 'asc' } },
@@ -56,7 +58,7 @@ export class AsientosService {
         fila: af.asientos.fila,
         columna: af.asientos.columna,
         codigo: af.asientos.codigo,
-        tipo: af.asientos.tipo,
+        tipo: af.asientos.tipoAsiento.nombre,
         estado: af.estado,
         es_mio: idUsuarioBig !== null && af.id_usuario === idUsuarioBig,
       })),
