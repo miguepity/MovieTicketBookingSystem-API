@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
+import { PeliculasModule } from './peliculas/peliculas.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { SalaModule } from './sala/sala.module';
 import { CiudadesModule } from './ciudades/ciudad.module';
@@ -20,6 +21,7 @@ import { ReservasModule } from './reservas/reservas.module';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    PeliculasModule,
     SalaModule,
     CiudadesModule,
     CinesModule,
