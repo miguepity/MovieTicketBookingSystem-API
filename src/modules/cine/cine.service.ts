@@ -1,11 +1,28 @@
 import { PrismaService } from '../../prisma/prisma.service';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCineDto } from './dto/create-cine.dto';
 import { CineCreatedResponseDto } from './dto/cine-created-response.dto';
 import { UpdateCineDto } from './dto/update-cine.dto';
 import { ListCinesQueryDto } from './dto/list-cines-query.dto';
 import { CinesPageResponseDto } from './dto/cines-page.response.dto';
 import { CineListItemResponseDto } from './dto/cine-list-item.response.dto';
+import { Prisma } from '../../../generated/prisma/client';
+
+type CineListPayload = Prisma.CinesGetPayload<{
+  include: {
+    salas: {
+      select: {
+        id: true;
+        nombre: true;      
+      };
+    };
+  };
+}>;
 
 @Injectable()
 export class CineService {
@@ -15,7 +32,7 @@ export class CineService {
     const idCiudad = BigInt(createCineDto.id_ciudad);
     const city = await this.prisma.ciudades.findUnique({
       where: { id: idCiudad },
-      select: { id: true},
+      select: { id: true },
     });
     if (!city) {
       throw new BadRequestException('Ciudad no existe');
@@ -33,26 +50,18 @@ export class CineService {
     return { id: cine.id };
   }
 
-  async findAll(
-    query: ListCinesQueryDto
-  ): Promise<CinesPageResponseDto> {
-    let page = Number(query.page ?? 1);
-    if (!Number.isInteger(page) || page < 1) page = 1;
-    let limit = Number(query.limit ?? 20);
-    if (!Number.isInteger(limit) || limit < 1) limit = 20;
+  async findAll(query: ListCinesQueryDto): Promise<CinesPageResponseDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const name = query.name?.trim();
-    const where: any = {};
+    const where: Prisma.CinesWhereInput = {};
 
     if (name) {
       where.nombre = { contains: name, mode: 'insensitive' };
     }
 
-    if (typeof query.id_ciudad !== 'undefined') {
-      try {
-        where.id_ciudad = BigInt(query.id_ciudad);
-      } catch (e) {
-        where.id_ciudad = Number(query.id_ciudad);
-      }
+    if (query.id_ciudad !== undefined) {
+      where.id_ciudad = BigInt(query.id_ciudad);
     }
 
     const [total, cines] = await this.prisma.$transaction([
@@ -61,7 +70,9 @@ export class CineService {
         where,
         include: {
           ciudades: { select: { id: true, nombre: true } },
-          salas: { select: { id: true, nombre: true, filas: true, columnas: true } },
+          salas: {
+            select: { id: true, nombre: true, filas: true, columnas: true },
+          },
         },
         orderBy: [{ nombre: 'asc' }, { id: 'asc' }],
         skip: (page - 1) * limit,
@@ -81,12 +92,12 @@ export class CineService {
     const cineId = this.parseId(id);
 
     const existing = await this.prisma.cines.findUnique({
-          where: { id: cineId },
-          select: { id: true },
-        });
-        if (!existing) {
-          throw new NotFoundException('Cine no encontrado');
-        }
+      where: { id: cineId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Cine no encontrado');
+    }
 
     return this.prisma.cines.update({
       where: { id: cineId },
@@ -99,9 +110,11 @@ export class CineService {
 
   async findOne(id: string) {
     const cineId = this.parseId(id);
-    return this.prisma.cines.findUnique({
+    const cine = await this.prisma.cines.findUnique({
       where: { id: cineId },
     });
+    if (!cine) throw new NotFoundException('Cine no encontrado');
+    return cine;
   }
 
   async remove(id: string) {
@@ -113,22 +126,38 @@ export class CineService {
     if (!existing) {
       throw new NotFoundException('Cine no encontrado');
     }
-    return this.prisma.cines.delete({
-      where: { id: cineId },
-    });
+    try {
+      return await this.prisma.cines.delete({ where: { id: cineId } });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'No se puede eliminar: el cine tiene salas asociadas',
+        );
+      }
+      throw e;
+    }
   }
 
-  private toListItem(cine: any): CineListItemResponseDto {
+  private toListItem(
+    cine: CineListPayload,
+  ): CineListItemResponseDto {
     return {
-      id: Number(cine.id),
-      name: cine.nombre,
-      address: cine.direccion ?? null,
-      id_ciudad: Number(cine.id_ciudad),
+      id: cine.id.toString(),
+      nombre: cine.nombre,
+      direccion: cine.direccion ?? null,
+      id_ciudad: cine.id_ciudad.toString(),
       salas: cine.salas
-        ? cine.salas.map((s: any) => ({ id: Number(s.id), nombre: s.nombre }))
+        ? cine.salas.map((s: any) => ({
+            id: s.id.toString(),
+            nombre: s.nombre,
+          }))
         : [],
+      fecha_creacion: cine.created_at,      
     };
-  }
+    };
 
   private parseId(id: string): bigint {
     try {

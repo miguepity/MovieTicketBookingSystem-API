@@ -15,10 +15,8 @@ export class CreateCineDto {
   @MaxLength(255)
   direccion?: string;
 
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ type: String, example: '1' })
   @IsNotEmpty()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  id_ciudad!: number;
+  @Transform(({ value }) => BigInt(value as string | number))
+  id_ciudad!: string;
 }
