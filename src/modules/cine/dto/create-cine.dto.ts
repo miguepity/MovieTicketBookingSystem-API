@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsNotEmpty, IsOptional, IsString, MaxLength, IsInt, Min } from 'class-validator';
 
 export class CreateCineDto {
   @ApiProperty()
@@ -16,6 +16,7 @@ export class CreateCineDto {
   direccion?: string;
 
   @ApiProperty({ type: String, example: '1' })
+  @IsNotEmpty()
   @Transform(({ value }) => BigInt(value as string | number))
-  id_ciudad!: bigint;
+  id_ciudad!: string;
 }
