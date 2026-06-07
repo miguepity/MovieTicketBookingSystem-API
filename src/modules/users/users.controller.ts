@@ -1,10 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
-  Put,
   Param,
+  Patch,
+  Put,
   Query,
-  Body,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,6 +17,7 @@ import {
 import { UsersService } from './users.service';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangeStatusDto } from './dto/change-status.dto';
 import { UserListResponse } from './entities/user-list.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -54,6 +56,60 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.usersService.updatePassword(id, user.userId, dto);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cambiar estado de usuario',
+    description:
+      'Cambia el estado de un usuario (activo, inactivo, suspendido) y registra la acción en la bitácora. Solo el rol admin puede realizar esta operación.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado actualizado.',
+    schema: {
+      example: { message: 'Estado del usuario actualizado a "inactivo"' },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Estado inválido o igual al actual.',
+  })
+  @ApiResponse({ status: 403, description: 'Rol no autorizado.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  updateStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ChangeStatusDto,
+  ) {
+    return this.usersService.updateStatus(id, user.userId, dto);
+  }
+
+  @Patch(':id/notificaciones')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Toggle notificaciones',
+    description:
+      'Activa o desactiva las notificaciones del usuario. Solo el propio usuario puede modificar su preferencia.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferencia actualizada.',
+    schema: { example: { notificaciones_activas: true } },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No puedes modificar las notificaciones de otro usuario.',
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  toggleNotificaciones(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.toggleNotificaciones(id, user.userId);
   }
 
   @Get()
