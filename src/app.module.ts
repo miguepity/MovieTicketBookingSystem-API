@@ -15,6 +15,7 @@ import { CuponesModule } from './cupones/cupones.module';
 import { FuncionesModule } from './funciones/funciones.module';
 import { SalaModule } from './salas/salas.module';
 import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
+import { RembolsosModule } from './rembolsos/rembolsos.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas
     CuponesModule,
     SalaModule,
     PoliticasCancelacionModule,
+    RembolsosModule,
     FuncionesModule,
     SalaModule,
   ],

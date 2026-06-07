@@ -39,4 +39,11 @@ export class UsuariosController {
   confirmarRegistro(@Body() confirmarRegistroDto: ConfirmarRegistroDto) {
     return this.usuariosService.confirmarRegistro(confirmarRegistroDto);
   }
+
+  @Patch(':id/notifications')
+  toggleNotifications(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usuariosService.toggleNotifications(id);
+  }
 }

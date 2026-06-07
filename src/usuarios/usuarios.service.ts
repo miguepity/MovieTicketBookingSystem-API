@@ -135,4 +135,24 @@ export class UsuariosService {
 
     return { message: 'Contraseña actualizada exitosamente.' };
   }
+
+  async toggleNotifications(id: number){
+    const findUsuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) }
+    });
+    if (!findUsuario) {
+      throw new NotFoundException(`Usuario no encontrado.`);
+    }
+
+    await this.prisma.usuarios.update({
+      where: {id: BigInt(id)},
+      data: {notificaciones_activas: !findUsuario.notificaciones_activas}
+    });
+    
+    if(findUsuario.notificaciones_activas){
+      return 'Notificaciones desactivadas';
+    }else{
+      return 'Notificaciones activadas';
+    }
+  }
 }
