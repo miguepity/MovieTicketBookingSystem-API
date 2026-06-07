@@ -13,6 +13,7 @@ import { IdiomasModule } from './idiomas/idiomas.module';
 import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_cancelacion.module';
 import { FuncionesModule } from './funciones/funciones.module';
 import { CuponesModule } from './cupones/cupon.module';
+import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CuponesModule } from './cupones/cupon.module';
     PoliticasCancelacionModule,
     FuncionesModule,
     CuponesModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
