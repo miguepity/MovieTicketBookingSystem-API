@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { PeliculasModule } from './peliculas/peliculas.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { PasswordResetTokenModule } from './password reset/passwordresetmodule';
+import { PasswordResetTokenModule } from './password reset/passwordreset.module';
 import { CiudadesModule } from './ciudades/ciudades.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { GenerosModule } from './generos/generos.module';
@@ -14,6 +14,8 @@ import { CineModule } from './cines/cines.module';
 import { CuponesModule } from './cupones/cupones.module';
 import { SalaModule } from './salas/salas.module';
 import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
+import { RembolsosModule } from './rembolsos/rembolsos.module';
+
 
 @Module({
   imports: [
@@ -29,7 +31,8 @@ import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas
     CineModule,
     CuponesModule,
     SalaModule,
-    PoliticasCancelacionModule
+    PoliticasCancelacionModule,
+    RembolsosModule
   ],
   controllers: [AppController],
   providers: [AppService],
