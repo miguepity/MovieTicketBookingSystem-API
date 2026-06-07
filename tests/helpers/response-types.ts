@@ -36,6 +36,21 @@ export interface PagoResponse {
   numero_reserva: string;
 }
 
+export interface CancelarReservaResponse {
+  id_reserva: string;
+  estado: string;
+  monto_reembolso: string;
+  id_reembolso: string | null;
+  fecha_cancelacion: string;
+}
+
+export interface ReembolsoResponse {
+  id_reembolso: string;
+  monto: string;
+  estado: string;
+  fecha_procesado: string | null;
+}
+
 export interface ErrorResponse {
   code?: string;
   message?: string | { code?: string; message?: string };

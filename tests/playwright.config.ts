@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   use: { baseURL: `http://localhost:${PORT}` },
   webServer: {
-    command: `PORT=${PORT} pnpm run start`,
+    command: `EMAIL_TRIGGERS_ENABLED=false PORT=${PORT} pnpm run start`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 60_000,
