@@ -56,7 +56,7 @@ export class UsuariosService {
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado.`);
     }
-    
+
     // Se actualiza mapeando al campo 'estado' de la tabla usuarios
     const usuarioActualizado = await this.prisma.usuarios.update({
       where: { id: BigInt(id) },
@@ -75,7 +75,7 @@ export class UsuariosService {
 
     try {
       const payload = this.jwtService.verify(dto.token);
-      userId = payload.sub; 
+      userId = payload.sub;
     } catch (error) {
       throw new BadRequestException(
         'El token de confirmación es inválido o ha expirado.',
@@ -134,5 +134,34 @@ export class UsuariosService {
     });
 
     return { message: 'Contraseña actualizada exitosamente.' };
+  }
+
+  async findAllClientes() {
+    // Se buscan todos los usuarios cuyo rol sea 'usuario'
+    const clientes = await this.prisma.usuarios.findMany({
+      where: {
+        roles: {
+          nombre: 'usuario',
+        },
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        estado: true,
+        created_at: true,
+        roles: {
+          select: {
+            nombre: true,
+          },
+        },
+      },
+    });
+
+    return clientes.map((cliente) => ({
+      ...cliente,
+      id: cliente.id.toString(),
+    }));
   }
 }
