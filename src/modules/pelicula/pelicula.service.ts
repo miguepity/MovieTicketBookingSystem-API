@@ -2,10 +2,12 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
@@ -14,9 +16,12 @@ import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
 export class PeliculaService {
+  private readonly logger = new Logger(PeliculaService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinary: CloudinaryService,
+    private readonly mailService: MailService,
   ) {}
 
   async uploadPoster(id: string, file: Express.Multer.File) {
@@ -102,10 +107,67 @@ export class PeliculaService {
         activo: data.activo,
         id_usuario: userId,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        titulo: true,
+        poster_url: true,
+        fecha_estreno: true,
+        generos: { select: { nombre: true } },
+      },
     });
 
+    void this.notificarNuevaPelicula(pelicula);
+
     return { id: pelicula.id };
+  }
+
+  private async notificarNuevaPelicula(pelicula: {
+    id: bigint;
+    titulo: string;
+    poster_url: string | null;
+    fecha_estreno: Date | null;
+    generos: { nombre: string } | null;
+  }): Promise<void> {
+    try {
+      const usuarios = await this.prisma.usuarios.findMany({
+        where: { notificaciones_activas: true, estado: 'activo' },
+        select: { nombre: true, email: true },
+      });
+
+      if (usuarios.length === 0) return;
+
+      const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+      const link = `${frontendUrl}/peliculas/${pelicula.id.toString()}`;
+      const fechaEstreno = pelicula.fecha_estreno
+        ? new Intl.DateTimeFormat('es', { dateStyle: 'long' }).format(
+            pelicula.fecha_estreno,
+          )
+        : 'Por anunciar';
+      const genero = pelicula.generos?.nombre ?? 'Sin clasificar';
+
+      await Promise.allSettled(
+        usuarios.map((u) =>
+          this.mailService.sendNuevaPeliculaEmail({
+            nombre: u.nombre,
+            email: u.email,
+            titulo: pelicula.titulo,
+            genero,
+            fechaEstreno,
+            posterUrl: pelicula.poster_url ?? undefined,
+            link,
+          }),
+        ),
+      );
+
+      this.logger.log(
+        `Notificación de nueva película "${pelicula.titulo}" enviada a ${usuarios.length} usuario(s)`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error enviando notificaciones de nueva película "${pelicula.titulo}"`,
+        error,
+      );
+    }
   }
 
   async updatePelicula(id: string, data: UpdatePeliculaDto) {

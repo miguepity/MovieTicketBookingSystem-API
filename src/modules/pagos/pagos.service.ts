@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
 import { EstadoPago } from 'src/common/enums/estado-pago.enum';
@@ -31,16 +32,26 @@ export class PagosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly mailService: MailService,
   ) {}
 
   async crear(input: ProcesarPagoInput) {
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(input.idReserva) },
       include: {
+        usuarios: { select: { nombre: true, email: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { titulo: true } },
+            salas: { include: { cines: { select: { nombre: true } } } },
+          },
+        },
         reservaAsientos: {
           include: {
             asientosfuncion: {
-              include: { asientos: { select: { tipo: true } } },
+              include: {
+                asientos: { select: { tipo: true, codigo: true } },
+              },
             },
           },
         },
@@ -131,6 +142,30 @@ export class PagosService {
         reserva.id_usuario.toString(),
       ),
     );
+
+    const funcion = reserva.funciones;
+    const fechaFuncion = new Intl.DateTimeFormat('es', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'America/Tegucigalpa',
+    }).format(funcion.fecha_hora);
+
+    await this.mailService.sendConfirmacionEmail({
+      nombre: reserva.usuarios.nombre,
+      email: reserva.usuarios.email,
+      numeroReserva: reserva.numero_reserva,
+      pelicula: funcion.peliculas.titulo,
+      cine: `${funcion.salas.cines.nombre} — Sala ${funcion.salas.nombre}`,
+      fechaFuncion,
+      asientos: reserva.reservaAsientos.map((ra) => ({
+        codigo: ra.asientosfuncion.asientos.codigo,
+        tipo: ra.asientosfuncion.asientos.tipo,
+      })),
+      montoOriginal: result.monto_original.toFixed(2),
+      montoDescuento: result.monto_descuento.toFixed(2),
+      montoFinal: result.monto_final.toFixed(2),
+      metodo: result.metodo,
+    });
 
     return {
       id_pago: result.id.toString(),

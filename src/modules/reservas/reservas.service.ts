@@ -5,8 +5,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
+import { EstadoPago } from 'src/common/enums/estado-pago.enum';
 import {
   PRECIO_POR_TIPO_ASIENTO,
   PRECIO_DEFAULT,
@@ -14,7 +16,10 @@ import {
 
 @Injectable()
 export class ReservasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async crear(
     idFuncion: string,
@@ -110,6 +115,119 @@ export class ReservasService {
         total_estimado: totalEstimado.toFixed(2),
       };
     });
+  }
+
+  async cancelar(idReserva: string, idUsuarioActual: string) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(idReserva) },
+      include: {
+        usuarios: { select: { nombre: true, email: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { titulo: true } },
+            salas: { include: { cines: { select: { nombre: true } } } },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: { asientos: { select: { codigo: true, tipo: true } } },
+            },
+          },
+        },
+        pagos: {
+          where: { estado: EstadoPago.APROBADO },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          include: { reembolsos: { orderBy: { created_at: 'desc' }, take: 1 } },
+        },
+      },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'La reserva no existe',
+      });
+    }
+
+    if (reserva.id_usuario !== BigInt(idUsuarioActual)) {
+      throw new ForbiddenException({
+        code: 'RESERVA_NO_ES_DEL_USUARIO',
+        message: 'Esta reserva no te pertenece',
+      });
+    }
+
+    const estado = reserva.estado as EstadoReserva;
+    if (
+      estado !== EstadoReserva.PENDIENTE_PAGO &&
+      estado !== EstadoReserva.PAGADA
+    ) {
+      throw new ConflictException({
+        code: 'RESERVA_NO_CANCELABLE',
+        message: `La reserva está en estado ${reserva.estado} y no puede cancelarse`,
+      });
+    }
+
+    const idsAsientoFuncion = reserva.reservaAsientos.map(
+      (ra) => ra.asientosfuncion.id,
+    );
+
+    const pago = reserva.pagos[0] ?? null;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.reservas.update({
+        where: { id: reserva.id },
+        data: { estado: EstadoReserva.CANCELADA },
+      });
+
+      await tx.asientosFuncion.updateMany({
+        where: { id: { in: idsAsientoFuncion } },
+        data: { estado: EstadoAsiento.DISPONIBLE, id_usuario: null },
+      });
+
+      if (pago) {
+        await tx.reembolsos.create({
+          data: {
+            id_pago: pago.id,
+            monto: pago.monto_final,
+            estado: 'pendiente',
+          },
+        });
+      }
+    });
+
+    const reembolso = pago
+      ? await this.prisma.reembolsos.findFirst({
+          where: { id_pago: pago.id },
+          orderBy: { created_at: 'desc' },
+        })
+      : null;
+
+    const funcion = reserva.funciones;
+    const fechaFuncion = new Intl.DateTimeFormat('es', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'America/Tegucigalpa',
+    }).format(funcion.fecha_hora);
+
+    await this.mailService.sendCancelacionEmail({
+      nombre: reserva.usuarios.nombre,
+      email: reserva.usuarios.email,
+      numeroReserva: reserva.numero_reserva,
+      pelicula: funcion.peliculas.titulo,
+      cine: `${funcion.salas.cines.nombre} — Sala ${funcion.salas.nombre}`,
+      fechaFuncion,
+      asientos: reserva.reservaAsientos.map((ra) => ({
+        codigo: ra.asientosfuncion.asientos.codigo,
+        tipo: ra.asientosfuncion.asientos.tipo,
+      })),
+      montoPagado: pago ? pago.monto_final.toFixed(2) : undefined,
+      estadoReembolso: reembolso?.estado ?? 'sin_reembolso',
+      montoReembolso: reembolso ? reembolso.monto.toFixed(2) : undefined,
+    });
+
+    return { mensaje: 'Reserva cancelada exitosamente' };
   }
 
   private async generarNumeroUnico(
