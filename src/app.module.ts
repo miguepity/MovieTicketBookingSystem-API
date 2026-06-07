@@ -5,7 +5,6 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './admin/users/users.module.js';
 import { PeliculasModule } from './peliculas/peliculas.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { SalaModule } from './sala/sala.module';
 import { CiudadesModule } from './ciudades/ciudad.module';
