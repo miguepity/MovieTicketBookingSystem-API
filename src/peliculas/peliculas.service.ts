@@ -71,7 +71,10 @@ export class PeliculasService {
 
     return {
       message: `Película ${pelicula.activo ? 'activada' : 'desactivada'} exitosamente`,
-      data: this.serializePelicula(pelicula),
+      data: {
+        id: Number(pelicula.id),
+        activo: pelicula.activo,
+      },
       editor: {
         id_editor: dto.id_editor,
         fecha_modificacion: pelicula.updated_at,
