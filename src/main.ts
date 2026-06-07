@@ -3,6 +3,10 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
@@ -15,6 +19,20 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  if (document.paths) {
+    Object.keys(document.paths).forEach((path) => {
+      const methods = document.paths[path];
+      Object.keys(methods).forEach((method) => {
+        if (!methods[method].responses) {
+          methods[method].responses = {};
+        }
+        methods[method].responses['500'] = {
+          description: 'Error interno del servidor. Ocurrió un error inesperado al procesar la solicitud.',
+        };
+      });
+    });
+  }
 
   SwaggerModule.setup('api', app, document);
 
