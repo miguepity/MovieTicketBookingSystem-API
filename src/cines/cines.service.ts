@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "src/prisma/prisma.service"
 import { BodyDto } from "./dto/cine.body"
+import { EditBodyDto } from "./dto/cine.edit.body"
 import { ParamDto } from "./dto/cine.param"
 
 @Injectable()
@@ -20,7 +21,7 @@ export class CineService{
         return newCine;
     }
 
-    async editCine(dtoP: ParamDto, dtoB: BodyDto){
+    async editCine(dtoP: ParamDto, dtoB: EditBodyDto){
         const findCinema = await this.prisma.cines.findFirst({
             where: {id: dtoP.id}
         });
