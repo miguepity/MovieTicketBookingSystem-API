@@ -23,6 +23,7 @@ import { PoliticasCancelacionModule } from './modules/politicas-cancelacion/poli
 import { TiposAsientoModule } from './modules/tipos-asiento/tipos-asiento.module';
 import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
+import { FuncionesModule } from './modules/funciones/funciones.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
     TiposAsientoModule,
     PreciosCineModule,
     ReportesModule,
+    FuncionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

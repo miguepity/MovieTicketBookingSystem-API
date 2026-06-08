@@ -114,6 +114,31 @@ export class PeliculaController {
     return this.peliculaService.uploadPoster(id, file);
   }
 
+  @Get(':id/cines')
+  @ApiOperation({
+    summary: 'Obtener cines con funciones activas para una película',
+  })
+  @ApiOkResponse({ description: 'Listado de cines con sus funciones activas' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  getCinesByPelicula(@Param('id') id: string) {
+    return this.peliculaService.findCinesByPelicula(id);
+  }
+
+  @Get(':id/cines/:cineId/funciones')
+  @ApiOperation({
+    summary:
+      'Listar funciones activas futuras de una película en un cine, con disponibilidad de asientos',
+  })
+  @ApiOkResponse({ description: 'Listado de funciones con disponibilidad' })
+  @ApiNotFoundResponse({ description: 'Película o cine no encontrados' })
+  @ApiBadRequestResponse({ description: 'ID inválido' })
+  findFuncionesByPeliculaAndCine(
+    @Param('id') id: string,
+    @Param('cineId') cineId: string,
+  ) {
+    return this.peliculaService.findFuncionesByPeliculaAndCine(id, cineId);
+  }
+
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

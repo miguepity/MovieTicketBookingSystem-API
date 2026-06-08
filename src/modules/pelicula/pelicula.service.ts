@@ -12,6 +12,7 @@ import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { CloudinaryService } from './cloudinary.service';
+import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
@@ -205,6 +206,144 @@ export class PeliculaService {
         activo: data.activo,
       },
     });
+  }
+
+  async findCinesByPelicula(id: string) {
+    const peliculaId = this.parseId(id);
+
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { id: true },
+    });
+    if (!pelicula) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    return this.prisma.cines.findMany({
+      where: {
+        salas: {
+          some: {
+            funciones: {
+              some: {
+                id_pelicula: peliculaId,
+                estado: 'activo',
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        nombre: true,
+        direccion: true,
+        id_ciudad: true,
+        ciudades: {
+          select: { id: true, nombre: true },
+        },
+        salas: {
+          where: {
+            funciones: {
+              some: {
+                id_pelicula: peliculaId,
+                estado: 'activo',
+              },
+            },
+          },
+          select: {
+            id: true,
+            nombre: true,
+            funciones: {
+              where: {
+                id_pelicula: peliculaId,
+                estado: 'activo',
+              },
+              select: {
+                id: true,
+                fecha_hora: true,
+                estado: true,
+              },
+              orderBy: { fecha_hora: 'asc' },
+            },
+          },
+        },
+      },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  async findFuncionesByPeliculaAndCine(
+    peliculaIdParam: string,
+    cineIdParam: string,
+  ) {
+    const peliculaId = this.parseId(peliculaIdParam);
+    const cineId = this.parseId(cineIdParam);
+
+    const [pelicula, cine] = await Promise.all([
+      this.prisma.peliculas.findUnique({
+        where: { id: peliculaId },
+        select: { id: true, titulo: true },
+      }),
+      this.prisma.cines.findUnique({
+        where: { id: cineId },
+        select: { id: true, nombre: true },
+      }),
+    ]);
+    if (!pelicula) {
+      throw new NotFoundException('Película no encontrada');
+    }
+    if (!cine) {
+      throw new NotFoundException('Cine no encontrado');
+    }
+
+    const funciones = await this.prisma.funciones.findMany({
+      where: {
+        id_pelicula: peliculaId,
+        estado: 'activo',
+        fecha_hora: { gte: new Date() },
+        salas: { id_cine: cineId },
+      },
+      select: {
+        id: true,
+        fecha_hora: true,
+        estado: true,
+        salas: { select: { id: true, nombre: true } },
+        asientosFuncions: { select: { estado: true } },
+      },
+      orderBy: { fecha_hora: 'asc' },
+    });
+
+    return {
+      pelicula: { id: pelicula.id.toString(), titulo: pelicula.titulo },
+      cine: { id: cine.id.toString(), nombre: cine.nombre },
+      funciones: funciones.map((f) => {
+        const total = f.asientosFuncions.length;
+        const disponibles = f.asientosFuncions.filter(
+          (a) => (a.estado as EstadoAsiento) === EstadoAsiento.DISPONIBLE,
+        ).length;
+        const bloqueados = f.asientosFuncions.filter(
+          (a) => (a.estado as EstadoAsiento) === EstadoAsiento.BLOQUEADO,
+        ).length;
+        const reservados = f.asientosFuncions.filter(
+          (a) => (a.estado as EstadoAsiento) === EstadoAsiento.RESERVADO,
+        ).length;
+        const ocupados = f.asientosFuncions.filter(
+          (a) => (a.estado as EstadoAsiento) === EstadoAsiento.OCUPADO,
+        ).length;
+        return {
+          id: f.id.toString(),
+          fecha_hora: f.fecha_hora,
+          estado: f.estado,
+          sala: { id: f.salas.id.toString(), nombre: f.salas.nombre },
+          asientos: {
+            total,
+            disponibles,
+            bloqueados,
+            reservados,
+            ocupados,
+          },
+        };
+      }),
+    };
   }
 
   async toggleActivo(id: string) {
