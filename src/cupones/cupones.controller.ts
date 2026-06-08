@@ -12,6 +12,7 @@ import {
 import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
 import { UpdateCuponDto } from './dto/update-cupon.dto';
+import { ValidateCuponDto } from './dto/validate-cupon.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import {
   ApiTags,
@@ -24,6 +25,30 @@ import {
 @Controller('cupones')
 export class CuponesController {
   constructor(private readonly cuponesService: CuponesService) {}
+
+  @Post('validar')
+  @ApiOperation({ summary: 'Validar un cupón' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cupón válido',
+    schema: {
+      example: {
+        tipo: 'descuento',
+        valor: '20.50',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Cupón no encontrado',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cupón no válido (inactivo, expirado, o sin usos disponibles)',
+  })
+  async validate(@Body() validateCuponDto: ValidateCuponDto) {
+    return await this.cuponesService.validate(validateCuponDto.codigo);
+  }
 
   @Post()
   @UseGuards(AuthGuard)
