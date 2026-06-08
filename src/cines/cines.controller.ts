@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Param, Body, ParseIntPipe, Put } from "@nestjs/common";
+import { Controller, Post, Patch, Param, Body, ParseIntPipe } from "@nestjs/common";
 import { CineService } from "./cines.service";
 import { BodyDto } from "./dto/cine.body";
+import { EditBodyDto } from "./dto/cine.edit.body";
+import { ParamDto } from "./dto/cine.param";
 
 @Controller('cines')
 export class CineController{
@@ -27,9 +29,9 @@ export class CineController{
     @Put()
     editCine(
         @Param('id', ParseIntPipe) id: number,
-        @Body() dtoB: BodyDto
+        @Body() dtoB: EditBodyDto
     ){
-        try{    
+        try{
             return this.cineService.editCine({id}, dtoB);
         }catch(error){
             return 'Internal server error';
