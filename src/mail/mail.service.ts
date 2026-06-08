@@ -4,47 +4,69 @@ import {
   Logger,
 } from '@nestjs/common';
 import { createTransport } from 'nodemailer';
+import { buildPasswordResetTemplate } from './templates/password-reset.template';
 
 const DEFAULT_MAIL_PORT = 1025;
+
+type SendEmailOptions = {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+};
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  async sendPasswordResetEmail(email: string, token: string) {
-    const resetUrl = this.buildResetUrl(token);
-    const recipient = process.env.MAIL_TEST_TO ?? email;
-
+  async sendEmail(options: SendEmailOptions) {
     try {
-      const mailUser = process.env.MAIL_USER;
-      const mailPassword = process.env.MAIL_PASSWORD;
-      const transporter = createTransport({
-        host: process.env.MAIL_HOST ?? 'localhost',
-        port: Number(process.env.MAIL_PORT ?? DEFAULT_MAIL_PORT),
-        secure: process.env.MAIL_SECURE === 'true',
-        auth:
-          mailUser && mailPassword
-            ? {
-                user: mailUser,
-                pass: mailPassword,
-              }
-            : undefined,
-      });
+      const transporter = this.createTransporter();
+      const recipient = process.env.MAIL_TEST_TO ?? options.to;
 
       await transporter.sendMail({
         from: process.env.MAIL_FROM ?? 'Movie Tickets <no-reply@localhost>',
         to: recipient,
-        subject: 'Restablece tu contrasena',
-        html: this.buildPasswordResetHtml(resetUrl),
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
       });
 
-      this.logger.log(`Password reset email sent to ${recipient}`);
+      this.logger.log(`Email sent to ${recipient}`);
     } catch (error) {
-      this.logger.error('Could not send password reset email', error);
+      this.logger.error('Could not send email', error);
       throw new InternalServerErrorException(
-        'No se pudo enviar el correo de recuperacion',
+        'No se pudo enviar el correo',
       );
     }
+  }
+
+  async sendPasswordResetEmail(email: string, token: string) {
+    const resetUrl = this.buildResetUrl(token);
+
+    await this.sendEmail({
+      to: email,
+      subject: 'Restablece tu contrasena',
+      html: buildPasswordResetTemplate(resetUrl),
+    });
+  }
+
+  private createTransporter() {
+    const mailUser = process.env.MAIL_USER;
+    const mailPassword = process.env.MAIL_PASSWORD;
+
+    return createTransport({
+      host: process.env.MAIL_HOST ?? 'localhost',
+      port: Number(process.env.MAIL_PORT ?? DEFAULT_MAIL_PORT),
+      secure: process.env.MAIL_SECURE === 'true',
+      auth:
+        mailUser && mailPassword
+          ? {
+              user: mailUser,
+              pass: mailPassword,
+            }
+          : undefined,
+    });
   }
 
   private buildResetUrl(token: string) {
@@ -55,14 +77,5 @@ export class MailService {
     url.searchParams.set('token', token);
 
     return url.toString();
-  }
-
-  private buildPasswordResetHtml(resetUrl: string) {
-    return `
-      <p>Recibimos una solicitud para restablecer tu contrasena.</p>
-      <p>Usa este enlace para continuar:</p>
-      <p><a href="${resetUrl}">Restablecer contrasena</a></p>
-      <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-    `;
   }
 }
