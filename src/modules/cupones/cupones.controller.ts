@@ -51,4 +51,10 @@ export class CuponesController {
   validar(@Body() body: { codigo: string }) {
     return this.cuponesService.validar(body.codigo);
   }
+
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  toggleStatus(@Param('id') id: string) {
+    return this.cuponesService.toggleStatus(id);
+  }
 }

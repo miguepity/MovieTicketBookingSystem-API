@@ -110,4 +110,29 @@ export class CuponesService {
       fecha_expiracion: cupon.fecha_expiracion,
     };
   }
+
+  async toggleStatus(id: string) {
+    const cuponId = BigInt(id);
+
+    const cupon = await this.prisma.cupones.findUnique({
+      where: { id: cuponId },
+    });
+
+    if (!cupon) {
+      throw new NotFoundException('Cupón no existe');
+    }
+
+    const updated = await this.prisma.cupones.update({
+      where: { id: cuponId },
+      data: {
+        activo: !cupon.activo,
+      },
+    });
+
+    return {
+      id: updated.id.toString(),
+      codigo: updated.codigo,
+      activo: updated.activo,
+    };
+  }
 }
