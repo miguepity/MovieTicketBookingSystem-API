@@ -2,19 +2,30 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { CreatePagoEfectivoDto } from './dto/create-pago-efectivo.dto';
-
+import { EmailService } from '../email/email.service';
 @Injectable()
 export class PagosService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PagosService.name);
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   // POST /pagos — pago realizado (tarjeta u otro método digital)
   async create(dto: CreatePagoDto) {
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(dto.id_reserva) },
+      include: {
+        usuarios: { select: { nombre: true, email: true } },
+        funciones: {
+          include: { peliculas: { select: { titulo: true } } },
+        },
+      },
     });
 
     if (!reserva) throw new NotFoundException('Reserva no encontrada');
@@ -39,6 +50,20 @@ export class PagosService {
         data: { estado: 'pagada' },
       }),
     ]);
+
+    // Trigger email — Promise sin await para no bloquear la respuesta
+    this.emailService
+      .sendPagoExitoso(
+        reserva.usuarios.email,
+        reserva.usuarios.nombre,
+        reserva.numero_reserva,
+        reserva.funciones.peliculas.titulo,
+        reserva.funciones.fecha_hora,
+        dto.monto_final,
+      )
+      .catch((err) =>
+        this.logger.error('Error enviando email de pago exitoso', err),
+      );
 
     return pago;
   }
