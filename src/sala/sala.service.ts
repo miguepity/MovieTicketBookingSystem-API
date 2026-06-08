@@ -16,6 +16,14 @@ export class SalaService {
   async create(createSalaDto: CreateSalaDto) {
     const { nombre, id_cine, filas, columnas } = createSalaDto;
 
+    const salaExistente = await this.prisma.salas.findFirst({
+      where: { id_cine: BigInt(id_cine), nombre: nombre },
+    });
+
+    if(salaExistente) {
+      throw new ConflictException(`Sala ${salaExistente.nombre} ya existe en el cine ${salaExistente.id_cine}`);
+    }
+
     const cineExistente = await this.prisma.cines.findUnique({
       where: { id: BigInt(id_cine) },
     });
