@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiBearerAuth,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { PeliculasService } from './peliculas.service';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
@@ -31,15 +32,51 @@ export class PeliculasController {
   @ApiOperation({
     summary: 'Obtener películas activas, con búsqueda opcional por título',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de películas encontradas',
+    schema: {
+      example: [
+        {
+          id: 1,
+          titulo: 'The Matrix',
+          sinopsis: '...',
+          poster_url: '...',
+          fecha_estreno: '1999-03-31',
+          idiomas: { nombre: 'Inglés' },
+          generos: { nombre: 'Ciencia Ficción' },
+        },
+      ],
+    },
+  })
   buscar(@Query() query: QueryPeliculaDto) {
     return this.peliculasService.getTitulo(query.titulo);
   }
+
   @Put(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiOperation({ summary: 'Editar una película por ID' })
   @ApiParam({ name: 'id', description: 'ID de la película a editar' })
+  @ApiResponse({
+    status: 200,
+    description: 'Película actualizada exitosamente',
+    schema: {
+      example: {
+        id: 1,
+        titulo: 'The Matrix Updated',
+        sinopsis: '...',
+        poster_url: '...',
+        fecha_estreno: '1999-03-31',
+        activo: true,
+        updated_at: '2026-06-07T12:00:00Z',
+        id_usuario: '1',
+        idiomas: { nombre: 'Inglés' },
+        generos: { nombre: 'Ciencia Ficción' },
+      },
+    },
+  })
   editar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePeliculaDto,
@@ -56,6 +93,25 @@ export class PeliculasController {
   })
   @ApiParam({ name: 'id', description: 'ID de la película' })
   @ApiParam({ name: 'cineId', description: 'ID del cine' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de funciones con disponibilidad',
+    schema: {
+      example: [
+        {
+          id: '1',
+          fecha_hora: '2026-06-07T18:00:00Z',
+          estado: 'active',
+          salas: {
+            id: '1',
+            nombre: 'Sala 1',
+            cines: { id: '1', nombre: 'Cinépolis' },
+          },
+          _count: { asientosFuncions: 40 },
+        },
+      ],
+    },
+  })
   getFunciones(
     @Param('id', ParseIntPipe) id: number,
     @Param('cineId', ParseIntPipe) cineId: number,

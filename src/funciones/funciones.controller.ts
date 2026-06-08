@@ -1,46 +1,25 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
-import { ApiOperation } from '@nestjs/swagger';
-import { IS_DATE_STRING } from 'class-validator';
+import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
+
+@ApiTags('Funciones')
 @Controller('funciones')
 export class FuncionesController {
   constructor(private readonly funcionesService: FuncionesService) {}
 
   @Post()
-  @ApiOperation({
-    description: 'Crea una nueva función',
-    responses: {
-      201: {
-        description: 'Función creada exitosamente',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                id_pelicula: { type: 'string' },
-                id_sala: { type: 'string' },
-                fecha_hora: { type: 'string', format: 'date-time' },
-                precio: { type: 'number' },
-              },
-            },
-          },
-        },
-      },
-      400: {
-        description: 'Solicitud inválida',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                statusCode: { type: 'number' },
-                message: { type: 'string' },
-                error: { type: 'string' },
-              },
-            },
-          },
-        },
+  @ApiOperation({ summary: 'Crea una nueva función' })
+  @ApiResponse({
+    status: 201,
+    description: 'Función creada exitosamente',
+    schema: {
+      example: {
+        id: '1',
+        id_pelicula: '1',
+        id_sala: '1',
+        fecha_hora: '2026-06-07T18:00:00Z',
+        estado: 'active',
       },
     },
   })

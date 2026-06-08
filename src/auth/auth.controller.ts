@@ -2,8 +2,9 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from './auth.service';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -12,18 +13,13 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  @ApiOperation({
-    description: 'Login with email and password',
-    responses: {
-      200: {
-        description: 'Login successful',
-        content: {
-          'application/json': {
-            example: {
-              accessToken: '...',
-            },
-          },
-        },
+  @ApiOperation({ summary: 'Iniciar sesión con email y contraseña' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login exitoso',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       },
     },
   })
