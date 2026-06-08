@@ -1,4 +1,4 @@
-import { Controller, Post, Patch, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
@@ -7,6 +7,16 @@ import { UpdateFuncionDto } from './dto/update-funcion.dto';
 export class FuncionesController {
   constructor(private readonly funcionesService: FuncionesService) {}
 
+  @Get(':id/reservas-activas')
+  getReservasActivas(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.getReservasActivasByFuncion(id);
+  }
+
+  @Patch(':id/cancelar')
+  cancelarFuncion(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.cancelarFuncion(id);
+  }
+  
   @Post()
   create(@Body() createFuncionDto: CreateFuncionDto) {
     return this.funcionesService.create(createFuncionDto);
