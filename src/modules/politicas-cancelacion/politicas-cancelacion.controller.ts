@@ -17,6 +17,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { PoliticasCancelacionService } from './politicas-cancelacion.service';
 import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { PoliticasCancelacionPageResponseDto } from './dto/politicas-cancelacion-page.response.dto';
@@ -46,7 +48,8 @@ export class PoliticasCancelacionController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Política de cancelación no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @ApiBearerAuth()
   update(
     @Param('id') id: string,

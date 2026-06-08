@@ -26,6 +26,7 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { email: loginDto.email },
+      include: { roles: { select: { nombre: true } } },
     });
 
     if (!usuario) {
@@ -44,6 +45,8 @@ export class AuthService {
     const payload = {
       email: usuario.email,
       sub: usuario.id.toString(),
+      idRol: usuario.id_rol.toString(),
+      rol: usuario.roles.nombre,
       jti: randomUUID(),
     };
 
@@ -95,6 +98,8 @@ export class AuthService {
     const payload = {
       email: usuario.email,
       sub: usuario.id.toString(),
+      idRol: usuario.id_rol.toString(),
+      rol: rolDefault.nombre,
       jti: randomUUID(),
     };
 
@@ -226,11 +231,14 @@ export class AuthService {
     const usuario = await this.prisma.usuarios.update({
       where: { id: BigInt(userId) },
       data: { email: dto.newEmail },
+      include: { roles: { select: { nombre: true } } },
     });
 
     const payload = {
       email: usuario.email,
       sub: usuario.id.toString(),
+      idRol: usuario.id_rol.toString(),
+      rol: usuario.roles.nombre,
       jti: randomUUID(),
     };
 

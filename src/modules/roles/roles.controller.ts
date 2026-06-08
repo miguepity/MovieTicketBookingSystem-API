@@ -27,6 +27,8 @@ import { RolesService } from './roles.service';
 import { CreateRolDto } from './dto/create-rol.dto';
 import { UpdateRolDto } from './dto/update-rol.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles as RolesDecorator } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 @ApiTags('Roles')
 @Controller('roles')
@@ -57,7 +59,8 @@ export class RolesController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator('admin')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un nuevo rol' })
@@ -70,7 +73,8 @@ export class RolesController {
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un rol existente' })
   @ApiOkResponse({ description: 'Rol actualizado exitosamente' })
@@ -83,7 +87,8 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un rol' })
   @ApiOkResponse({ description: 'Rol eliminado exitosamente' })
