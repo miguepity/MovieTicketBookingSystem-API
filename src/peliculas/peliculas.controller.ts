@@ -1,5 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import 'multer';
+import {
+  Body, Controller, Get, Param, Patch, Post, Put,
+  Query, UploadedFile, UseGuards, UseInterceptors,
+  ParseFilePipe, MaxFileSizeValidator, FileTypeValidator,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { PeliculasService } from './peliculas.service.js';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto.js';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto.js';
@@ -47,6 +54,47 @@ export class PeliculasController {
   @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN.' })
   create(@Body() body: CreatePeliculaDto) {
     return this.peliculasService.create(body);
+  }
+
+  @Post(':id/poster')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(FileInterceptor('poster', { storage: memoryStorage() }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Subir o reemplazar el poster de una película' })
+  @ApiParam({ name: 'id', description: 'ID de la película', example: '1' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['poster'],
+      properties: {
+        poster: {
+          type: 'string',
+          format: 'binary',
+          description: 'Imagen del poster (JPEG, PNG o WebP, máximo 5 MB)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Poster subido y URL actualizada exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Archivo inválido, muy pesado o formato no permitido.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN.' })
+  @ApiResponse({ status: 404, description: 'Película no encontrada.' })
+  uploadPoster(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.peliculasService.uploadPoster(id, file);
   }
 
   @Put(':id')

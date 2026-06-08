@@ -1,3 +1,4 @@
+import 'multer';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -5,10 +6,14 @@ import { CreatePeliculaDto } from './dto/create-pelicula.dto.js';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto.js';
 import { ToggleStatusPeliculaDto } from './dto/toggle-status-pelicula.dto.js';
 import { BuscarPeliculaDto } from './dto/buscar-pelicula.dto.js';
+import { R2Service } from './r2.service.js';
 
 @Injectable()
 export class PeliculasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly r2: R2Service,
+  ) {}
 
   async create(dto: CreatePeliculaDto) {
     try {
@@ -79,6 +84,27 @@ export class PeliculasService {
       editor: {
         id_editor: dto.id_editor,
         fecha_modificacion: pelicula.updated_at,
+      },
+    };
+  }
+
+  async uploadPoster(id: string, file: Express.Multer.File) {
+    await this.findOneOrFail(id);
+
+    const ext = file.originalname.split('.').pop() ?? 'jpg';
+    const key = `posters/${id}-${Date.now()}.${ext}`;
+    const url = await this.r2.uploadImage(file, key);
+
+    const pelicula = await this.prisma.peliculas.update({
+      where: { id: BigInt(id) },
+      data: { poster_url: url },
+    });
+
+    return {
+      message: 'Poster actualizado exitosamente',
+      data: {
+        id: Number(pelicula.id),
+        poster_url: pelicula.poster_url,
       },
     };
   }
