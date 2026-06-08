@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   Delete,
+  Patch,
 } from '@nestjs/common';
 import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
@@ -201,6 +202,40 @@ export class CuponesController {
   })
   async delete(@Param('id', ParseIntPipe) id: number) {
     const cupon = await this.cuponesService.delete(id);
+    return {
+      ...cupon,
+      id: cupon.id.toString(),
+      valor: cupon.valor.toString(),
+    };
+  }
+
+  @Patch(':id/status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Toggle activo/inactivo de un cupón' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado del cupón actualizado exitosamente',
+    schema: {
+      example: {
+        id: '1',
+        codigo: 'DESC20',
+        tipo: 'descuento',
+        valor: '20.50',
+        fecha_expiracion: '2025-12-31',
+        usos_maximos: 100,
+        usos_actuales: 0,
+        activo: false,
+        created_at: '2024-01-15T10:30:00Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Cupón no encontrado',
+  })
+  async toggleStatus(@Param('id', ParseIntPipe) id: number) {
+    const cupon = await this.cuponesService.toggleStatus(id);
     return {
       ...cupon,
       id: cupon.id.toString(),

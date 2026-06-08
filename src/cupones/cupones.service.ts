@@ -129,4 +129,21 @@ export class CuponesService {
       valor: cupon.valor.toString(),
     };
   }
+
+  async toggleStatus(id: number) {
+    const cupon = await this.prismaService.cupones.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!cupon) {
+      throw new NotFoundException(`Cupón con ID ${id} no encontrado`);
+    }
+
+    return await this.prismaService.cupones.update({
+      where: { id: BigInt(id) },
+      data: {
+        activo: !cupon.activo,
+      },
+    });
+  }
 }
