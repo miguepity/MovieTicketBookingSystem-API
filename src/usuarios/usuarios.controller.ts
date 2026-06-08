@@ -51,4 +51,16 @@ export class UsuariosController {
   ) {
     return this.usuariosService.toggleNotifications(id);
   }
+
+  @Post(':id/trigger-cancelacion')
+  triggerCancelacion(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usuariosService.triggerCancelacionUsuario(id);
+  }
+
+  @Get('suscritos-nueva-pelicula')
+  getClientesSuscritos() {
+    return this.usuariosService.findClientesSuscritos();
+  }
 }
