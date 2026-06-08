@@ -11,10 +11,6 @@ import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
 import { EstadoPago } from 'src/common/enums/estado-pago.enum';
 import { MetodoPago } from 'src/common/enums/metodo-pago.enum';
-import {
-  PRECIO_POR_TIPO_ASIENTO,
-  PRECIO_DEFAULT,
-} from 'src/common/constants/precios.constants';
 import { PagoExitosoEvent } from './events/pago-exitoso.event';
 import { Prisma } from '../../../generated/prisma/client';
 
@@ -37,10 +33,18 @@ export class PagosService {
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(input.idReserva) },
       include: {
+        funciones: { select: { salas: { select: { id_cine: true } } } },
         reservaAsientos: {
           include: {
             asientosfuncion: {
-              include: { asientos: { select: { tipo: true } } },
+              include: {
+                asientos: {
+                  select: {
+                    id_tipo_asiento: true,
+                    tipoAsiento: { select: { nombre: true } },
+                  },
+                },
+              },
             },
           },
         },
@@ -68,9 +72,32 @@ export class PagosService {
       });
     }
 
+    const idCine = reserva.funciones.salas.id_cine;
+    const tiposAsientoIds = Array.from(
+      new Set(
+        reserva.reservaAsientos.map(
+          (ra) => ra.asientosfuncion.asientos.id_tipo_asiento,
+        ),
+      ),
+    );
+    const precios = await this.prisma.preciosCine.findMany({
+      where: { id_cine: idCine, id_tipo_asiento: { in: tiposAsientoIds } },
+      select: { id_tipo_asiento: true, precio: true },
+    });
+    const precioPorTipo = new Map(
+      precios.map((p) => [p.id_tipo_asiento, Number(p.precio.toString())]),
+    );
+
     const montoOriginal = reserva.reservaAsientos.reduce((acc, ra) => {
-      const tipo = ra.asientosfuncion.asientos.tipo;
-      return acc + (PRECIO_POR_TIPO_ASIENTO[tipo] ?? PRECIO_DEFAULT);
+      const asiento = ra.asientosfuncion.asientos;
+      const precio = precioPorTipo.get(asiento.id_tipo_asiento);
+      if (precio === undefined) {
+        throw new ConflictException({
+          code: 'PRECIO_NO_CONFIGURADO',
+          message: `El cine no tiene precio configurado para el tipo "${asiento.tipoAsiento.nombre}"`,
+        });
+      }
+      return acc + precio;
     }, 0);
 
     const cupon = input.codigoCupon

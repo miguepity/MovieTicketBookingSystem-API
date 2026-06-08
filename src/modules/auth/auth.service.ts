@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -41,7 +41,11 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const payload = { email: usuario.email, sub: usuario.id.toString() };
+    const payload = {
+      email: usuario.email,
+      sub: usuario.id.toString(),
+      jti: randomUUID(),
+    };
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -88,7 +92,11 @@ export class AuthService {
       },
     });
 
-    const payload = { email: usuario.email, sub: usuario.id.toString() };
+    const payload = {
+      email: usuario.email,
+      sub: usuario.id.toString(),
+      jti: randomUUID(),
+    };
 
     await this.mailService.sendEmail({
       to: { email: usuario.email, name: usuario.nombre },
@@ -220,7 +228,11 @@ export class AuthService {
       data: { email: dto.newEmail },
     });
 
-    const payload = { email: usuario.email, sub: usuario.id.toString() };
+    const payload = {
+      email: usuario.email,
+      sub: usuario.id.toString(),
+      jti: randomUUID(),
+    };
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -232,5 +244,38 @@ export class AuthService {
         estado: usuario.estado,
       },
     };
+  }
+
+  async logout(
+    jti: string,
+    userId: string,
+    exp: number,
+  ): Promise<{ message: string }> {
+    await this.prisma.jwtBlacklist.upsert({
+      where: { jti },
+      update: {},
+      create: {
+        jti,
+        id_usuario: BigInt(userId),
+        expires_at: new Date(exp * 1000),
+      },
+    });
+
+    return { message: 'Sesión cerrada exitosamente' };
+  }
+
+  async isTokenRevoked(jti: string): Promise<boolean> {
+    const entry = await this.prisma.jwtBlacklist.findUnique({
+      where: { jti },
+      select: { jti: true },
+    });
+    return entry !== null;
+  }
+
+  async limpiarBlacklistExpirada(): Promise<number> {
+    const result = await this.prisma.jwtBlacklist.deleteMany({
+      where: { expires_at: { lt: new Date() } },
+    });
+    return result.count;
   }
 }

@@ -14,13 +14,14 @@ datasource db {
 }
 
 model Cines {
-  id         BigInt   @id @default(autoincrement())
-  nombre     String   @db.VarChar(150)
-  direccion  String?  @db.VarChar(255)
-  id_ciudad  BigInt
-  ciudades   Ciudades @relation(fields: [id_ciudad], references: [id])
-  created_at DateTime @default(now()) @db.Timestamptz
-  salas      Salas[]
+  id          BigInt        @id @default(autoincrement())
+  nombre      String        @db.VarChar(150)
+  direccion   String?       @db.VarChar(255)
+  id_ciudad   BigInt
+  ciudades    Ciudades      @relation(fields: [id_ciudad], references: [id])
+  created_at  DateTime      @default(now()) @db.Timestamptz
+  salas       Salas[]
+  preciosCine PreciosCine[]
 
   @@map("cines")
 }
@@ -55,11 +56,33 @@ model Asientos {
   fila             String            @db.Char(2)
   columna          Int
   codigo           String            @db.VarChar(10)
-  tipo             String            @db.VarChar(30)
+  id_tipo_asiento  BigInt
+  tipoAsiento      TiposAsiento      @relation(fields: [id_tipo_asiento], references: [id])
   asientosFuncions AsientosFuncion[]
 
   @@unique([id_sala, fila, columna])
   @@map("asientos")
+}
+
+model TiposAsiento {
+  id          BigInt        @id @default(autoincrement())
+  nombre      String        @unique @db.VarChar(30)
+  asientos    Asientos[]
+  preciosCine PreciosCine[]
+
+  @@map("tipos_asiento")
+}
+
+model PreciosCine {
+  id              BigInt       @id @default(autoincrement())
+  id_cine         BigInt
+  cines           Cines        @relation(fields: [id_cine], references: [id])
+  id_tipo_asiento BigInt
+  tipoAsiento     TiposAsiento @relation(fields: [id_tipo_asiento], references: [id])
+  precio          Decimal      @db.Decimal(10, 2)
+
+  @@unique([id_cine, id_tipo_asiento])
+  @@map("precios_cine")
 }
 
 model AsientosFuncion {
@@ -147,13 +170,13 @@ model PoliticaCancelacion {
 }
 
 model Reembolsos {
-  id              BigInt   @id @default(autoincrement())
+  id              BigInt    @id @default(autoincrement())
   id_pago         BigInt
-  pagos           Pagos    @relation(fields: [id_pago], references: [id])
-  monto           Decimal  @db.Decimal(10, 2)
-  estado          String   @db.VarChar(20)
+  pagos           Pagos     @relation(fields: [id_pago], references: [id])
+  monto           Decimal   @db.Decimal(10, 2)
+  estado          String    @db.VarChar(20)
   fecha_procesado DateTime? @db.Timestamptz
-  created_at      DateTime @default(now()) @db.Timestamptz
+  created_at      DateTime  @default(now()) @db.Timestamptz
 
   @@map("reembolsos")
 }
@@ -262,4 +285,14 @@ model PasswordResetToken {
   created_at DateTime @default(now()) @db.Timestamptz
 
   @@map("password_reset_token")
+}
+
+model JwtBlacklist {
+  jti        String   @id @db.VarChar(64)
+  id_usuario BigInt
+  expires_at DateTime @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([expires_at])
+  @@map("jwt_blacklist")
 }

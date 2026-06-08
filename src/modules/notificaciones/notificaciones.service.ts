@@ -39,7 +39,12 @@ export class NotificacionesService {
               include: {
                 asientosfuncion: {
                   include: {
-                    asientos: { select: { codigo: true, tipo: true } },
+                    asientos: {
+                      select: {
+                        codigo: true,
+                        tipoAsiento: { select: { nombre: true } },
+                      },
+                    },
                   },
                 },
               },
@@ -72,7 +77,7 @@ export class NotificacionesService {
         fechaFuncion,
         asientos: reserva.reservaAsientos.map((ra) => ({
           codigo: ra.asientosfuncion.asientos.codigo,
-          tipo: ra.asientosfuncion.asientos.tipo,
+          tipo: ra.asientosfuncion.asientos.tipoAsiento.nombre,
         })),
         montoOriginal: pago.monto_original.toFixed(2),
         montoDescuento: pago.monto_descuento.toFixed(2),
@@ -108,7 +113,14 @@ export class NotificacionesService {
         reservaAsientos: {
           include: {
             asientosfuncion: {
-              include: { asientos: { select: { codigo: true, tipo: true } } },
+              include: {
+                asientos: {
+                  select: {
+                    codigo: true,
+                    tipoAsiento: { select: { nombre: true } },
+                  },
+                },
+              },
             },
           },
         },
@@ -146,7 +158,7 @@ export class NotificacionesService {
         fechaFuncion,
         asientos: reserva.reservaAsientos.map((ra) => ({
           codigo: ra.asientosfuncion.asientos.codigo,
-          tipo: ra.asientosfuncion.asientos.tipo,
+          tipo: ra.asientosfuncion.asientos.tipoAsiento.nombre,
         })),
         montoPagado: reembolso
           ? reembolso.pagos.monto_final.toFixed(2)

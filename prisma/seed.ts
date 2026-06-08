@@ -7,7 +7,9 @@ import { seedGeneros } from './seed/generos';
 import { seedUsuarios } from './seed/usuarios';
 import { seedCines } from './seed/cines';
 import { seedSalas } from './seed/salas';
+import { seedTiposAsiento } from './seed/tipos-asiento';
 import { seedAsientos } from './seed/asientos';
+import { seedPreciosCine } from './seed/precios-cine';
 import { seedPeliculas } from './seed/peliculas';
 import { seedFunciones } from './seed/funciones';
 import { seedAsientosFuncion } from './seed/asientos-funcion';
@@ -30,7 +32,9 @@ async function main() {
   const usuarios = await seedUsuarios(roles);
   const cines = await seedCines(ciudades);
   const salas = await seedSalas(cines);
-  const asientos = await seedAsientos(salas);
+  const tiposAsiento = await seedTiposAsiento();
+  const asientos = await seedAsientos(salas, tiposAsiento);
+  const preciosCineCount = await seedPreciosCine(cines, tiposAsiento);
   const peliculas = await seedPeliculas(idiomas, generos, usuarios.admin);
   const funciones = await seedFunciones(peliculas, salas);
   const asientosFuncion = await seedAsientosFuncion(asientos, funciones);
@@ -50,12 +54,14 @@ async function main() {
   console.log(`  Usuarios:               ${usuarios.all.length}`);
   console.log(`  Cines:                  ${cines.all.length}`);
   console.log(`  Salas:                  ${salas.all.length}`);
+  console.log(`  Tipos de asiento:       ${tiposAsiento.all.length}`);
   console.log(
     `  Asientos:               ${Object.values(asientos.bySala).reduce(
       (acc, arr) => acc + arr.length,
       0,
     )}`,
   );
+  console.log(`  Precios por cine:       ${preciosCineCount}`);
   console.log(`  Películas:              ${peliculas.all.length}`);
   console.log(`  Funciones:              ${funciones.all.length}`);
   console.log(`  Asientos por función:   ${asientosFuncion.all.length}`);
