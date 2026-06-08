@@ -32,6 +32,11 @@ export class FuncionesController {
     return this.funcionesService.findAll();
   }
 
+  @Get('cine/:idCine')
+  findDisponiblesPorCine(@Param('idCine') idCine: string) {
+    return this.funcionesService.findDisponiblesPorCine(idCine);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.funcionesService.findOne(id);

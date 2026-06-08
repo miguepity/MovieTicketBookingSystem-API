@@ -135,4 +135,27 @@ export class CuponesService {
       activo: updated.activo,
     };
   }
+
+  async remove(id: string) {
+    const cuponId = BigInt(id);
+
+    const cupon = await this.prisma.cupones.findUnique({
+      where: { id: cuponId },
+      include: { pagos: { select: { id: true }, take: 1 } },
+    });
+
+    if (!cupon) {
+      throw new NotFoundException('Cupón no existe');
+    }
+
+    if (cupon.pagos.length > 0) {
+      throw new ConflictException(
+        'No se puede eliminar el cupón porque ya fue usado en pagos',
+      );
+    }
+
+    await this.prisma.cupones.delete({ where: { id: cuponId } });
+
+    return { id: cuponId.toString(), eliminado: true };
+  }
 }

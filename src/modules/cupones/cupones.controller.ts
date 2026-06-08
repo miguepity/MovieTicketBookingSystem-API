@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
@@ -56,5 +57,13 @@ export class CuponesController {
   @HttpCode(HttpStatus.OK)
   toggleStatus(@Param('id') id: string) {
     return this.cuponesService.toggleStatus(id);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  remove(@Param('id') id: string) {
+    return this.cuponesService.remove(id);
   }
 }

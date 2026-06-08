@@ -4,6 +4,9 @@ import { MailService } from 'src/modules/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PagoExitosoEvent } from 'src/modules/pagos/events/pago-exitoso.event';
 import { ReservaCanceladaEvent } from 'src/modules/reservas/events/reserva-cancelada.event';
+import { FuncionCanceladaEvent } from 'src/modules/funciones/events/funcion-cancelada.event';
+import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
+import { EstadoPago } from 'src/common/enums/estado-pago.enum';
 
 @Injectable()
 export class NotificacionesService {
@@ -170,6 +173,76 @@ export class NotificacionesService {
       this.logger.warn(
         `Falló envío de email cancelación (reserva=${event.idReserva}): ${(err as Error).message}`,
       );
+    }
+  }
+
+  @OnEvent(FuncionCanceladaEvent.NAME)
+  async onFuncionCancelada(event: FuncionCanceladaEvent): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.log(
+        `EMAIL_TRIGGERS_ENABLED=false — skip email función cancelada (funcion=${event.idFuncion})`,
+      );
+      return;
+    }
+
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(event.idFuncion) },
+      include: {
+        peliculas: { select: { titulo: true } },
+        salas: { include: { cines: { select: { nombre: true } } } },
+        reservas: {
+          where: { estado: { not: EstadoReserva.CANCELADA } },
+          include: {
+            usuarios: { select: { nombre: true, email: true } },
+            pagos: { select: { estado: true, monto_final: true } },
+          },
+        },
+      },
+    });
+
+    if (!funcion) {
+      this.logger.warn(
+        `Función ${event.idFuncion} no encontrada para email cancelación`,
+      );
+      return;
+    }
+
+    if (funcion.reservas.length === 0) {
+      this.logger.log(
+        `Función ${event.idFuncion} cancelada sin reservas activas — no se envían emails`,
+      );
+      return;
+    }
+
+    const fechaFuncion = new Intl.DateTimeFormat('es', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'America/Tegucigalpa',
+    }).format(funcion.fecha_hora);
+
+    const cine = `${funcion.salas.cines.nombre} — Sala ${funcion.salas.nombre}`;
+
+    for (const reserva of funcion.reservas) {
+      const pagoAprobado = reserva.pagos.find(
+        (p) => (p.estado as EstadoPago) === EstadoPago.APROBADO,
+      );
+
+      try {
+        await this.mail.sendFuncionCanceladaEmail({
+          nombre: reserva.usuarios.nombre,
+          email: reserva.usuarios.email,
+          pelicula: funcion.peliculas.titulo,
+          cine,
+          fechaFuncion,
+          numeroReserva: reserva.numero_reserva,
+          tienePagoAprobado: !!pagoAprobado,
+          montoPagado: pagoAprobado?.monto_final.toFixed(2),
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Falló envío de email función cancelada (reserva=${reserva.id.toString()}): ${(err as Error).message}`,
+        );
+      }
     }
   }
 

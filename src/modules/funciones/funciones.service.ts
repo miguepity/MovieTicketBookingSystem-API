@@ -3,13 +3,18 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
+import { FuncionCanceladaEvent } from './events/funcion-cancelada.event';
 
 @Injectable()
 export class FuncionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   private async checkConflicto(
     id_sala: bigint,
@@ -193,8 +198,26 @@ export class FuncionesService {
       },
     });
 
-    //await this.notificarCancelacion(id_funcion);
+    this.eventEmitter.emit(
+      FuncionCanceladaEvent.NAME,
+      new FuncionCanceladaEvent(updated.id.toString()),
+    );
 
     return updated;
+  }
+
+  async findDisponiblesPorCine(id_cine: string) {
+    return this.prisma.funciones.findMany({
+      where: {
+        salas: { id_cine: BigInt(id_cine) },
+        estado: { not: 'CANCELADA' },
+        fecha_hora: { gte: new Date() },
+      },
+      include: {
+        peliculas: true,
+        salas: { include: { cines: true } },
+      },
+      orderBy: { fecha_hora: 'asc' },
+    });
   }
 }
