@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto.js';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto.js';
 import { ToggleStatusPeliculaDto } from './dto/toggle-status-pelicula.dto.js';
+import { BuscarPeliculaDto } from './dto/buscar-pelicula.dto.js';
 
 @Injectable()
 export class PeliculasService {
@@ -79,6 +80,106 @@ export class PeliculasService {
         id_editor: dto.id_editor,
         fecha_modificacion: pelicula.updated_at,
       },
+    };
+  }
+
+  async buscar(dto: BuscarPeliculaDto) {
+    const where: Record<string, unknown> = { activo: true };
+
+    if (dto.titulo) {
+      where.titulo = { contains: dto.titulo, mode: 'insensitive' };
+    }
+    if (dto.genero) {
+      where.id_genero = BigInt(dto.genero);
+    }
+    if (dto.idioma) {
+      where.id_idioma = BigInt(dto.idioma);
+    }
+    if (dto.fecha_inicio || dto.fecha_fin) {
+      const fechaEstreno: Record<string, Date> = {};
+      if (dto.fecha_inicio) fechaEstreno.gte = new Date(dto.fecha_inicio);
+      if (dto.fecha_fin) fechaEstreno.lte = new Date(dto.fecha_fin);
+      where.fecha_estreno = fechaEstreno;
+    }
+    if (dto.ciudad_id) {
+      where.funciones = {
+        some: {
+          estado: { not: 'CANCELADA' },
+          salas: {
+            cines: {
+              id_ciudad: BigInt(dto.ciudad_id),
+            },
+          },
+        },
+      };
+    }
+
+    const peliculas = await this.prisma.peliculas.findMany({
+      where,
+      include: {
+        idiomas: true,
+        generos: true,
+      },
+      orderBy: { titulo: 'asc' },
+    });
+
+    return {
+      message: 'Películas encontradas',
+      total: peliculas.length,
+      data: peliculas.map((p) => ({
+        id: Number(p.id),
+        titulo: p.titulo,
+        sinopsis: p.sinopsis,
+        poster_url: p.poster_url,
+        fecha_estreno: p.fecha_estreno,
+        genero: p.generos ? { id: Number(p.generos.id), nombre: p.generos.nombre } : null,
+        idioma: p.idiomas ? { id: Number(p.idiomas.id), nombre: p.idiomas.nombre } : null,
+      })),
+    };
+  }
+
+  async getCinesByPelicula(id: string) {
+    await this.findOneOrFail(id);
+
+    const funciones = await this.prisma.funciones.findMany({
+      where: {
+        id_pelicula: BigInt(id),
+        estado: { not: 'CANCELADA' },
+        fecha_hora: { gte: new Date() },
+      },
+      include: {
+        salas: {
+          include: {
+            cines: {
+              include: {
+                ciudades: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const cinesMap = new Map<string, object>();
+    for (const funcion of funciones) {
+      const cine = funcion.salas.cines;
+      const key = String(cine.id);
+      if (!cinesMap.has(key)) {
+        cinesMap.set(key, {
+          id: Number(cine.id),
+          nombre: cine.nombre,
+          direccion: cine.direccion,
+          ciudad: {
+            id: Number(cine.ciudades.id),
+            nombre: cine.ciudades.nombre,
+          },
+        });
+      }
+    }
+
+    return {
+      message: 'Cines con funciones activas para esta película',
+      data: Array.from(cinesMap.values()),
     };
   }
 
