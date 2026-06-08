@@ -12,8 +12,11 @@ import { IdiomasModule } from './idiomas/idiomas.module';
 import { RolesModule } from './roles/roles.module';
 import { CineModule } from './cines/cines.module';
 import { CuponesModule } from './cupones/cupones.module';
+import { FuncionesModule } from './funciones/funciones.module';
 import { SalaModule } from './salas/salas.module';
 import { FuncionesModule } from './funciones/funciones.module';
+import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
+import { RembolsosModule } from './rembolsos/rembolsos.module';
 
 @Module({
   imports: [
@@ -30,6 +33,10 @@ import { FuncionesModule } from './funciones/funciones.module';
     CuponesModule,
     SalaModule,
     FuncionesModule,
+    PoliticasCancelacionModule,
+    RembolsosModule,
+    FuncionesModule,
+    SalaModule
   ],
   controllers: [AppController],
   providers: [AppService],
