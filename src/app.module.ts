@@ -10,6 +10,7 @@ import { CiudadesModule } from './ciudades/ciudades.module';
 import { FuncionesModule } from './funciones/funciones.module';
 import { RolesModule } from './roles/roles.module';
 import { MailModule } from './mail/mail.module';
+import { CuponesModule } from './cupones/cupones.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MailModule } from './mail/mail.module';
     FuncionesModule,
     RolesModule,
     MailModule,
+    CuponesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
