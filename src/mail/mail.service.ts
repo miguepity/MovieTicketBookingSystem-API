@@ -13,7 +13,7 @@ export class MailService {
 
   async sendPasswordResetEmail(email: string, token: string) {
     const resetUrl = this.buildResetUrl(token);
-    const recipient = process.env.MAIL_TEST_TO ?? email;
+    const recipient = `${email} <${email}>`;
 
     try {
       const mailUser = process.env.MAIL_USER;
