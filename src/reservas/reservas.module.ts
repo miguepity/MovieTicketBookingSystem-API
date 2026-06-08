@@ -7,4 +7,4 @@ import { ReservasService } from "./reservas.service";
     providers: [ReservasService]
 })
 
-export class ReembolsosModule{}
+export class ReservasModule{}
