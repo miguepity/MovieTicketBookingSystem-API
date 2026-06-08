@@ -26,6 +26,11 @@ export class PagosController {
   }
 
   @Post('efectivo')
+  @ApiOperation({ summary: 'Procesar pago de una reserva en efectivo' })
+  @ApiResponse({ status: 201, description: 'Pago procesado exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Error al procesar el pago.' })
+  @ApiResponse({ status: 404, description: 'La reserva no existe.' })
+  @ApiResponse({ status: 409, description: 'La reserva ya ha sido pagada.' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('RECEPCIONISTA', 'ADMIN') 
   async crearPagoEfectivo(@Body() createPagoEfectivoDto: CreatePagoEfectivoDto) {
