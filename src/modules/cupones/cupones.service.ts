@@ -77,4 +77,37 @@ export class CuponesService {
       },
     });
   }
+
+  async validar(codigo: string) {
+    const cupon = await this.prisma.cupones.findUnique({
+      where: { codigo },
+    });
+
+    if (!cupon) {
+      throw new NotFoundException('Cupón no existe');
+    }
+
+    if (!cupon.activo) {
+      throw new ConflictException('El cupón no está activo');
+    }
+
+    if (new Date(cupon.fecha_expiracion) < new Date()) {
+      throw new ConflictException('El cupón ha expirado');
+    }
+
+    if (
+      cupon.usos_maximos !== null &&
+      cupon.usos_actuales >= cupon.usos_maximos
+    ) {
+      throw new ConflictException('El cupón ya alcanzó su límite de uso');
+    }
+
+    return {
+      valido: true,
+      codigo: cupon.codigo,
+      tipo: cupon.tipo,
+      valor: cupon.valor,
+      fecha_expiracion: cupon.fecha_expiracion,
+    };
+  }
 }

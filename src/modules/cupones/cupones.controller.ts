@@ -45,4 +45,10 @@ export class CuponesController {
   update(@Param('id') id: string, @Body() dto: UpdateCuponDto) {
     return this.cuponesService.update(id, dto);
   }
+
+  @Post('validar')
+  @HttpCode(HttpStatus.OK)
+  validar(@Body() body: { codigo: string }) {
+    return this.cuponesService.validar(body.codigo);
+  }
 }
