@@ -4,15 +4,15 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateSalaDto {
   @IsString()
   @ApiPropertyOptional({ description: 'Nombre de la sala' })
-  nombre?: string;
+  nombre: string;
 
   @IsInt()
   @Min(1)
   @ApiPropertyOptional({ description: 'Numero de filas' })
-  fila?: number;
+  filas: number;
 
   @IsInt()
   @Min(1)
   @ApiPropertyOptional({ description: 'Número de columnas' })
-  columna?: number;
+  columnas: number;
 }
