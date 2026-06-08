@@ -15,7 +15,17 @@ async function bootstrap() {
     .setTitle('API The Movie Ticket Booking System')
     .setDescription('Backend API Routes for The Movie Ticket Booking System')
     .setVersion('1.0')
-    .addBearerAuth() 
+    .addBearerAuth( 
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Ingresa tu token JWT',
+        in: 'header',
+      },
+      'token', 
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

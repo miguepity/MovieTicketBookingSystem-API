@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { UpdateEmailDto } from "./dto/update-email.dto";
+import { UpdatePasswordDto } from "./dto/update-password.dto";
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsuariosService {
@@ -57,6 +59,42 @@ export class UsuariosService {
         email: usuarioActualizado.email,
         updated_at: usuarioActualizado.updated_at,
       },
+    };
+  }
+
+  async cambiarPassword( idUsuarioAutenticado: number, dto: UpdatePasswordDto) {
+
+    const { passwordActual, passwordNueva } = dto;
+    const userIdBigInt = BigInt(idUsuarioAutenticado);
+
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: userIdBigInt },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${idUsuarioAutenticado} no encontrado.`);
+    }
+
+    const passwordValida = await bcrypt.compare(passwordActual, usuario.password_hash);
+    
+    if (!passwordValida) {
+      throw new BadRequestException('La contraseña actual es incorrecta.');
+    }
+
+    const esMismaPassword = await bcrypt.compare(passwordNueva, usuario.password_hash);
+    if (esMismaPassword) {
+      throw new BadRequestException('La nueva contraseña no puede ser igual a la contraseña actual.');
+    }
+    const saltRounds = 10;
+    const nuevoHash = await bcrypt.hash(passwordNueva, saltRounds);
+
+    await this.prisma.usuarios.update({
+      where: { id: userIdBigInt },
+      data: { password_hash: nuevoHash },
+    });
+
+    return {
+      message: 'Contraseña actualizada exitosamente.',
     };
   }
 }
