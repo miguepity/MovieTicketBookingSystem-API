@@ -36,4 +36,33 @@ export class UsersService {
       },
     });
   }
+
+  async update(
+    id: number,
+    data: { nombre?: string; email?: string; telefono?: string },
+  ) {
+    const user = await this.prismaService.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!user) {
+      throw new ConflictException('Usuario no encontrado');
+    }
+
+    if (data.email && data.email !== user.email) {
+      const emailTaken = await this.findOneByEmail(data.email);
+      if (emailTaken) {
+        throw new ConflictException(
+          'El correo electrónico ya está en uso por otro usuario',
+        );
+      }
+    }
+
+    return await this.prismaService.usuarios.update({
+      where: { id: BigInt(id) },
+      data: {
+        ...data,
+      },
+    });
+  }
 }
