@@ -2,6 +2,7 @@ import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -9,6 +10,8 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { ReportesService } from './reportes.service';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
 import { ListReportePagosQueryDto } from './dto/list-reportes-pagos-query.dto';
@@ -17,8 +20,10 @@ import { ReportesPagosPageResponseDto } from './dto/reportes-pagos-page.response
 
 @ApiTags('Reportes Administrativos')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @ApiUnauthorizedResponse({ description: 'No autorizado' })
+@ApiForbiddenResponse({ description: 'Rol no autorizado' })
 @Controller('admin/reportes')
 export class ReportesController {
   constructor(private readonly reportesService: ReportesService) {}
