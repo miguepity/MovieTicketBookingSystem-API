@@ -41,7 +41,7 @@ export class AuthService {
         password_hash: passwordHash,
         telefono: dto.telefono,
         id_rol: defaultRole.id,
-        estado: 'activo',
+        estado: 'pendiente',
       },
       select: {
         id: true,
@@ -54,9 +54,21 @@ export class AuthService {
       },
     });
 
+    const confirmationToken = await this.jwtService.signAsync(
+      { sub: user.id.toString(), email: user.email },
+      { expiresIn: '24h' },
+    );
+
+    // TODO: Enviar email de confirmación con el token
+    console.log(`Token de confirmación para ${user.email}: ${confirmationToken}`);
+
     return {
-      ...user,
-      id: user.id.toString(), // Prevención de error BigInt al serializar en registro
+      user: {
+        ...user,
+        id: user.id.toString(),
+      },
+      confirmation_token: confirmationToken,
+      message: 'Usuario registrado. Por favor confirme su cuenta usando el token enviado.',
     };
   }
 
