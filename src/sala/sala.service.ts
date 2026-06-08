@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
 import { UpdateSalaDto } from './dto/update-sala.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class SalaService {
@@ -13,6 +15,14 @@ export class SalaService {
 
   async create(createSalaDto: CreateSalaDto) {
     const { nombre, id_cine, filas, columnas } = createSalaDto;
+
+    const salaExistente = await this.prisma.salas.findFirst({
+      where: { id_cine: BigInt(id_cine), nombre: nombre },
+    });
+
+    if(salaExistente) {
+      throw new ConflictException(`Sala ${salaExistente.nombre} ya existe en el cine ${salaExistente.id_cine}`);
+    }
 
     const cineExistente = await this.prisma.cines.findUnique({
       where: { id: BigInt(id_cine) },
@@ -88,34 +98,89 @@ export class SalaService {
   }
 
   async update(id: number, updateSalaDto: UpdateSalaDto) {
+    const { id_cine, filas, columnas, ...restoDatos } = updateSalaDto;
+    const salaIdBigInt = BigInt(id);
+
     const salaExistente = await this.prisma.salas.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: salaIdBigInt },
     });
 
     if (!salaExistente) {
       throw new NotFoundException(`Sala con ID ${id} no encontrada`);
     }
 
-    if (updateSalaDto.id_cine !== undefined) {
+    if (id_cine !== undefined) {
       const cineExistente = await this.prisma.cines.findUnique({
-        where: { id: BigInt(updateSalaDto.id_cine) },
+        where: { id: BigInt(id_cine) },
       });
-
       if (!cineExistente) {
-        throw new NotFoundException(
-          `Cine con ID ${updateSalaDto.id_cine} no encontrado`,
-        );
+        throw new NotFoundException(`Cine con ID ${id_cine} no encontrado`);
       }
     }
 
-    const dataAActualizar: any = { ...updateSalaDto };
-    if (dataAActualizar.id_cine !== undefined) {
-      dataAActualizar.id_cine = BigInt(dataAActualizar.id_cine);
-    }
+    const cambianDimensiones = 
+      (filas !== undefined && filas !== salaExistente.filas) || 
+      (columnas !== undefined && columnas !== salaExistente.columnas);
 
-    const salaActualizada = await this.prisma.salas.update({
-      where: { id: BigInt(id) },
-      data: dataAActualizar,
+    const salaActualizada = await this.prisma.$transaction(async (tx) => {
+      
+      const dataAActualizar: any = { 
+        ...restoDatos,
+        ...(id_cine !== undefined && { id_cine: BigInt(id_cine) }),
+        ...(filas !== undefined && { filas }),
+        ...(columnas !== undefined && { columnas }),
+      };
+
+      const sala = await tx.salas.update({
+        where: { id: salaIdBigInt },
+        data: dataAActualizar,
+      });
+
+      if (cambianDimensiones) {
+
+      const tieneFuncionesAsignadas = await this.prisma.asientosFuncion.findFirst({
+        where: {
+          asientos: {
+            id_sala: salaIdBigInt
+          }
+        }
+      });
+
+      if (tieneFuncionesAsignadas) {
+        throw new BadRequestException(
+          'No se pueden modificar las dimensiones de la sala porque ya existen funciones programadas con estos asientos.'
+        );
+      }
+  
+        await tx.asientos.deleteMany({
+          where: { id_sala: salaIdBigInt },
+        });
+
+        const nuevosAsientos: Prisma.AsientosCreateManyInput[] = [];
+        const totalFilas = filas ?? salaExistente.filas;
+        const totalColumnas = columnas ?? salaExistente.columnas;
+
+        for (let f = 1; f <= totalFilas; f++) {
+          const letraFila = String.fromCharCode(64 + f); 
+
+          for (let c = 1; c <= totalColumnas; c++) {
+            nuevosAsientos.push({
+              id_sala: salaIdBigInt,
+              fila: letraFila,
+              columna: c,
+              codigo: `${letraFila}${c}`,
+              tipo: 'ESTANDAR',
+            });
+          }
+        }
+        if (nuevosAsientos.length > 0) {
+          await tx.asientos.createMany({
+            data: nuevosAsientos,
+          });
+        }
+      }
+
+      return sala;
     });
 
     return this.serializeSala(salaActualizada);
