@@ -1,29 +1,20 @@
 import 'dotenv/config';
-import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import {
-  Cines,
-  Ciudades,
-  Generos,
-  Idiomas,
-  PrismaClient,
-} from '../generated/prisma/client';
+import { Ciudades, PrismaClient } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('[Seeding] Seeding base data...');
+  console.log('[Seeding] Starting idempotent seed...');
   const email = process.env.ADMIN_EMAIL || 'admin@example.com';
   const password = 'admin';
-
-  const SALT_ROUNDS = Number(process.env.SALT_ROUNDS) || 10;
+  const SALT_ROUNDS = 10;
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
 
   // 1. Roles
-  console.log('[Seeding] Creating roles...');
+  console.log('[Seeding] Upserting roles...');
   const adminRole = await prisma.roles.upsert({
     where: { nombre: 'admin' },
     update: {},
@@ -36,14 +27,8 @@ async function main() {
     create: { nombre: 'client' },
   });
 
-  await prisma.roles.upsert({
-    where: { nombre: 'admin' },
-    update: {},
-    create: { nombre: 'admin' },
-  });
-
   // 2. Usuarios
-  console.log('[Seeding] Creating admin user...');
+  console.log('[Seeding] Upserting admin user...');
   const adminUser = await prisma.usuarios.upsert({
     where: { email: email },
     update: {},
@@ -57,207 +42,183 @@ async function main() {
   });
 
   // 3. Ciudades
-  console.log('[Seeding] Creating cities...');
-  const ciudadesData = [{ nombre: 'San Pedro Sula' }, { nombre: 'Guatemala' }];
-
+  console.log('[Seeding] Upserting cities...');
+  const ciudadesNombres = [
+    'San Pedro Sula',
+    'Guatemala City',
+    'Antigua Guatemala',
+  ];
   const ciudades: Ciudades[] = [];
-  for (const ciudad of ciudadesData) {
+  for (const nombre of ciudadesNombres) {
     const c = await prisma.ciudades.upsert({
-      where: { nombre: ciudad.nombre },
+      where: { nombre },
       update: {},
-      create: ciudad,
+      create: { nombre },
     });
     ciudades.push(c);
   }
 
-  // 4. Cines
-  console.log('[Seeding] Creating cinemas...');
+  // 4. Cines, Salas and Asientos
+  console.log('[Seeding] Handling cinemas, rooms and seats...');
   const cinesData = [
     {
-      nombre: 'Cinépolis Cayalá',
-      direccion: 'Paseo Cayalá, Zona 16',
-      id_ciudad: ciudades[0].id,
+      nombre: 'Cine City Mall',
+      direccion: 'Boulevard Por Ahí',
+      id_ciudad: ciudades[1].id,
     },
     {
-      nombre: 'Cinemark Majadas',
-      direccion: 'Parque Majadas, Zona 11',
-      id_ciudad: ciudades[0].id,
-    },
-    {
-      nombre: 'Alba Cinema Antigua',
-      direccion: 'Centro Comercial La Recolección',
+      nombre: 'Cinemark Mall Galerias',
+      direccion: 'Distrito Por Allá',
       id_ciudad: ciudades[1].id,
     },
   ];
 
-  const cines: Cines[] = [];
-  for (const cine of cinesData) {
-    const c = await prisma.cines.create({
-      data: cine,
-    });
-    cines.push(c);
-  }
-
-  // 5. Salas and Asientos
-  console.log('[Seeding] Creating rooms and seats...');
-  for (const cine of cines) {
-    const sala = await prisma.salas.create({
-      data: {
-        nombre: 'Sala 1 - Premiere',
-        id_cine: cine.id,
-        filas: 5,
-        columnas: 8,
-      },
-    });
-
-    // Generate seats for this room
-    const alphabet = 'ABCDEFGHIJ';
-    const asientos: {
-      id_sala: bigint;
-      fila: string;
-      columna: number;
-      codigo: string;
-      tipo: string;
-    }[] = [];
-    for (let f = 0; f < sala.filas; f++) {
-      const filaLetra = alphabet[f];
-      for (let c = 1; c <= sala.columnas; c++) {
-        asientos.push({
-          id_sala: sala.id,
-          fila: filaLetra,
-          columna: c,
-          codigo: `${filaLetra}${c}`,
-          tipo: 'regular',
-        });
-      }
+  for (const data of cinesData) {
+    let cine = await prisma.cines.findFirst({ where: { nombre: data.nombre } });
+    if (!cine) {
+      cine = await prisma.cines.create({ data });
     }
-    await prisma.asientos.createMany({
-      data: asientos,
+
+    let sala = await prisma.salas.findFirst({
+      where: { nombre: 'Sala 1 - Premiere', id_cine: cine.id },
     });
+
+    if (!sala) {
+      sala = await prisma.salas.create({
+        data: {
+          nombre: 'Sala 1 - Premiere',
+          id_cine: cine.id,
+          filas: 5,
+          columnas: 8,
+        },
+      });
+
+      // Generate seats
+      const alphabet = 'ABCDE';
+      const asientos: {
+        id_sala: bigint;
+        fila: string;
+        columna: number;
+        codigo: string;
+        tipo: string;
+      }[] = [];
+      for (let f = 0; f < sala.filas; f++) {
+        for (let c = 1; c <= sala.columnas; c++) {
+          asientos.push({
+            id_sala: sala.id,
+            fila: alphabet[f],
+            columna: c,
+            codigo: `${alphabet[f]}${c}`,
+            tipo: 'regular',
+          });
+        }
+      }
+      await prisma.asientos.createMany({ data: asientos });
+    }
   }
 
-  // 6. Idiomas
-  console.log('[Seeding] Creating languages...');
-  const idiomasData = [
-    { nombre: 'Español' },
-    { nombre: 'Inglés' },
-    { nombre: 'Subtitulada' },
-  ];
-  const idiomas: Idiomas[] = [];
-  for (const idioma of idiomasData) {
+  // 5. Idiomas
+  console.log('[Seeding] Upserting languages...');
+  const idiomasNombres = ['Español', 'Inglés', 'Subtitulada'];
+  const idiomas: { id: bigint; nombre: string }[] = [];
+  for (const nombre of idiomasNombres) {
     const i = await prisma.idiomas.upsert({
-      where: { nombre: idioma.nombre },
+      where: { nombre },
       update: {},
-      create: idioma,
+      create: { nombre },
     });
     idiomas.push(i);
   }
 
-  // 7. Generos
-  console.log('[Seeding] Creating genres...');
-  const generosData = [
-    { nombre: 'Acción' },
-    { nombre: 'Comedia' },
-    { nombre: 'Drama' },
-    { nombre: 'Terror' },
-    { nombre: 'Ciencia Ficción' },
+  // 6. Generos
+  console.log('[Seeding] Upserting genres...');
+  const generosNombres = [
+    'Acción',
+    'Comedia',
+    'Drama',
+    'Terror',
+    'Ciencia Ficción',
   ];
-  const generos: Generos[] = [];
-  for (const genero of generosData) {
+  const generos: { id: bigint; nombre: string }[] = [];
+  for (const nombre of generosNombres) {
     const g = await prisma.generos.upsert({
-      where: { nombre: genero.nombre },
+      where: { nombre },
       update: {},
-      create: genero,
+      create: { nombre },
     });
     generos.push(g);
   }
 
-  // 8. Peliculas
-  console.log('[Seeding] Creating movies...');
+  // 7. Peliculas
+  console.log('[Seeding] Handling movies...');
   const peliculasData = [
     {
       titulo: 'The Matrix',
-      sinopsis:
-        'Un programador de computación descubre que el mundo en el que vive es una simulación.',
       id_idioma: idiomas[1].id,
       id_genero: generos[4].id,
-      fecha_estreno: new Date('1999-03-31'),
-      id_usuario: adminUser.id,
     },
-    {
-      titulo: 'Inception',
-      sinopsis:
-        'Un ladrón que roba secretos corporativos a través del uso de la tecnología de compartir sueños.',
-      id_idioma: idiomas[1].id,
-      id_genero: generos[4].id,
-      fecha_estreno: new Date('2010-07-16'),
-      id_usuario: adminUser.id,
-    },
-    {
-      titulo: 'El Padrino',
-      sinopsis:
-        'El patriarca de una organización criminal transfiere el control de su imperio clandestino a su hijo.',
-      id_idioma: idiomas[0].id,
-      id_genero: generos[2].id,
-      fecha_estreno: new Date('1972-03-24'),
-      id_usuario: adminUser.id,
-    },
+    { titulo: 'Inception', id_idioma: idiomas[1].id, id_genero: generos[4].id },
   ];
 
-  for (const pelicula of peliculasData) {
-    await prisma.peliculas.create({
-      data: pelicula,
+  for (const data of peliculasData) {
+    let pelicula = await prisma.peliculas.findFirst({
+      where: { titulo: data.titulo },
+    });
+    if (!pelicula) {
+      pelicula = await prisma.peliculas.create({
+        data: {
+          ...data,
+          sinopsis: 'Sinopsis de ejemplo...',
+          id_usuario: adminUser.id,
+          fecha_estreno: new Date(),
+        },
+      });
+    }
+  }
+
+  // 8. Politica de Cancelacion
+  console.log('[Seeding] Handling cancellation policies...');
+  const countPoliticas = await prisma.politicaCancelacion.count();
+  if (countPoliticas === 0) {
+    await prisma.politicaCancelacion.createMany({
+      data: [
+        { horas_antes_minimo: 24, porcentaje_reembolso: 100.0 },
+        { horas_antes_minimo: 12, porcentaje_reembolso: 50.0 },
+        { horas_antes_minimo: 0, porcentaje_reembolso: 0.0 },
+      ],
     });
   }
 
-  // 9. Politica de Cancelacion
-  console.log('[Seeding] Creating cancellation policies...');
-  await prisma.politicaCancelacion.createMany({
-    data: [
-      {
-        horas_antes_minimo: 24,
-        horas_antes_maximo: null,
-        porcentaje_reembolso: 100.0,
-      },
-      {
-        horas_antes_minimo: 12,
-        horas_antes_maximo: 24,
-        porcentaje_reembolso: 50.0,
-      },
-      {
-        horas_antes_minimo: 0,
-        horas_antes_maximo: 12,
-        porcentaje_reembolso: 0.0,
-      },
-    ],
-  });
+  // 9. Funciones and AsientosFuncion
+  console.log('[Seeding] Handling functions and seat instances...');
+  const allPeliculas = await prisma.peliculas.findMany();
+  const allSalas = await prisma.salas.findMany();
 
-  // 10. Funciones and AsientosFuncion
-  console.log('[Seeding] Creating functions and seat instances...');
-  const peliculas = await prisma.peliculas.findMany();
-  const salas = await prisma.salas.findMany();
-
-  for (const pelicula of peliculas) {
-    for (const sala of salas) {
-      const funcion = await prisma.funciones.create({
-        data: {
-          id_pelicula: pelicula.id,
-          id_sala: sala.id,
-          fecha_hora: new Date(),
-          estado: 'active',
-        },
+  for (const p of allPeliculas) {
+    for (const s of allSalas) {
+      // Check if there is already a function for this movie/room in the next 24h
+      const existingFuncion = await prisma.funciones.findFirst({
+        where: { id_pelicula: p.id, id_sala: s.id },
       });
 
-      const asientosEnSala = await prisma.asientos.findMany({
-        where: { id_sala: sala.id },
-      });
+      if (!existingFuncion) {
+        const funcion = await prisma.funciones.create({
+          data: {
+            id_pelicula: p.id,
+            id_sala: s.id,
+            fecha_hora: new Date(),
+            estado: 'active',
+          },
+        });
 
-      if (asientosEnSala.length > 0) {
+        const asientos = await prisma.asientos.findMany({
+          where: { id_sala: s.id },
+        });
         await prisma.asientosFuncion.createMany({
-          data: asientosEnSala.map((a) => ({
+          data: asientos.map((a, index) => ({
             id_asiento: a.id,
             id_funcion: funcion.id,
-            estado: 'disponible',
+            estado: index % 5 === 0 ? 'ocupado' : 'disponible',
             version: 1,
           })),
         });
@@ -265,16 +226,16 @@ async function main() {
     }
   }
 
-  console.log('[Seeding] Seed completed!');
+  console.log('[Seeding] Seed completed successfully!');
 }
 
-void main()
+main()
   .then(async () => {
     await prisma.$disconnect();
-    console.log('[Seeding] Seeding completed successfully');
+    process.exit(0);
   })
   .catch(async (e) => {
-    console.error('[Seeding] Error during seeding:', e);
+    console.error(e);
     await prisma.$disconnect();
     process.exit(1);
   });

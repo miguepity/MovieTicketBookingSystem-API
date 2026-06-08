@@ -8,8 +8,11 @@ export class PeliculasService {
 
   async getTitulo(titulo?: string) {
     if (!titulo) {
-      return [];
+      return this.prisma.peliculas.findMany({
+        where: { activo: true },
+      });
     }
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return await this.prisma.peliculas.findMany({
       where: {
@@ -70,7 +73,25 @@ export class PeliculasService {
   }
 
   async getFuncionesPorCine(peliculaId: number, cineId: number) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    // 1. Validar que la película exista
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: BigInt(peliculaId) },
+    });
+    if (!pelicula) {
+      throw new NotFoundException(
+        `Película con ID ${peliculaId} no encontrada`,
+      );
+    }
+
+    // 2. Validar que el cine exista
+    const cine = await this.prisma.cines.findUnique({
+      where: { id: BigInt(cineId) },
+    });
+    if (!cine) {
+      throw new NotFoundException(`Cine con ID ${cineId} no encontrado`);
+    }
+
+    // 3. Obtener funciones activas con disponibilidad de asientos
     const funciones = await this.prisma.funciones.findMany({
       where: {
         id_pelicula: BigInt(peliculaId),
@@ -107,7 +128,6 @@ export class PeliculasService {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return JSON.parse(
       JSON.stringify(funciones, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,

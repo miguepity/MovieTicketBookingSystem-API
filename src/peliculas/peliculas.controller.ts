@@ -49,8 +49,18 @@ export class PeliculasController {
       ],
     },
   })
-  buscar(@Query() query: QueryPeliculaDto) {
-    return this.peliculasService.getTitulo(query.titulo);
+  async buscar(@Query() query: QueryPeliculaDto) {
+    const movies = await this.peliculasService.getTitulo(query.titulo);
+
+    return movies.map((movie) => {
+      return {
+        ...movie,
+        id: movie.id.toString(),
+        id_idioma: movie.id_idioma.toString(),
+        id_genero: movie.id_genero.toString(),
+        id_usuario: movie.id_usuario.toString(),
+      };
+    });
   }
 
   @Put(':id')
