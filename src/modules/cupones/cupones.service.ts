@@ -43,10 +43,14 @@ export class CuponesService {
     return this.prisma.cupones.findMany();
   }
 
-  findOne(id: string) {
-    return this.prisma.cupones.findUnique({
+  async findOne(id: string) {
+    const cupon = await this.prisma.cupones.findUnique({
       where: { id: BigInt(id) },
     });
+    if (!cupon) {
+      throw new NotFoundException('Cupón no existe');
+    }
+    return cupon;
   }
 
   async update(id: string, dto: UpdateCuponDto) {

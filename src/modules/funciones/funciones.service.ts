@@ -97,8 +97,8 @@ export class FuncionesService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.funciones.findUnique({
+  async findOne(id: string) {
+    const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(id) },
       include: {
         peliculas: true,
@@ -106,6 +106,13 @@ export class FuncionesService {
         asientosFuncions: true,
       },
     });
+    if (!funcion) {
+      throw new NotFoundException({
+        code: 'FUNCION_NO_ENCONTRADA',
+        message: 'La función no existe',
+      });
+    }
+    return funcion;
   }
 
   async update(id: string, dto: UpdateFuncionDto) {
