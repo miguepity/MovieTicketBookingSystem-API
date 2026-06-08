@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
 import { UpdateCuponDto } from './dto/update-cupon.dto';
@@ -13,7 +17,9 @@ export class CuponesService {
     });
 
     if (codigoExistente) {
-      throw new BadRequestException(`El código de cupón '${createCuponDto.codigo}' ya existe`);
+      throw new BadRequestException(
+        `El código de cupón '${createCuponDto.codigo}' ya existe`,
+      );
     }
 
     return await this.prismaService.cupones.create({
@@ -59,7 +65,9 @@ export class CuponesService {
       });
 
       if (codigoExistente) {
-        throw new BadRequestException(`El código de cupón '${updateCuponDto.codigo}' ya existe`);
+        throw new BadRequestException(
+          `El código de cupón '${updateCuponDto.codigo}' ya existe`,
+        );
       }
     }
 
@@ -67,7 +75,9 @@ export class CuponesService {
       where: { id: BigInt(id) },
       data: {
         ...updateCuponDto,
-        ...(updateCuponDto.valor && { valor: parseFloat(String(updateCuponDto.valor)) }),
+        ...(updateCuponDto.valor && {
+          valor: parseFloat(String(updateCuponDto.valor)),
+        }),
       },
     });
   }
@@ -84,5 +94,39 @@ export class CuponesService {
     return await this.prismaService.cupones.delete({
       where: { id: BigInt(id) },
     });
+  }
+
+  async validate(codigo: string) {
+    const cupon = await this.prismaService.cupones.findUnique({
+      where: { codigo },
+    });
+
+    if (!cupon) {
+      throw new NotFoundException(`Cupón con código '${codigo}' no encontrado`);
+    }
+
+    if (!cupon.activo) {
+      throw new BadRequestException(
+        `El cupón con código '${codigo}' no está activo`,
+      );
+    }
+
+    const ahora = new Date();
+    if (cupon.fecha_expiracion < ahora) {
+      throw new BadRequestException(
+        `El cupón con código '${codigo}' ha expirado`,
+      );
+    }
+
+    if (cupon.usos_maximos && cupon.usos_actuales >= cupon.usos_maximos) {
+      throw new BadRequestException(
+        `El cupón con código '${codigo}' ha alcanzado el máximo de usos`,
+      );
+    }
+
+    return {
+      tipo: cupon.tipo,
+      valor: cupon.valor.toString(),
+    };
   }
 }
