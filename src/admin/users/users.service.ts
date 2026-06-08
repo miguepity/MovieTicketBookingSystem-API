@@ -1,61 +1,75 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { QueryUsuariosDto } from './dto/query-usuarios.dto.js';
+import { CambiarEstadoDto } from './dto/cambiar-estado.dto.js';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: QueryUsuariosDto) {
-    const { nombre, email, estado, page = '1', limit = '10' } = query;
+  async buscarClientes(query: QueryUsuariosDto) {
+    const { search } = query;
 
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const skip = (pageNum - 1) * limitNum;
+    const usuarios = await this.prisma.usuarios.findMany({
+      where: {
+        roles: { nombre: 'CLIENTE' },
+        ...(search && {
+          OR: [
+            { nombre: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        }),
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        estado: true,
+      },
+      orderBy: { nombre: 'asc' },
+    });
 
-    const where = {
-      ...(nombre && {
-        nombre: { contains: nombre, mode: 'insensitive' as const },
-      }),
-      ...(email && {
-        email: { contains: email, mode: 'insensitive' as const },
-      }),
-      ...(estado && { estado }),
+    return {
+      message: 'Clientes encontrados',
+      total: usuarios.length,
+      data: usuarios.map((u) => ({ ...u, id: Number(u.id) })),
     };
+  }
 
-    const [usuarios, total] = await Promise.all([
-      this.prisma.usuarios.findMany({
-        where,
-        skip,
-        take: limitNum,
-        select: {
-          id: true,
-          nombre: true,
-          email: true,
-          telefono: true,
-          estado: true,
-          notificaciones_activas: true,
-          created_at: true,
-          updated_at: true,
-          roles: {
-            select: {
-              id: true,
-              nombre: true,
-            },
-          },
-        },
-        orderBy: { created_at: 'desc' },
+  async cambiarEstado(id: string, dto: CambiarEstadoDto, auditorId: number) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con id ${id} no encontrado`);
+    }
+
+    const estadoAnterior = usuario.estado;
+
+    const [actualizado] = await this.prisma.$transaction([
+      this.prisma.usuarios.update({
+        where: { id: BigInt(id) },
+        data: { estado: dto.estado },
       }),
-      this.prisma.usuarios.count({ where }),
+      this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(id),
+          id_auditor: BigInt(auditorId),
+          accion: 'CAMBIO_ESTADO',
+          detalle: `Estado cambiado de ${estadoAnterior} a ${dto.estado}`,
+        },
+      }),
     ]);
 
     return {
-      data: usuarios,
-      meta: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum),
+      message: 'Estado del usuario actualizado exitosamente',
+      data: {
+        id: Number(actualizado.id),
+        nombre: actualizado.nombre,
+        email: actualizado.email,
+        estado: actualizado.estado,
       },
     };
   }

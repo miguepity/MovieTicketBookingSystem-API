@@ -1,14 +1,9 @@
-import { IsOptional } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class QueryUsuariosDto {
+  @ApiPropertyOptional({ example: 'juan', description: 'Búsqueda parcial por nombre o email del cliente (insensible a mayúsculas)' })
   @IsOptional()
-  nombre?: string;
-  @IsOptional()
-  email?: string;
-  @IsOptional()
-  estado?: string;
-  @IsOptional()
-  page?: string;
-  @IsOptional()
-  limit?: string;
+  @IsString()
+  search?: string;
 }
