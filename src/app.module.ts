@@ -17,6 +17,7 @@ import { FuncionesModule } from './funciones/funciones.module';
 import { CuponesModule } from './cupones/cupon.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { PagosModule } from './pagos/pagos.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     CuponesModule,
     ReservasModule,
     UsuariosModule,
+    PagosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
