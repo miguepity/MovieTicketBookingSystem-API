@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
-import { RembolsosBodyDto } from "./dto/rembolsos.body.dto"
+import { ReembolsosBodyDto } from "./dto/reembolsos.body.dto"
 import { FilterBodyDto } from "./dto/reembolsos.filters.dto";
 
 @Injectable()
-export class RembolsosService{
+export class ReembolsosService{
     constructor(private readonly prisma: PrismaService){}
 
-    async createRembolso(dto: RembolsosBodyDto){
+    async createRembolso(dto: ReembolsosBodyDto){
         const findPago = await this.prisma.pagos.findUnique({
             where: {id: BigInt(dto.id_pago)}
         });
@@ -32,19 +32,28 @@ export class RembolsosService{
 
     async getPaymentHistory(dto: FilterBodyDto){
         const findPagos = await this.prisma.pagos.findMany({
-            where: dto
+            where: {estado: dto.estado}
         });
-        const findRembolsos = await this.prisma.reembolsos.findMany({
-            where: dto
-        });
-        
+        const findRembolsos = await this.prisma.reembolsos.findMany();
+
+        const filterPagos = dto.created_at?
+        findPagos.filter((pag) => {
+            pag.created_at.getTime() >= dto.created_at.getTime()
+        }): findPagos
+
+        const filterRemboolsos = dto.fecha_procesado? 
+        findRembolsos.filter((rem) => {
+            rem.fecha_procesado!=null &&
+            rem.fecha_procesado.getTime() >= dto.fecha_procesado.getTime()
+        }): findRembolsos
+    
         if(findPagos.length === 0 && findRembolsos.length === 0){
             throw new NotFoundException('No existe historial de pago y rembolsos');
         }
 
         return {
-            findPagos,
-            findRembolsos
+            pagos: filterPagos,
+            reembolso: filterRemboolsos
         }
     }
 }
