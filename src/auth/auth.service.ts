@@ -50,4 +50,13 @@ export class AuthService {
 
     return user;
   }
+
+  // El logout se manejara completamente en el frontend eliminando el token JWT
+  logout() {
+    return {
+      success: true,
+      message:
+        'Sesión cerrada correctamente en el servidor. Por favor destruya el token en el cliente.',
+    };
+  }
 }
