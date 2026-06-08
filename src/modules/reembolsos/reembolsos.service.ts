@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
@@ -84,18 +83,7 @@ export class ReembolsosService {
     return { id: reembolso.id, estado: reembolso.estado as EstadoReembolso };
   }
 
-  async procesarEfectivo(idReembolso: string, idUsuarioActual: string) {
-    const usuario = await this.prisma.usuarios.findUnique({
-      where: { id: BigInt(idUsuarioActual) },
-      include: { roles: { select: { nombre: true } } },
-    });
-    if (!usuario || usuario.roles.nombre !== 'taquillero') {
-      throw new ForbiddenException({
-        code: 'ROL_NO_AUTORIZADO',
-        message: 'Solo el rol taquillero puede procesar reembolsos en efectivo',
-      });
-    }
-
+  async procesarEfectivo(idReembolso: string) {
     const reembolso = await this.prisma.reembolsos.findUnique({
       where: { id: BigInt(idReembolso) },
     });
