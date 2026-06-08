@@ -7,10 +7,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { ConfirmarRegistroDto } from './dto/confirmar-registro.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsuariosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async updateUserEmail(userId: number, newEmail: string) {
     // Verificar que el usuario existe
@@ -51,7 +56,7 @@ export class UsuariosService {
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado.`);
     }
-    
+
     // Se actualiza mapeando al campo 'estado' de la tabla usuarios
     const usuarioActualizado = await this.prisma.usuarios.update({
       where: { id: BigInt(id) },
@@ -64,7 +69,41 @@ export class UsuariosService {
       status: usuarioActualizado.estado,
     };
   }
-  
+
+  async confirmarRegistro(dto: ConfirmarRegistroDto) {
+    let userId: number;
+
+    try {
+      const payload = this.jwtService.verify(dto.token);
+      userId = payload.sub;
+    } catch (error) {
+      throw new BadRequestException(
+        'El token de confirmación es inválido o ha expirado.',
+      );
+    }
+
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(userId) },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado.');
+    }
+
+    if (usuario.estado === 'activo') {
+      throw new BadRequestException(
+        'Esta cuenta ya se encuentra verificada y activa.',
+      );
+    }
+
+    await this.prisma.usuarios.update({
+      where: { id: BigInt(userId) },
+      data: { estado: 'activo' },
+    });
+
+    return { message: 'Cuenta confirmada y activada exitosamente.' };
+  }
+
   async updatePassword(id: number, dto: UpdatePasswordDto) {
     // 1. Buscar al usuario por su ID usando BigInt
     const usuario = await this.prisma.usuarios.findUnique({
@@ -95,5 +134,54 @@ export class UsuariosService {
     });
 
     return { message: 'Contraseña actualizada exitosamente.' };
+  }
+
+  async findAllClientes() {
+    // Se buscan todos los usuarios cuyo rol sea 'usuario'
+    const clientes = await this.prisma.usuarios.findMany({
+      where: {
+        roles: {
+          nombre: 'usuario',
+        },
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        estado: true,
+        created_at: true,
+        roles: {
+          select: {
+            nombre: true,
+          },
+        },
+      },
+    });
+
+    return clientes.map((cliente) => ({
+      ...cliente,
+      id: cliente.id.toString(),
+    }));
+  }
+  
+  async toggleNotifications(id: number){
+    const findUsuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) }
+    });
+    if (!findUsuario) {
+      throw new NotFoundException(`Usuario no encontrado.`);
+    }
+
+    await this.prisma.usuarios.update({
+      where: {id: BigInt(id)},
+      data: {notificaciones_activas: !findUsuario.notificaciones_activas}
+    });
+    
+    if(findUsuario.notificaciones_activas){
+      return 'Notificaciones desactivadas';
+    }else{
+      return 'Notificaciones activadas';
+    }
   }
 }
