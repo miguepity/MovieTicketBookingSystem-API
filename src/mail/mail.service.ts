@@ -22,17 +22,16 @@ export class MailService {
   async sendEmail(options: SendEmailOptions) {
     try {
       const transporter = this.createTransporter();
-      const recipient = process.env.MAIL_TEST_TO ?? options.to;
 
       await transporter.sendMail({
         from: process.env.MAIL_FROM ?? 'Movie Tickets <no-reply@localhost>',
-        to: recipient,
+        to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text,
       });
 
-      this.logger.log(`Email sent to ${recipient}`);
+      this.logger.log(`Email sent to ${options.to}`);
     } catch (error) {
       this.logger.error('Could not send email', error);
       throw new InternalServerErrorException(
