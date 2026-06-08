@@ -110,7 +110,9 @@ export class TiposAsientoService {
       select: { id: true },
     });
     if (existente && existente.id !== excludeId) {
-      throw new ConflictException('Ya existe un tipo de asiento con ese nombre');
+      throw new ConflictException(
+        'Ya existe un tipo de asiento con ese nombre',
+      );
     }
   }
 }

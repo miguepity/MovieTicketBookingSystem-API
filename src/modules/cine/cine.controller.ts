@@ -8,7 +8,6 @@ import {
   Param,
   Delete,
   Query,
-  Put,
   UseGuards,
   Patch,
 } from '@nestjs/common';
@@ -20,7 +19,6 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -85,7 +83,6 @@ export class CineController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Eliminar un cine' })
   @ApiOkResponse({ description: 'Cine eliminado exitosamente.' })
-  
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   remove(@Param('id') id: string) {
