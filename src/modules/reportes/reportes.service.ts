@@ -25,35 +25,50 @@ type ReservaWithRelations = Prisma.ReservasGetPayload<{
 export class ReportesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllReservas(
-    query: ListReporteReservasQueryDto,
-  ): Promise<ReportesReservasPageResponseDto> {
-    const { estado, pelicula, cine, fecha } = query;
+  async findAllReservas(query: ListReporteReservasQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+
+    const all = await this.getReservasLogic(query);
+
+    const total = all.length;
+
+    const paginated = all.slice((page - 1) * limit, page * limit);
+    if (paginated.length === 0) {
+      throw new NotFoundException('No se encontraron reservas');
+    }
+
+    return {
+      data: paginated.map((r) => this.toListItem(r)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async exportarReservas(query: ListReporteReservasQueryDto) {
+    const reservas = await this.getReservasLogic(query);
+    return this.toCsv(reservas);
+  }
+
+  private async getReservasLogic(query: ListReporteReservasQueryDto) {
+    const { estado, pelicula, cine, fecha } = query;
+
     const where: Prisma.ReservasWhereInput = {};
     const funcionesFilter: Prisma.FuncionesWhereInput = {};
 
-    if (estado) {
-      where.estado = estado;
-    }
+    if (estado) where.estado = estado;
 
     if (pelicula) {
       funcionesFilter.peliculas = {
-        titulo: {
-          contains: pelicula,
-          mode: 'insensitive',
-        },
+        titulo: { contains: pelicula, mode: 'insensitive' },
       };
     }
 
     if (cine) {
       funcionesFilter.salas = {
         cines: {
-          nombre: {
-            contains: cine,
-            mode: 'insensitive',
-          },
+          nombre: { contains: cine, mode: 'insensitive' },
         },
       };
     }
@@ -73,51 +88,21 @@ export class ReportesService {
       where.funciones = funcionesFilter;
     }
 
-    const [total, reservas] = await this.prisma.$transaction([
-      this.prisma.reservas.count({ where }),
-
-      this.prisma.reservas.findMany({
-        where,
-
-        include: {
-          usuarios: true,
-
-          funciones: {
-            include: {
-              peliculas: true,
-
-              salas: {
-                include: {
-                  cines: true,
-                },
-              },
+    return this.prisma.reservas.findMany({
+      where,
+      include: {
+        usuarios: true,
+        funciones: {
+          include: {
+            peliculas: true,
+            salas: {
+              include: { cines: true },
             },
           },
         },
-
-        orderBy: {
-          created_at: 'desc',
-        },
-
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-    ]);
-
-    if (reservas.length === 0) {
-      throw new NotFoundException('No se encontraron reservas');
-    }
-    
-    return {
-      data: reservas.map((reserva) => this.toListItem(reserva)),
-      total,
-      page,
-      limit,
-    };
-  }
-
-  exportarReservas() {
-    return `This action exports all reservations`;
+      },
+      orderBy: { created_at: 'desc' },
+    });
   }
 
   private toListItem(
@@ -150,5 +135,36 @@ export class ReportesService {
       created_at: reservas.created_at,
       updated_at: reservas.updated_at,
     };
+  }
+
+  private toCsv(reservas: any[]): string {
+    const headers = [
+      'ID',
+      'Reserva',
+      'Estado',
+      'Usuario',
+      'Pelicula',
+      'Cine',
+      'Fecha',
+    ];
+
+    const rows = reservas.map((r) => [
+      r.id.toString(),
+      r.numero_reserva,
+      r.estado,
+      r.usuarios.nombre,
+      r.funciones.peliculas.titulo,
+      r.funciones.salas.cines.nombre,
+      r.funciones.fecha_hora.toISOString(),
+    ]);
+
+    return [
+      headers.join(','),
+      ...rows.map((row) =>
+        row
+          .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
+          .join(','),
+      ),
+    ].join('\n');
   }
 }

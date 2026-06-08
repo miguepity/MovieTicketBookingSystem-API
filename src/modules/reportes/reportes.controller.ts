@@ -1,11 +1,11 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Query, Res } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { ReportesService } from './reportes.service';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-query.dto';
 
@@ -18,7 +18,7 @@ export class ReportesController {
   @ApiOperation({ summary: 'Obtener todas las reservas' })
   @ApiOkResponse({ description: 'Lista de reservas obtenida exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
-  findAllReservas(@Query() query: ListReporteReservasQueryDto,) {
+  findAllReservas(@Query() query: ListReporteReservasQueryDto) {
     return this.reportesService.findAllReservas(query);
   }
 
@@ -26,9 +26,22 @@ export class ReportesController {
   @ApiOperation({ summary: 'Exportar reservas' })
   @ApiOkResponse({ description: 'Reservas exportadas exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
-  exportarReservas() {
-    return this.reportesService.exportarReservas();
+  async exportarReservas(
+    @Query() query: ListReporteReservasQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const csv = await this.reportesService.exportarReservas(query);
+    if (!csv?.trim()) {
+      throw new NotFoundException('No reservations found for export');
+    }
+
+    const date = new Date().toISOString();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=reservas-${date}.csv`,
+    );
+
+    return csv;
   }
-
 }
-
