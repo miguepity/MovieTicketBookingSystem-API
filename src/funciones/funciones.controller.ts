@@ -10,6 +10,7 @@ import {
 import { FuncionesService } from './funciones.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
+import { BloquearAsientoDto } from '../asientos/dto/bloquear-asiento.dto';
 
 @Controller('funciones')
 export class FuncionesController {
@@ -43,5 +44,13 @@ export class FuncionesController {
   @Get(':id/asientos')
   getAsientos(@Param('id', ParseIntPipe) id: number) {
     return this.funcionesService.getAsientosByFuncion(id);
+  }
+
+  @Post(':id/asientos/bloquear')
+  bloquearAsientos(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: BloquearAsientoDto,
+  ) {
+    return this.funcionesService.bloquearAsientos(id, dto);
   }
 }

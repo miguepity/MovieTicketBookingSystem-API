@@ -2,11 +2,13 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
+import { BloquearAsientoDto } from '../asientos/dto/bloquear-asiento.dto';
 
 @Injectable()
 export class FuncionesService {
@@ -166,5 +168,53 @@ export class FuncionesService {
         },
       },
     });
+  }
+  async bloquearAsientos(id_funcion: number, dto: BloquearAsientoDto) {
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id_funcion) },
+    });
+
+    if (!funcion) throw new NotFoundException('Función no encontrada');
+
+    const bloqueado_hasta = new Date(Date.now() + dto.minutos * 60 * 1000);
+
+    // Verificar que todos los asientos existen y pertenecen a la función
+    const asientos = await this.prisma.asientosFuncion.findMany({
+      where: {
+        id: { in: dto.ids_asientos_funcion.map(BigInt) },
+        id_funcion: BigInt(id_funcion),
+      },
+    });
+
+    if (asientos.length !== dto.ids_asientos_funcion.length) {
+      throw new BadRequestException(
+        'Uno o más asientos no existen o no pertenecen a esta función',
+      );
+    }
+
+    // Verificar que todos estén disponibles
+    const noDisponibles = asientos.filter((a) => a.estado !== 'disponible');
+    if (noDisponibles.length > 0) {
+      throw new ConflictException(
+        `Los siguientes asientos no están disponibles: ${noDisponibles.map((a) => a.id).join(', ')}`,
+      );
+    }
+
+    // Bloquear todos en una sola operación
+    await this.prisma.asientosFuncion.updateMany({
+      where: {
+        id: { in: dto.ids_asientos_funcion.map(BigInt) },
+        id_funcion: BigInt(id_funcion),
+      },
+      data: {
+        estado: 'bloqueado',
+        bloqueado_hasta,
+      },
+    });
+
+    return {
+      message: `${dto.ids_asientos_funcion.length} asiento(s) bloqueados por ${dto.minutos} minuto(s)`,
+      bloqueado_hasta,
+    };
   }
 }
