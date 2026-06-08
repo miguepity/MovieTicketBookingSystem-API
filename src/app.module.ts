@@ -16,10 +16,12 @@ import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_ca
 import { FuncionesModule } from './funciones/funciones.module';
 import { CuponesModule } from './cupones/cupon.module';
 import { ReservasModule } from './reservas/reservas.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
