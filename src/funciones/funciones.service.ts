@@ -4,10 +4,15 @@ import { CreateFuncionDto } from './create-funciones.dto';
 import { UpdateFuncionDto } from './update-funciones.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BloquearAsientosDto } from './bloquear-asientos.dto';
+import { MailService } from '../mail/mail.service';
+import { buildCancelledFunctionTemplate } from '../mail/templates/cancelled-function.template';
 
 @Injectable()
 export class FuncionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   private serializeFuncion(funcion: any) {
     return {
@@ -184,6 +189,60 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
 
   async cancelar(id: number) {
    
+  }
+
+  async notifyCancelledFunctionReservations(id: number) {
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        peliculas: true,
+        salas: {
+          include: {
+            cines: true,
+          },
+        },
+        reservas: {
+          where: {
+            estado: { not: 'CANCELADA' },
+          },
+          include: {
+            usuarios: true,
+          },
+        },
+      },
+    });
+
+    if (!funcion) {
+      throw new NotFoundException(`La funciÃ³n con ID ${id} no existe.`);
+    }
+
+    let enviados = 0;
+
+    for (const reserva of funcion.reservas) {
+      try {
+        await this.mailService.sendEmail({
+          to: reserva.usuarios.email,
+          subject: 'Funcion cancelada',
+          html: buildCancelledFunctionTemplate({
+            reservationNumber: reserva.numero_reserva,
+            movieTitle: funcion.peliculas.titulo,
+            cinemaName: funcion.salas.cines.nombre,
+            functionDate: funcion.fecha_hora,
+            refundInstructions:
+              'Conserva tu numero de reserva. El personal del cine te indicara el proceso de reembolso.',
+          }),
+        });
+        enviados += 1;
+      } catch (error) {
+        console.error(`No se pudo enviar email de funcion cancelada a reserva ${reserva.id}.`, error);
+      }
+    }
+
+    return {
+      message: 'Notificaciones de funcion cancelada procesadas',
+      reservas_afectadas: funcion.reservas.length,
+      emails_enviados: enviados,
+    };
   }
 
   async remove(id: number) {
