@@ -205,19 +205,4 @@ export class FuncionesService {
 
     return updated;
   }
-
-  async findDisponiblesPorCine(id_cine: string) {
-    return this.prisma.funciones.findMany({
-      where: {
-        salas: { id_cine: BigInt(id_cine) },
-        estado: { not: 'CANCELADA' },
-        fecha_hora: { gte: new Date() },
-      },
-      include: {
-        peliculas: true,
-        salas: { include: { cines: true } },
-      },
-      orderBy: { fecha_hora: 'asc' },
-    });
-  }
 }
