@@ -56,4 +56,46 @@ export class ReembolsosService{
             reembolso: filterRemboolsos
         }
     }
+
+    async calcularReembolso(id: number){
+        const reserva = await this.prisma.reservas.findFirst({
+            where: {id: BigInt(id)},
+            include: {
+                funciones: true,
+                pagos: {
+                    select: {monto_final: true}
+                }
+            }
+        });
+        if(!reserva){
+            throw new NotFoundException('No existe reserva');
+        }
+        if(reserva.pagos.length === 0){
+            throw new NotFoundException('No existen pagos para esta reserva');
+        }
+
+        const tiempoRestante = Math.max(0, (reserva.funciones.fecha_hora.getTime() - Date.now()) / (1000 * 60 * 60));
+
+        const politica = await this.prisma.politicaCancelacion.findFirst({
+            where: {
+                horas_antes_minimo: {lte: tiempoRestante},
+                OR: [
+                    { horas_antes_maximo: null },
+                    { horas_antes_maximo: {gt: tiempoRestante}}
+                ]
+            }
+        });
+        if(!politica){
+            throw new NotFoundException('No aplica ninguna politica');
+        }
+
+        const calculoReembolso = (Number(reserva.pagos[0].monto_final) * Number(politica.porcentaje_reembolso))/100;
+
+        return {
+            reserva: reserva.numero_reserva,
+            monto_total: reserva.pagos[0].monto_final,
+            porcentaje_de_reembolso: politica.porcentaje_reembolso,
+            monto_de_reembolso: calculoReembolso
+        }
+    }
 }

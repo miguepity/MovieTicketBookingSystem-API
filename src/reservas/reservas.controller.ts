@@ -29,7 +29,7 @@ export class ReservasController{
         }
     }
 
-    @Get('export ')
+    @Get('export')
     exportReservas(){
         try{
             return this.reservasService.exportReservas();
