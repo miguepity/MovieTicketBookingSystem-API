@@ -16,6 +16,7 @@ import { PoliticasCancelacionModule } from './politicas_cancelacion/politicas_ca
 import { FuncionesModule } from './funciones/funciones.module';
 import { CuponesModule } from './cupones/cupon.module';
 import { ReservasModule } from './reservas/reservas.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 import { PagosModule } from './pagos/pagos.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { PagosModule } from './pagos/pagos.module';
     FuncionesModule,
     CuponesModule,
     ReservasModule,
+    UsuariosModule,
     PagosModule,
   ],
   controllers: [AppController],

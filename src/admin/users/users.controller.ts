@@ -3,7 +3,7 @@ import { UsersService } from './users.service.js';
 import { QueryUsuariosDto } from './dto/query-usuarios.dto.js';
 import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 
-@ApiTags('Usuarios')
+@ApiTags('Administracion de Usuarios')
 @Controller('admin/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
