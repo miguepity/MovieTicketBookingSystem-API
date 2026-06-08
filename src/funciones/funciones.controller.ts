@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
@@ -16,7 +24,7 @@ export class FuncionesController {
   cancelarFuncion(@Param('id', ParseIntPipe) id: number) {
     return this.funcionesService.cancelarFuncion(id);
   }
-  
+
   @Post()
   create(@Body() createFuncionDto: CreateFuncionDto) {
     return this.funcionesService.create(createFuncionDto);
@@ -30,5 +38,10 @@ export class FuncionesController {
   @Patch(':id/cancelar')
   cancel(@Param('id') id: string) {
     return this.funcionesService.cancel(+id);
+  }
+
+  @Get(':id/asientos')
+  getAsientos(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.getAsientosByFuncion(id);
   }
 }

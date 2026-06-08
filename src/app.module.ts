@@ -17,6 +17,7 @@ import { SalaModule } from './salas/salas.module';
 import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
 import { ReembolsosModule } from './reembolsos/reembolsos.module';
 import { ReservasModule } from './reservas/reservas.module';
+import { AsientosModule } from './asientos/asientos.module';
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { ReservasModule } from './reservas/reservas.module';
     ReembolsosModule,
     FuncionesModule,
     SalaModule,
-    ReservasModule
+    ReservasModule,
+    AsientosModule
   ],
   controllers: [AppController],
   providers: [AppService],
