@@ -8,6 +8,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
 import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
