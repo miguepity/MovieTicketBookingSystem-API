@@ -1,15 +1,16 @@
-import { IsDateString, IsString, IsNotEmpty, IsNumber } from "class-validator";
+import { IsString, IsNotEmpty, IsNumber, IsOptional } from "class-validator";
 
-export class BodyDto{
+export class EditBodyDto {
+    @IsOptional()
     @IsString()
     @IsNotEmpty()
-    nombre!: string
+    nombre?: string;
 
+    @IsOptional()
     @IsString()
-    @IsNotEmpty()
-    direccion!:  string 
+    direccion?: string;
 
+    @IsOptional()
     @IsNumber()
-    @IsNotEmpty()
-    id_ciudad!:  number
+    id_ciudad?: number;
 }

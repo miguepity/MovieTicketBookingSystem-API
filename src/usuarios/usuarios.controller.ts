@@ -44,4 +44,11 @@ export class UsuariosController {
   async findAllClientes() {
     return this.usuariosService.findAllClientes();
   }
+  
+  @Patch(':id/notifications')
+  toggleNotifications(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usuariosService.toggleNotifications(id);
+  }
 }
