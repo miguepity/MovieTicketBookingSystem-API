@@ -54,6 +54,10 @@ export class PeliculasService {
       },
       data: {
         poster_url: dto.posterUrl,
+      },
+    });
+  }
+
   async update(
     id: number,
     updatePeliculaDto: UpdatePeliculaDto,

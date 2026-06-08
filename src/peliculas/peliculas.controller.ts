@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
+  Post,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -78,9 +79,10 @@ export class PeliculasController {
     },
   })
   @Post(':id/poster')
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   uploadPoster(@Param('id') id: string, @Body() dto: UploadPosterDto) {
     return this.peliculasService.uploadPoster(BigInt(id), dto);
+  }
+
   @Put(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
