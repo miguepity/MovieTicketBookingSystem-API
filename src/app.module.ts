@@ -22,6 +22,7 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
 import { PoliticasCancelacionModule } from './modules/politicas-cancelacion/politicas-cancelacion.module';
 import { TiposAsientoModule } from './modules/tipos-asiento/tipos-asiento.module';
 import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
 import { FuncionesModule } from './modules/funciones/funciones.module';
 import { CuponesModule } from './modules/cupones/cupones.module';
 
@@ -48,6 +49,7 @@ import { CuponesModule } from './modules/cupones/cupones.module';
     PoliticasCancelacionModule,
     TiposAsientoModule,
     PreciosCineModule,
+    ReportesModule,
     FuncionesModule,
     CuponesModule,
   ],
