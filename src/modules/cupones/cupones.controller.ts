@@ -1,0 +1,47 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { CuponesService } from './cupones.service';
+import { CreateCuponDto } from './dto/create-cupon.dto';
+import { UpdateCuponDto } from './dto/update-cupon.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+@Controller('cupones')
+export class CuponesController {
+  constructor(private readonly cuponesService: CuponesService) {}
+
+  @Get()
+  findAll() {
+    return this.cuponesService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.cuponesService.findOne(id);
+  }
+
+  @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  create(@Body() dto: CreateCuponDto) {
+    return this.cuponesService.create(dto);
+  }
+
+  @Put(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  update(@Param('id') id: string, @Body() dto: UpdateCuponDto) {
+    return this.cuponesService.update(id, dto);
+  }
+}

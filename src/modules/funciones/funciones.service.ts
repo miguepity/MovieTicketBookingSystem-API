@@ -197,5 +197,4 @@ export class FuncionesService {
 
     return updated;
   }
-
 }
