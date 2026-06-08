@@ -113,4 +113,12 @@ export class AuthService {
       user,
     };
   }
+
+  async logout() {
+    // El logout sera manejado en el frontend eliminando el token del almacenamiento local del cliente.
+    return { 
+      statusCode: 200,
+      message: 'Sesión cerrada exitosamente. ' 
+    };
+  }
 }
