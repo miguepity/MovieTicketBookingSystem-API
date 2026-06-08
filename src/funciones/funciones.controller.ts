@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards, Req} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncionDto } from './create-funciones.dto';
 import { UpdateFuncionDto } from './update-funciones.dto';
+import { BloquearAsientosDto } from './bloquear-asientos.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -78,5 +79,27 @@ export class FuncionesController {
   @ApiResponse({ status: 404, description: 'Función no encontrada.' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.funcionesService.remove(id);
+  } 
+  
+  @Get(':id/asientos')
+  @ApiOperation({ summary: 'Obtener el mapa de ocupación actual de todos los asientos de una función' })
+  @ApiResponse({ status: 200, description: 'Mapa de asientos devuelto exitosamente.' })
+  @ApiResponse({ status: 404, description: 'La función especificada no existe.' })
+  getMapaAsientos(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.getMapaAsientos(id);
+  }
+
+  @Post(':id/asientos/bloquear')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Bloquear asientos temporalmente en el carrito (Expiración configurable)' })
+  @ApiResponse({ status: 201, description: 'Asientos bloqueados temporalmente.' })
+  @ApiResponse({ status: 409, description: 'Conflicto: Uno o más asientos ya están tomados por otro usuario.' })
+  bloquearAsientos(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: BloquearAsientosDto,
+    @Req() req: any,
+  ) {
+    return this.funcionesService.bloquearAsientos(id, req.user.id, dto);
   }
 }
