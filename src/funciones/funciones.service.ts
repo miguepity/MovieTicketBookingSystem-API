@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
@@ -10,7 +14,7 @@ export class FuncionesService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
   ) {}
-  
+
   create(createFuncionDto: CreateFuncionDto) {
     return this.prisma.funciones.create({
       data: {
@@ -29,10 +33,18 @@ export class FuncionesService {
     return this.prisma.funciones.update({
       where: { id },
       data: {
-        ...(updateFuncionDto.id_pelicula !== undefined && { id_pelicula: updateFuncionDto.id_pelicula }),
-        ...(updateFuncionDto.id_sala !== undefined && { id_sala: updateFuncionDto.id_sala }),
-        ...(updateFuncionDto.fecha_hora !== undefined && { fecha_hora: new Date(updateFuncionDto.fecha_hora) }),
-        ...(updateFuncionDto.estado !== undefined && { estado: updateFuncionDto.estado }),
+        ...(updateFuncionDto.id_pelicula !== undefined && {
+          id_pelicula: updateFuncionDto.id_pelicula,
+        }),
+        ...(updateFuncionDto.id_sala !== undefined && {
+          id_sala: updateFuncionDto.id_sala,
+        }),
+        ...(updateFuncionDto.fecha_hora !== undefined && {
+          fecha_hora: new Date(updateFuncionDto.fecha_hora),
+        }),
+        ...(updateFuncionDto.estado !== undefined && {
+          estado: updateFuncionDto.estado,
+        }),
       },
     });
   }
@@ -46,7 +58,7 @@ export class FuncionesService {
       data: { estado: 'cancelada' },
     });
   }
-  
+
   async cancelarFuncion(id: number) {
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(id) },
@@ -131,5 +143,28 @@ export class FuncionesService {
         },
       },
     });
-  }                                     
+  }
+
+  async getAsientosByFuncion(id: number) {
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!funcion) throw new NotFoundException('Función no encontrada');
+
+    return this.prisma.asientosFuncion.findMany({
+      where: { id_funcion: BigInt(id) },
+      include: {
+        asientos: {
+          select: {
+            id: true,
+            fila: true,
+            columna: true,
+            codigo: true,
+            tipo: true,
+          },
+        },
+      },
+    });
+  }
 }
