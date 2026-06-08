@@ -9,9 +9,9 @@ export class ReportesPagosListItemResponseDto {
   @ApiProperty() montoFinal!: number;
   @ApiProperty() metodo!: string;
   @ApiProperty() estado!: string;
-  @ApiProperty() referenciaExterna!: string | null;
+  @ApiProperty({ nullable: true, type: String }) referenciaExterna!: string | null;
   @ApiProperty({ type: ReporteReservasDto }) reserva!: ReporteReservasDto;
-  @ApiProperty({ type: ReporteCuponDto }) cupon?: ReporteCuponDto;
-  @ApiProperty({ type: ReporteReembolsoDto }) reembolso?: ReporteReembolsoDto;
+  @ApiProperty({ type: ReporteCuponDto, required: false }) cupon?: ReporteCuponDto;
+  @ApiProperty({ type: [ReporteReembolsoDto] }) reembolsos!: ReporteReembolsoDto[];
   @ApiProperty() createdAt!: Date;
 }

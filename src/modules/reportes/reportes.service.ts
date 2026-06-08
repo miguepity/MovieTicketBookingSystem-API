@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
@@ -32,6 +32,22 @@ type PagosWithRelations = Prisma.PagosGetPayload<{
   };
 }>;
 
+const RESERVAS_INCLUDE = {
+  usuarios: true,
+  funciones: {
+    include: {
+      peliculas: true,
+      salas: { include: { cines: true } },
+    },
+  },
+} satisfies Prisma.ReservasInclude;
+
+const PAGOS_INCLUDE = {
+  reservas: true,
+  cupones: true,
+  reembolsos: true,
+} satisfies Prisma.PagosInclude;
+
 @Injectable()
 export class ReportesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -42,34 +58,17 @@ export class ReportesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
-    const where: Prisma.PagosWhereInput = {
-      ...(query.estado && { estado: query.estado }),
-      ...(query.fecha && {
-        created_at: {
-          gte: new Date(query.fecha),
-        },
-      }),
-    };
-
-    const include = {
-      reservas: true,
-      cupones: true,
-      reembolsos: true,
-    } satisfies Prisma.PagosInclude;
+    const where = this.buildPagosWhere(query);
 
     const [total, pagos, aggregates] = await this.prisma.$transaction([
       this.prisma.pagos.count({ where }),
-
       this.prisma.pagos.findMany({
         where,
-        include,
+        include: PAGOS_INCLUDE,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: {
-          created_at: 'desc',
-        },
+        orderBy: { created_at: 'desc' },
       }),
-
       this.prisma.pagos.aggregate({
         where,
         _sum: {
@@ -79,16 +78,8 @@ export class ReportesService {
       }),
     ]);
 
-    const data = pagos.map((p) => this.toListPagosItem(p));
-
-    if (pagos.length === 0) {
-      throw new NotFoundException(
-        'No se encontraron pagos con los filtros aplicados',
-      );
-    }
-
     return {
-      data,
+      data: pagos.map((p) => this.toListPagosItem(p)),
       total,
       page,
       limit,
@@ -105,29 +96,42 @@ export class ReportesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
-    const all = await this.getReservasLogic(query);
+    const where = this.buildReservasWhere(query);
 
-    const total = all.length;
-
-    const paginated = all.slice((page - 1) * limit, page * limit);
-    if (paginated.length === 0) {
-      throw new NotFoundException('No se encontraron reservas');
-    }
+    const [total, reservas] = await this.prisma.$transaction([
+      this.prisma.reservas.count({ where }),
+      this.prisma.reservas.findMany({
+        where,
+        include: RESERVAS_INCLUDE,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+    ]);
 
     return {
-      data: paginated.map((r) => this.toListReservasItem(r)),
+      data: reservas.map((r) => this.toListReservasItem(r)),
       total,
       page,
       limit,
     };
   }
 
-  async exportarReservas(query: ListReporteReservasQueryDto) {
-    const reservas = await this.getReservasLogic(query);
+  async exportarReservas(query: ListReporteReservasQueryDto): Promise<string> {
+    const where = this.buildReservasWhere(query);
+
+    const reservas = await this.prisma.reservas.findMany({
+      where,
+      include: RESERVAS_INCLUDE,
+      orderBy: { created_at: 'desc' },
+    });
+
     return this.toCsv(reservas);
   }
 
-  private async getReservasLogic(query: ListReporteReservasQueryDto) {
+  private buildReservasWhere(
+    query: ListReporteReservasQueryDto,
+  ): Prisma.ReservasWhereInput {
     const { estado, pelicula, cine, fecha } = query;
 
     const where: Prisma.ReservasWhereInput = {};
@@ -149,36 +153,45 @@ export class ReportesService {
       };
     }
 
-    if (fecha) {
-      const date = new Date(fecha);
-
-      if (!isNaN(date.getTime())) {
-        where.created_at = {
-          gte: new Date(date.setUTCHours(0, 0, 0, 0)),
-          lt: new Date(date.setUTCHours(23, 59, 59, 999)),
-        };
-      }
-    }
+    const rango = this.dayRange(fecha);
+    if (rango) where.created_at = rango;
 
     if (Object.keys(funcionesFilter).length > 0) {
       where.funciones = funcionesFilter;
     }
 
-    return this.prisma.reservas.findMany({
-      where,
-      include: {
-        usuarios: true,
-        funciones: {
-          include: {
-            peliculas: true,
-            salas: {
-              include: { cines: true },
-            },
-          },
-        },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    return where;
+  }
+
+  private buildPagosWhere(
+    query: ListReportePagosQueryDto,
+  ): Prisma.PagosWhereInput {
+    const where: Prisma.PagosWhereInput = {};
+
+    if (query.estado) where.estado = query.estado;
+
+    const rango = this.dayRange(query.fecha);
+    if (rango) where.created_at = rango;
+
+    return where;
+  }
+
+  private dayRange(
+    fecha?: string,
+  ): { gte: Date; lt: Date } | undefined {
+    if (!fecha) return undefined;
+
+    const parsed = new Date(fecha);
+    if (Number.isNaN(parsed.getTime())) return undefined;
+
+    const gte = new Date(parsed);
+    gte.setUTCHours(0, 0, 0, 0);
+
+    const lt = new Date(parsed);
+    lt.setUTCHours(0, 0, 0, 0);
+    lt.setUTCDate(lt.getUTCDate() + 1);
+
+    return { gte, lt };
   }
 
   private toListReservasItem(
@@ -186,7 +199,7 @@ export class ReportesService {
   ): ReportesReservasListItemResponseDto {
     return {
       id: reservas.id.toString(),
-      numero_reserva: reservas.numero_reserva,
+      numeroReserva: reservas.numero_reserva,
       estado: reservas.estado,
       usuario: {
         id: reservas.usuarios.id.toString(),
@@ -194,7 +207,7 @@ export class ReportesService {
       },
       funcion: {
         id: reservas.funciones.id.toString(),
-        fecha_hora: reservas.funciones.fecha_hora,
+        fechaHora: reservas.funciones.fecha_hora,
         pelicula: {
           id: reservas.funciones.peliculas.id.toString(),
           titulo: reservas.funciones.peliculas.titulo,
@@ -208,8 +221,8 @@ export class ReportesService {
           },
         },
       },
-      created_at: reservas.created_at,
-      updated_at: reservas.updated_at,
+      createdAt: reservas.created_at,
+      updatedAt: reservas.updated_at,
     };
   }
 
@@ -233,17 +246,15 @@ export class ReportesService {
             codigo: pagos.cupones.codigo,
           }
         : undefined,
-      reembolso: pagos.reembolsos?.[0]
-        ? {
-            id: pagos.reembolsos[0].id.toString(),
-            montoReembolso: Number(pagos.reembolsos[0].monto),
-          }
-        : undefined,
+      reembolsos: pagos.reembolsos.map((r) => ({
+        id: r.id.toString(),
+        montoReembolso: Number(r.monto),
+      })),
       createdAt: pagos.created_at,
     };
   }
 
-  private toCsv(reservas: any[]): string {
+  private toCsv(reservas: ReservaWithRelations[]): string {
     const headers = [
       'ID',
       'Reserva',
@@ -264,13 +275,15 @@ export class ReportesService {
       r.funciones.fecha_hora.toISOString(),
     ]);
 
-    return [
+    const body = [
       headers.join(','),
       ...rows.map((row) =>
         row
           .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
           .join(','),
       ),
-    ].join('\n');
+    ].join('\r\n');
+
+    return '﻿' + body;
   }
 }

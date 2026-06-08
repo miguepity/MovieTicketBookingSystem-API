@@ -1,37 +1,39 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class ListReporteReservasQueryDto {
-  @ApiPropertyOptional({ example: "La Sirenita"})
+  @ApiPropertyOptional({ example: 'La Sirenita' })
   @IsOptional()
   @IsString()
   pelicula?: string;
 
-  @ApiPropertyOptional({ example: "Cinepolis"})
+  @ApiPropertyOptional({ example: 'Cinepolis' })
   @IsOptional()
   @IsString()
   cine?: string;
 
-  @ApiPropertyOptional({ example: '2023-01-01', default: undefined })
+  @ApiPropertyOptional({ example: '2023-01-01' })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   fecha?: string;
 
-  @ApiPropertyOptional({ example: 'pendiente', default: undefined })
+  @ApiPropertyOptional({ example: 'pendiente' })
   @IsOptional()
   @IsString()
   estado?: string;
 
   @ApiPropertyOptional({ example: 1, default: 1 })
   @IsOptional()
-  @IsInt()
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
   page?: number;
 
   @ApiPropertyOptional({ example: 20, default: 20 })
   @IsOptional()
-  @IsInt()
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
   limit?: number;
 }

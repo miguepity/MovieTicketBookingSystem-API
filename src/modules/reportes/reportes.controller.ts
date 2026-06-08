@@ -1,12 +1,14 @@
-import { Controller, Get, NotFoundException, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
-  ApiNotFoundResponse,
+  ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ReportesService } from './reportes.service';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
 import { ListReportePagosQueryDto } from './dto/list-reportes-pagos-query.dto';
@@ -14,37 +16,41 @@ import { ReportesReservasPageResponseDto } from './dto/reportes-reservas-page.re
 import { ReportesPagosPageResponseDto } from './dto/reportes-pagos-page.response.dto';
 
 @ApiTags('Reportes Administrativos')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@ApiUnauthorizedResponse({ description: 'No autorizado' })
 @Controller('admin/reportes')
 export class ReportesController {
   constructor(private readonly reportesService: ReportesService) {}
 
   @Get('reservas')
-  @ApiOperation({ summary: 'Obtener todas las reservas' })
-  @ApiOkResponse({ description: 'Lista de reservas obtenida exitosamente' })
+  @ApiOperation({ summary: 'Listar reservas con filtros y paginación' })
+  @ApiOkResponse({ type: ReportesReservasPageResponseDto })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
-  @ApiNotFoundResponse ({ description: 'No se encontraron reservas' })
-  findAllReservas(@Query() query: ListReporteReservasQueryDto): Promise<ReportesReservasPageResponseDto> {
+  findAllReservas(
+    @Query() query: ListReporteReservasQueryDto,
+  ): Promise<ReportesReservasPageResponseDto> {
     return this.reportesService.findAllReservas(query);
   }
 
   @Get('reservas/export')
-  @ApiOperation({ summary: 'Exportar reservas' })
-  @ApiOkResponse({ description: 'Reservas exportadas exitosamente' })
+  @ApiOperation({ summary: 'Exportar reservas filtradas a CSV' })
+  @ApiOkResponse({ description: 'Archivo CSV de reservas' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   async exportarReservas(
     @Query() query: ListReporteReservasQueryDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<string> {
     const csv = await this.reportesService.exportarReservas(query);
-    if (!csv?.trim()) {
-      throw new NotFoundException('No reservations found for export');
-    }
 
-    const date = new Date().toISOString();
-    res.setHeader('Content-Type', 'text/csv');
+    const filename = `reservas-${new Date()
+      .toISOString()
+      .replace(/[:.]/g, '-')}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=reservas-${date}.csv`,
+      `attachment; filename="${filename}"`,
     );
 
     return csv;
@@ -52,10 +58,11 @@ export class ReportesController {
 
   @Get('pagos')
   @ApiOperation({ summary: 'Historial de pagos y reembolsos' })
-  @ApiOkResponse({ description: 'Historial de pagos obtenido exitosamente' })
+  @ApiOkResponse({ type: ReportesPagosPageResponseDto })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
-  @ApiNotFoundResponse ({ description: 'No se encontraron pagos' })
-  historialPagos(@Query() query: ListReportePagosQueryDto): Promise<ReportesPagosPageResponseDto> {
+  historialPagos(
+    @Query() query: ListReportePagosQueryDto,
+  ): Promise<ReportesPagosPageResponseDto> {
     return this.reportesService.historialPagos(query);
   }
 }
