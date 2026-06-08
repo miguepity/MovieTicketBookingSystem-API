@@ -7,9 +7,21 @@ import { UsersModule } from './users/users.module';
 import { PeliculasModule } from './peliculas/peliculas.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CiudadesModule } from './ciudades/ciudades.module';
+import { FuncionesModule } from './funciones/funciones.module';
+import { RolesModule } from './roles/roles.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, PeliculasModule, PrismaModule, CiudadesModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    PeliculasModule,
+    PrismaModule,
+    CiudadesModule,
+    FuncionesModule,
+    RolesModule,
+    MailModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
