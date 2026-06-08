@@ -4,6 +4,7 @@ import { MailService } from 'src/modules/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PagoExitosoEvent } from 'src/modules/pagos/events/pago-exitoso.event';
 import { ReservaCanceladaEvent } from 'src/modules/reservas/events/reserva-cancelada.event';
+import { FuncionCanceladaEvent } from '../funciones/events/funcion-cancelada.event';
 
 @Injectable()
 export class NotificacionesService {
@@ -175,5 +176,55 @@ export class NotificacionesService {
 
   private isEnabled(): boolean {
     return process.env.EMAIL_TRIGGERS_ENABLED !== 'false';
+  }
+  
+  @OnEvent(FuncionCanceladaEvent.NAME)
+  async onFuncionCancelada(event: FuncionCanceladaEvent): Promise<void> {
+    if (!this.isEnabled()) return;
+
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(event.idFuncion) },
+      include: {
+        peliculas: true,
+        salas: {
+          include: {
+            cines: true,
+          },
+        },
+        reservas: {
+          include: {
+            usuarios: {
+              select: {
+                nombre: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!funcion) return;
+
+    const fechaFuncion = new Intl.DateTimeFormat('es', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'America/Tegucigalpa',
+    }).format(funcion.fecha_hora);
+
+    await Promise.all(
+      funcion.reservas.map((reserva) =>
+        this.mail.sendFuncionCanceladaEmail({
+          nombre: reserva.usuarios.nombre,
+          email: reserva.usuarios.email,
+          pelicula: funcion.peliculas.titulo,
+          cine: `${funcion.salas.cines.nombre} — Sala ${funcion.salas.nombre}`,
+          fechaFuncion,
+          numeroReserva: reserva.numero_reserva,
+          tienePagoAprobado: false,
+          montoPagado: undefined,
+        }),
+      ),
+    );
   }
 }

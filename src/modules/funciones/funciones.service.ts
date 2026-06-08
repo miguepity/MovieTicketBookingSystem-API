@@ -6,10 +6,15 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { FuncionCanceladaEvent } from './events/funcion-cancelada.event';
 
 @Injectable()
 export class FuncionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   private async checkConflicto(
     id_sala: bigint,
@@ -193,7 +198,10 @@ export class FuncionesService {
       },
     });
 
-    //await this.notificarCancelacion(id_funcion);
+    this.eventEmitter.emit(
+      FuncionCanceladaEvent.NAME,
+      new FuncionCanceladaEvent(id),
+    );
 
     return updated;
   }
