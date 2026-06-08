@@ -59,7 +59,10 @@ export class CreatePeliculaDto {
   @IsDateString()
   fecha_estreno?: string;
 
-  @ApiPropertyOptional({ description: 'Indica si la película está activa' })
+  @ApiPropertyOptional({
+    description: 'Indica si la película está activa',
+    example: true,
+  })
   @IsOptional()
   @IsBoolean()
   activo?: boolean;

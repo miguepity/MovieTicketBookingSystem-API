@@ -12,6 +12,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { CiudadesService } from './ciudades.service';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
@@ -46,6 +47,7 @@ export class CiudadesController {
     status: 201,
     description: 'Ciudad creada exitosamente.',
   })
+  @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   create(@Body() createCiudadesDto: CreateCiudadesDto) {
     return this.ciudadesService.create(createCiudadesDto);
@@ -58,11 +60,14 @@ export class CiudadesController {
     summary: 'Actualizar una ciudad',
     description: 'Permite actualizar los datos de una ciudad existente.',
   })
+  @ApiParam({ name: 'id', description: 'ID de la ciudad', example: '1' })
   @ApiResponse({
     status: 200,
     description: 'Ciudad actualizada exitosamente.',
   })
+  @ApiResponse({ status: 400, description: 'ID inválido o datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
   update(
     @Param('id') id: string,
     @Body() updateCiudadesDto: UpdateCiudadesDto,

@@ -3,17 +3,20 @@ import { Transform } from 'class-transformer';
 import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class QueryPeliculaDto {
-  @ApiPropertyOptional({ description: 'Búsqueda parcial por título' })
+  @ApiPropertyOptional({
+    description: 'Búsqueda parcial por título',
+    example: 'Inception',
+  })
   @IsOptional()
   @IsString()
   titulo?: string;
 
-  @ApiPropertyOptional({ description: 'ID del género' })
+  @ApiPropertyOptional({ description: 'ID del género', example: '1' })
   @IsOptional()
   @Transform(({ value }) => BigInt(value as string | number))
   genero?: bigint;
 
-  @ApiPropertyOptional({ description: 'ID del idioma' })
+  @ApiPropertyOptional({ description: 'ID del idioma', example: '1' })
   @IsOptional()
   @Transform(({ value }) => BigInt(value as string | number))
   idioma?: bigint;
@@ -34,7 +37,7 @@ export class QueryPeliculaDto {
   @IsDateString()
   fecha_fin?: string;
 
-  @ApiPropertyOptional({ description: 'ID de la ciudad' })
+  @ApiPropertyOptional({ description: 'ID de la ciudad', example: '1' })
   @IsOptional()
   @Transform(({ value }) => BigInt(value as string | number))
   ciudad_id?: bigint;

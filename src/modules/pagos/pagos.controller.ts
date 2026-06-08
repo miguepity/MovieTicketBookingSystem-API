@@ -1,5 +1,15 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { PagosService } from './pagos.service';
 import { CrearPagoDto } from './dto/crear-pago.dto';
 import { CrearPagoEfectivoDto } from './dto/crear-pago-efectivo.dto';
@@ -15,6 +25,18 @@ export class PagosController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Crear un pago para una reserva' })
+  @ApiCreatedResponse({ description: 'Pago procesado exitosamente' })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos o cupón no válido',
+  })
+  @ApiNotFoundResponse({ description: 'La reserva no existe' })
+  @ApiConflictResponse({
+    description:
+      'La reserva no es pagable o el cine no tiene precio configurado',
+  })
+  @ApiForbiddenResponse({ description: 'Esta reserva no te pertenece' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
   crear(@Body() dto: CrearPagoDto, @CurrentUser() user: CurrentUserPayload) {
     return this.pagosService.crear({
       idReserva: dto.id_reserva,
@@ -28,6 +50,22 @@ export class PagosController {
   @Post('efectivo')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Registrar un pago en efectivo (solo taquillero)' })
+  @ApiCreatedResponse({
+    description: 'Pago en efectivo registrado exitosamente',
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos o cupón no válido',
+  })
+  @ApiNotFoundResponse({ description: 'La reserva no existe' })
+  @ApiConflictResponse({
+    description:
+      'La reserva no es pagable o el cine no tiene precio configurado',
+  })
+  @ApiForbiddenResponse({
+    description: 'Solo el rol taquillero puede confirmar pagos en efectivo',
+  })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
   crearEfectivo(
     @Body() dto: CrearPagoEfectivoDto,
     @CurrentUser() user: CurrentUserPayload,
