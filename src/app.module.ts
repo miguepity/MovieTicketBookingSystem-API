@@ -20,6 +20,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ReembolsosModule } from './reembolsos/reembolsos.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { PagosModule } from './pagos/pagos.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PagosModule } from './pagos/pagos.module';
     ReembolsosModule,
     UsuariosModule,
     PagosModule,
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
