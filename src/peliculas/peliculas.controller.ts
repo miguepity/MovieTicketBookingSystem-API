@@ -1,9 +1,26 @@
-import { Body, Controller, Post, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Query,
+  Put,
+  Param,
+  Body,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PeliculasService } from './peliculas.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { UploadPosterDto } from './dto/upload-poster.dto';
+import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { AuthGuard } from '../auth/auth.guard';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Peliculas')
@@ -64,5 +81,17 @@ export class PeliculasController {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   uploadPoster(@Param('id') id: string, @Body() dto: UploadPosterDto) {
     return this.peliculasService.uploadPoster(BigInt(id), dto);
+  @Put(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  @ApiOperation({ summary: 'Editar una película por ID' })
+  @ApiParam({ name: 'id', description: 'ID de la película a editar' })
+  editar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePeliculaDto,
+    @Request() req: { user: { userId: number } },
+  ) {
+    return this.peliculasService.update(id, dto, req.user.userId);
   }
 }
