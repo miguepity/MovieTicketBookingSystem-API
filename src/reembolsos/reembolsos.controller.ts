@@ -1,15 +1,15 @@
 import { Controller, Post, Get, Body } from "@nestjs/common";
-import { RembolsosService } from "./rembolsos.services";
-import { RembolsosBodyDto } from "./dto/rembolsos.body.dto";
+import { ReembolsosService } from "./reembolsos.services";
+import { ReembolsosBodyDto } from "./dto/reembolsos.body.dto";
 import { FilterBodyDto } from "./dto/reembolsos.filters.dto";
 
-@Controller('rembolso')
-export class RemolsosController{
-    constructor(private readonly rembolsoService: RembolsosService){}
+@Controller('reembolso')
+export class ReemolsosController{
+    constructor(private readonly rembolsoService: ReembolsosService){}
 
     @Post()
     createRembolso(
-        @Body() dto: RembolsosBodyDto
+        @Body() dto: ReembolsosBodyDto
     ){
         try{
             return this.rembolsoService.createRembolso(dto);

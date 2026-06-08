@@ -1,4 +1,4 @@
-import { Controller, Post, Patch, Param, Body, ParseIntPipe } from "@nestjs/common";
+import { Controller, Post, Get, Put, Param, Body, ParseIntPipe } from "@nestjs/common";
 import { CineService } from "./cines.service";
 import { BodyDto } from "./dto/cine.body";
 import { EditBodyDto } from "./dto/cine.edit.body";

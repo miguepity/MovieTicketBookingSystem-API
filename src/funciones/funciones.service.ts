@@ -130,5 +130,6 @@ export class FuncionesService {
           select: { id: true, nombre: true, email: true },
         },
       },
-    }                                      
+    });
+  }                                     
 }

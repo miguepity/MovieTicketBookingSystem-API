@@ -5,5 +5,8 @@ export class FilterBodyDto{
     estado!: string
 
     @IsDateString()
+    created_at!: Date
+
+    @IsDateString()
     fecha_procesado!: Date
 }

@@ -14,9 +14,8 @@ import { CineModule } from './cines/cines.module';
 import { CuponesModule } from './cupones/cupones.module';
 import { FuncionesModule } from './funciones/funciones.module';
 import { SalaModule } from './salas/salas.module';
-import { FuncionesModule } from './funciones/funciones.module';
 import { PoliticasCancelacionModule } from './politicas de cancelacion/politicas.cancelacion.module';
-import { RembolsosModule } from './rembolsos/rembolsos.module';
+import { ReembolsosModule } from './reembolsos/reembolsos.module';
 
 @Module({
   imports: [
@@ -34,7 +33,7 @@ import { RembolsosModule } from './rembolsos/rembolsos.module';
     SalaModule,
     FuncionesModule,
     PoliticasCancelacionModule,
-    RembolsosModule,
+    ReembolsosModule,
     FuncionesModule,
     SalaModule
   ],

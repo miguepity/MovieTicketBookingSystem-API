@@ -1,7 +1,7 @@
 import { Decimal } from "@prisma/client/runtime/client"
 import { IsNumber, IsDecimal, IsString, IsNotEmpty, IsDateString } from "class-validator"
 
-export class RembolsosBodyDto{
+export class ReembolsosBodyDto{
     @IsNumber()
     @IsNotEmpty()
     id_pago!: number
