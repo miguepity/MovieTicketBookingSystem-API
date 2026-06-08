@@ -13,6 +13,7 @@ import { MailModule } from './mail/mail.module';
 import { CuponesModule } from './cupones/cupones.module';
 import { PoliticaCancelacionModule } from './politica-cancelacion/politica-cancelacion.module';
 import { SalasModule } from './salas/salas.module';
+import { CinesModule } from './cines/cines.module';
 
 @Module({
   imports: [
