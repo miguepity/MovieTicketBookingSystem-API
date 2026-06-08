@@ -13,14 +13,16 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PoliticasCancelacionService } from './politicas-cancelacion.service';
 import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { PoliticasCancelacionPageResponseDto } from './dto/politicas-cancelacion-page.response.dto';
 import { ListPoliticasCancelacionQueryDto } from './dto/list-politicas-cancelacion-query.dto';
 
+@ApiTags('Politicas de Cancelacion')
 @Controller('politicas-cancelacion')
 export class PoliticasCancelacionController {
   constructor(

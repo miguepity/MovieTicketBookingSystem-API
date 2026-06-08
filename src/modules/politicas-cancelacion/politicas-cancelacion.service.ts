@@ -5,12 +5,10 @@ import {
 } from '@nestjs/common';
 import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '../../../generated/prisma/client';
+import { PoliticaCancelacion, Prisma } from '../../../generated/prisma/client';
 import { ListPoliticasCancelacionQueryDto } from './dto/list-politicas-cancelacion-query.dto';
 import { PoliticasCancelacionPageResponseDto } from './dto/politicas-cancelacion-page.response.dto';
 import { PoliticasCancelacionListItemResponseDto } from './dto/politicas-cancelacion-list-item.response.dto';
-
-type PoliticaPayload = Prisma.PoliticaCancelacionGetPayload<{}>;
 
 @Injectable()
 export class PoliticasCancelacionService {
@@ -45,10 +43,10 @@ export class PoliticasCancelacionService {
     id: string,
     updatePoliticasCancelacionDto: UpdatePoliticasCancelacionDto,
   ) {
-    const PoliticasCancelacionId = this.parseId(id);
+    const politicasCancelacionId = this.parseId(id);
 
     const existing = await this.prisma.politicaCancelacion.findUnique({
-      where: { id: PoliticasCancelacionId },
+      where: { id: politicasCancelacionId },
       select: { id: true },
     });
     if (!existing) {
@@ -56,18 +54,22 @@ export class PoliticasCancelacionService {
     }
 
     return this.prisma.politicaCancelacion.update({
-      where: { id: PoliticasCancelacionId },
+      where: { id: politicasCancelacionId },
       data: {
         horas_antes_minimo: updatePoliticasCancelacionDto.horas_antes_minimo,
         horas_antes_maximo: updatePoliticasCancelacionDto.horas_antes_maximo,
         porcentaje_reembolso:
-          updatePoliticasCancelacionDto.porcentaje_reembolso,
+          updatePoliticasCancelacionDto.porcentaje_reembolso !== undefined
+            ? new Prisma.Decimal(
+                updatePoliticasCancelacionDto.porcentaje_reembolso,
+              )
+            : undefined,
       },
     });
   }
 
   private toListItem(
-    politica: PoliticaPayload,
+    politica: PoliticaCancelacion,
   ): PoliticasCancelacionListItemResponseDto {
     return {
       id: politica.id.toString(),
