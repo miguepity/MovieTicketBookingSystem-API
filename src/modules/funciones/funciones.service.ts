@@ -164,4 +164,38 @@ export class FuncionesService {
       data,
     });
   }
+
+  async cancelar(id: string) {
+    const id_funcion = BigInt(id);
+
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: id_funcion },
+    });
+
+    if (!funcion) {
+      throw new NotFoundException('Función no existe');
+    }
+
+    if (funcion.estado === 'CANCELADA') {
+      throw new ConflictException('La función ya está cancelada');
+    }
+
+    if (funcion.fecha_hora < new Date()) {
+      throw new ConflictException(
+        'No se puede cancelar una función ya iniciada',
+      );
+    }
+
+    const updated = await this.prisma.funciones.update({
+      where: { id: id_funcion },
+      data: {
+        estado: 'CANCELADA',
+      },
+    });
+
+    //await this.notificarCancelacion(id_funcion);
+
+    return updated;
+  }
+
 }
