@@ -10,6 +10,8 @@ import {
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { ApiOperation, ApiTags, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { BloquearAsientoDto } from './dto/bloquear-asiento.dto';
 
 @ApiTags('Funciones')
 @Controller('funciones')
@@ -49,6 +51,45 @@ export class FuncionesController {
   })
   async cancel(@Param('id') id: string) {
     return this.funcionesService.cancel(id);
+  @Post('/:id/asientos/bloquear')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    description: 'Bloquea asientos para una función específica',
+    responses: {
+      201: {
+        description: 'Asiento bloqueado exitosamente',
+        content: {
+          'application/json': {
+            example: {
+              id: '1',
+              id_asiento: 'A1',
+              id_funcion: '1',
+              estado: 'blocked',
+            },
+          },
+        },
+      },
+      400: { description: 'Solicitud inválida' },
+      401: { description: 'No autorizado' },
+    },
+  })
+}
+
+  async bloquearAsientos(
+    @Body() body: BloquearAsientoDto,
+    @Param('id') funcion_id: string,
+  ) {
+    const asiento = await this.funcionesService.bloquearAsientos(
+      BigInt(body.id_asiento),
+      BigInt(funcion_id),
+    );
+
+    return {
+      ...asiento,
+      id: asiento.id.toString(),
+      id_asiento: asiento.id_asiento.toString(),
+      id_funcion: asiento.id_funcion.toString(),
+    };
   }
 
   @Get(':peliculaId/cines/:cineId/funciones')

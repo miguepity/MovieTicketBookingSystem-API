@@ -15,9 +15,11 @@ import { PoliticaCancelacionModule } from './politica-cancelacion/politica-cance
 import { SalasModule } from './salas/salas.module';
 import { CinesModule } from './cines/cines.module';
 import { PagosModule } from './pagos/pagos.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     PeliculasModule,
