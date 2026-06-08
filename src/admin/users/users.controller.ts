@@ -9,7 +9,7 @@ import { Roles } from '../../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator.js';
 
 @ApiTags('Usuarios')
-@ApiBearerAuth()
+@ApiBearerAuth('token')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/users')

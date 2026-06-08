@@ -29,7 +29,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard) 
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @ApiOperation({ summary: 'Cerrar sesión de usuario' })
   @ApiResponse({ status: 200, description: 'Sesión cerrada con éxito.' })
   @ApiResponse({ status: 401, description: 'No autorizado. Token inválido o ausente.' })

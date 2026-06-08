@@ -44,7 +44,7 @@ export class PeliculasController {
   }
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una nueva película' })
@@ -57,7 +57,7 @@ export class PeliculasController {
   }
 
   @Post(':id/poster')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('poster', { storage: memoryStorage() }))
@@ -98,7 +98,7 @@ export class PeliculasController {
   }
 
   @Put(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar los datos de una película' })
@@ -113,7 +113,7 @@ export class PeliculasController {
   }
 
   @Patch(':id/status')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Activar o desactivar una película' })

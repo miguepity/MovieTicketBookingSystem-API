@@ -29,7 +29,7 @@ export class SalaController {
   constructor(private readonly salaService: SalaService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una nueva sala (genera asientos automáticamente)' })
@@ -62,7 +62,7 @@ export class SalaController {
   }
 
   @Put(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Modificar una sala existente' })
@@ -80,7 +80,7 @@ export class SalaController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar una sala por ID' })

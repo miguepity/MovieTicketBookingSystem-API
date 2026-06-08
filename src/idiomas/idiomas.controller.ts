@@ -13,7 +13,7 @@ export class IdiomasController {
   constructor(private readonly idiomasService: IdiomasService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Registrar un nuevo idioma ' })
@@ -42,7 +42,7 @@ export class IdiomasController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar un idioma por ID ' })
@@ -54,7 +54,7 @@ export class IdiomasController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar un idioma por ID ' })

@@ -11,7 +11,7 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
     @Patch(':id/notificaciones')
-    @ApiBearerAuth()
+    @ApiBearerAuth('token')
     @ApiParam({ name: 'id', description: 'ID del usuario a desactivar/activar notificaciones'})
     @ApiResponse({ status: 200, description: 'Notificaciones del usuario desactivadas/activadas exitosamente'})
     @ApiResponse({ status: 401, description: 'No autorizado'})
@@ -22,7 +22,7 @@ export class UsuariosController {
     }
 
     @Put(':id')
-    @ApiBearerAuth()
+    @ApiBearerAuth('token')
     @ApiResponse({ status: 200, description: 'Correo electrónico actualizado exitosamente'})
     @ApiResponse({ status: 401, description: 'No autorizado'})
     @ApiResponse({ status: 404, description: 'Usuario no encontrado'})

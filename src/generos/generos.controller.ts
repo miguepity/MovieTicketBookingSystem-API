@@ -13,7 +13,7 @@ export class GenerosController {
   constructor(private readonly generosService: GenerosService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear un nuevo género ' })
@@ -42,7 +42,7 @@ export class GenerosController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar un género ' })
@@ -55,7 +55,7 @@ export class GenerosController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar un género ' })

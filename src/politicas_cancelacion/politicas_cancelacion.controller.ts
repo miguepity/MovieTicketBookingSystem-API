@@ -31,7 +31,7 @@ export class PoliticasCancelacionController {
   ) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una nueva política de cancelación' })
@@ -46,7 +46,7 @@ export class PoliticasCancelacionController {
   }
 
   @Get()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'CLIENTE', 'RECEPCIONISTA')
   @ApiOperation({ summary: 'Listar todas las políticas de cancelación' })
@@ -59,7 +59,7 @@ export class PoliticasCancelacionController {
   }
 
   @Get(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'CLIENTE', 'RECEPCIONISTA')
   @ApiOperation({ summary: 'Obtener una política de cancelación por su ID' })
@@ -77,7 +77,7 @@ export class PoliticasCancelacionController {
   }
 
   @Put(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar una política de cancelación por ID' })
@@ -103,7 +103,7 @@ export class PoliticasCancelacionController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar una política de cancelación por ID' })

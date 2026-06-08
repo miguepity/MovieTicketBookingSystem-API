@@ -14,7 +14,7 @@ export class CiudadesController {
   constructor(private readonly ciudadesService: CiudadesService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una nueva ciudad ' })
@@ -44,7 +44,7 @@ export class CiudadesController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar una ciudad por ID ' })
@@ -58,7 +58,7 @@ export class CiudadesController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar una ciudad por ID ' })

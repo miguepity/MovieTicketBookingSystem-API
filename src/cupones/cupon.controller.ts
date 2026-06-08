@@ -23,7 +23,7 @@ export class CuponesController {
   }
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear un nuevo cupón con código único' })
@@ -36,7 +36,7 @@ export class CuponesController {
   }
 
   @Get()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Obtener todos los cupones registrados' })
@@ -48,7 +48,7 @@ export class CuponesController {
   }
 
   @Get(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Obtener un cupón específico por su ID '})
@@ -60,7 +60,7 @@ export class CuponesController {
   }
 
   @Put(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar la información de un cupón ' })
@@ -73,7 +73,7 @@ export class CuponesController {
   }
 
   @Patch(':id/status')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Cambiar el estado de un cupón (Toggle Activo / Inactivo)' })
@@ -85,7 +85,7 @@ export class CuponesController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar cupón ' })

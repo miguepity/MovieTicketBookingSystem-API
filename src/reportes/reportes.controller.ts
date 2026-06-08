@@ -8,7 +8,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Admin Reportes')
-@ApiBearerAuth()
+@ApiBearerAuth('token')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/reportes')

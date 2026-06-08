@@ -9,7 +9,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Pagos')
 @Controller('pagos')
-@ApiBearerAuth()
+@ApiBearerAuth('token')
 export class PagosController {
   constructor(private readonly pagosService: PagosService) {}
 

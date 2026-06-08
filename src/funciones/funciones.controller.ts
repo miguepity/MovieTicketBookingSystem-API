@@ -14,7 +14,7 @@ export class FuncionesController {
   constructor(private readonly funcionesService: FuncionesService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una función ' })
@@ -43,7 +43,7 @@ export class FuncionesController {
   }
 
   @Put(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Modificar una función completa  ' })
@@ -56,7 +56,7 @@ export class FuncionesController {
   }
 
   @Patch(':id/cancelar')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Cancelar una función por emergencia, liberando asientos y notificando usuarios' })
@@ -69,7 +69,7 @@ export class FuncionesController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar físicamente una función de la base de datos' })
@@ -90,7 +90,7 @@ export class FuncionesController {
   }
 
   @Post(':id/asientos/bloquear')
-  @ApiBearerAuth()
+  @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Bloquear asientos temporalmente en el carrito (Expiración configurable)' })
   @ApiResponse({ status: 201, description: 'Asientos bloqueados temporalmente.' })

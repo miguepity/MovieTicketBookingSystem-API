@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Módulo de Reservas')
 @Controller('reservas')
-@ApiBearerAuth() 
+@ApiBearerAuth('token') 
 @UseGuards(JwtAuthGuard) 
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
