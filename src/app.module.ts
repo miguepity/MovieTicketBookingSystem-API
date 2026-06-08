@@ -19,6 +19,7 @@ import { ReservasModule } from './modules/reservas/reservas.module';
 import { PagosModule } from './modules/pagos/pagos.module';
 import { ReembolsosModule } from './modules/reembolsos/reembolsos.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+import { PoliticasCancelacionModule } from './modules/politicas-cancelacion/politicas-cancelacion.module';
 import { TiposAsientoModule } from './modules/tipos-asiento/tipos-asiento.module';
 import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
 
@@ -42,6 +43,7 @@ import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
     PagosModule,
     ReembolsosModule,
     NotificacionesModule,
+    PoliticasCancelacionModule,
     TiposAsientoModule,
     PreciosCineModule,
   ],
