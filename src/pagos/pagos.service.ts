@@ -135,4 +135,20 @@ export class PagosService {
       };
     });
   }
+
+  async obtenerPagos() {
+    return await this.prisma.pagos.findMany();
+  }
+
+  async obtenerPagoPorReserva(id_reserva: string) {
+    const pago = await this.prisma.pagos.findFirst({
+      where: { id_reserva: BigInt(id_reserva) },
+    });
+
+    if (!pago) {
+      throw new NotFoundException(`El pago con ID ${id_reserva} no existe.`);
+    }
+
+    return pago;
+  }
 }
