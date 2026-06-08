@@ -22,6 +22,7 @@ import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { UploadPosterDto } from './dto/upload-poster.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Peliculas')
