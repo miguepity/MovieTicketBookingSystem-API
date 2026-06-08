@@ -1,9 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Reservas, Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ListReporteReservasQueryDto } from './dto/list-reportes-query.dto';
-import { ReportesReservasPageResponseDto } from './dto/reportes-page.response.dto';
-import { ReportesListItemResponseDto } from './dto/reportes-list-item.response.dto';
+import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
+import { ReportesPagosPageResponseDto } from './dto/reportes-pagos-page.response.dto';
+import { ReportesReservasListItemResponseDto } from './dto/reportes-reservas-list-item.response.dto';
+import { ListReportePagosQueryDto } from './dto/list-reportes-pagos-query.dto';
+import { ReportesReservasPageResponseDto } from './dto/reportes-reservas-page.response.dto';
+import { ReportesPagosListItemResponseDto } from './dto/reportes-pagos-list-item.response.dto';
 
 type ReservaWithRelations = Prisma.ReservasGetPayload<{
   include: {
@@ -21,11 +24,84 @@ type ReservaWithRelations = Prisma.ReservasGetPayload<{
   };
 }>;
 
+type PagosWithRelations = Prisma.PagosGetPayload<{
+  include: {
+    reservas: true;
+    cupones: true;
+    reembolsos: true;
+  };
+}>;
+
 @Injectable()
 export class ReportesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllReservas(query: ListReporteReservasQueryDto) {
+  async historialPagos(
+    query: ListReportePagosQueryDto,
+  ): Promise<ReportesPagosPageResponseDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const where: Prisma.PagosWhereInput = {
+      ...(query.estado && { estado: query.estado }),
+      ...(query.fecha && {
+        created_at: {
+          gte: new Date(query.fecha),
+        },
+      }),
+    };
+
+    const include = {
+      reservas: true,
+      cupones: true,
+      reembolsos: true,
+    } satisfies Prisma.PagosInclude;
+
+    const [total, pagos, aggregates] = await this.prisma.$transaction([
+      this.prisma.pagos.count({ where }),
+
+      this.prisma.pagos.findMany({
+        where,
+        include,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          created_at: 'desc',
+        },
+      }),
+
+      this.prisma.pagos.aggregate({
+        where,
+        _sum: {
+          monto_original: true,
+          monto_final: true,
+        },
+      }),
+    ]);
+
+    const data = pagos.map((p) => this.toListPagosItem(p));
+
+    if (pagos.length === 0) {
+      throw new NotFoundException(
+        'No se encontraron pagos con los filtros aplicados',
+      );
+    }
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      resumen: {
+        totalMontoOriginal: Number(aggregates._sum.monto_original ?? 0),
+        totalMontoFinal: Number(aggregates._sum.monto_final ?? 0),
+      },
+    };
+  }
+
+  async findAllReservas(
+    query: ListReporteReservasQueryDto,
+  ): Promise<ReportesReservasPageResponseDto> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
@@ -39,7 +115,7 @@ export class ReportesService {
     }
 
     return {
-      data: paginated.map((r) => this.toListItem(r)),
+      data: paginated.map((r) => this.toListReservasItem(r)),
       total,
       page,
       limit,
@@ -105,9 +181,9 @@ export class ReportesService {
     });
   }
 
-  private toListItem(
+  private toListReservasItem(
     reservas: ReservaWithRelations,
-  ): ReportesListItemResponseDto {
+  ): ReportesReservasListItemResponseDto {
     return {
       id: reservas.id.toString(),
       numero_reserva: reservas.numero_reserva,
@@ -134,6 +210,36 @@ export class ReportesService {
       },
       created_at: reservas.created_at,
       updated_at: reservas.updated_at,
+    };
+  }
+
+  private toListPagosItem(
+    pagos: PagosWithRelations,
+  ): ReportesPagosListItemResponseDto {
+    return {
+      id: pagos.id.toString(),
+      montoOriginal: Number(pagos.monto_original),
+      montoFinal: Number(pagos.monto_final),
+      metodo: pagos.metodo,
+      referenciaExterna: pagos.referencia_externa,
+      estado: pagos.estado,
+      reserva: {
+        id: pagos.reservas.id.toString(),
+        numeroReserva: pagos.reservas.numero_reserva,
+      },
+      cupon: pagos.cupones
+        ? {
+            id: pagos.cupones.id.toString(),
+            codigo: pagos.cupones.codigo,
+          }
+        : undefined,
+      reembolso: pagos.reembolsos?.[0]
+        ? {
+            id: pagos.reembolsos[0].id.toString(),
+            montoReembolso: Number(pagos.reembolsos[0].monto),
+          }
+        : undefined,
+      createdAt: pagos.created_at,
     };
   }
 

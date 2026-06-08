@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ReporteFuncionDto } from './reporte-funcion-summary.dto';
 import { ReporteUsuarioDto } from './reporte-usuario-summary.dto';
 
-export class ReportesListItemResponseDto {
+export class ReportesReservasListItemResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() numero_reserva!: string;
   @ApiProperty() estado!: string;
