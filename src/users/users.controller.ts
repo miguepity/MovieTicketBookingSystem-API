@@ -51,6 +51,10 @@ export class UsersController {
   ) {
     const usuario = await this.usersService.update(id, updateUserDto);
 
-    return { ...usuario, id: usuario.id.toString() };
+    return {
+      ...usuario,
+      id: usuario.id.toString(),
+      id_rol: usuario.id_rol.toString(),
+    };
   }
 }

@@ -84,16 +84,16 @@ export class PeliculasController {
       ],
     },
   })
-  async buscar(@Query() query: QueryPeliculaDto) {
-    const movies = await this.peliculasService.getTitulo(query.titulo);
+  async buscar(@Query('titulo') query: string) {
+    const movies = await this.peliculasService.getTitulo(query);
 
     return movies.map((movie) => {
       return {
         ...movie,
         id: movie.id.toString(),
-        id_idioma: movie.id_idioma.toString(),
-        id_genero: movie.id_genero.toString(),
+        id_genero: movie.id_genero ? movie.id_genero.toString() : null,
         id_usuario: movie.id_usuario.toString(),
+        id_idioma: movie.id_idioma ? movie.id_idioma.toString() : null,
       };
     });
   }
@@ -108,8 +108,15 @@ export class PeliculasController {
     },
   })
   @Post(':id/poster')
-  uploadPoster(@Param('id') id: string, @Body() dto: UploadPosterDto) {
-    return this.peliculasService.uploadPoster(BigInt(id), dto);
+  async uploadPoster(@Param('id') id: string, @Body() dto: UploadPosterDto) {
+    const newMovie = await this.peliculasService.uploadPoster(BigInt(id), dto);
+    return {
+      ...newMovie,
+      id: newMovie.id.toString(),
+      id_genero: newMovie.id_genero ? newMovie.id_genero.toString() : null,
+      id_usuario: newMovie.id_usuario.toString(),
+      id_idioma: newMovie.id_idioma ? newMovie.id_idioma.toString() : null,
+    };
   }
 
   @Put(':id')
@@ -136,12 +143,19 @@ export class PeliculasController {
       },
     },
   })
-  editar(
+  async editar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePeliculaDto,
     @Request() req: { user: { userId: number } },
   ) {
-    return this.peliculasService.update(id, dto, req.user.userId);
+    const movie = await this.peliculasService.update(id, dto, req.user.userId);
+    return {
+      ...movie,
+      id: movie.id.toString(),
+      id_genero: movie.id_genero ? movie.id_genero.toString() : null,
+      id_usuario: movie.id_usuario.toString(),
+      id_idioma: movie.id_idioma ? movie.id_idioma.toString() : null,
+    };
   }
 
   @Get(':id/cines/:cineId/funciones')

@@ -38,17 +38,9 @@ export class PeliculasService {
           mode: 'insensitive',
         },
       },
-      select: {
-        id: true,
-        titulo: true,
-        sinopsis: true,
-        poster_url: true,
-        fecha_estreno: true,
-        idiomas: { select: { nombre: true } },
-        generos: { select: { nombre: true } },
-      },
     });
   }
+  2;
 
   async uploadPoster(id: bigint, dto: UploadPosterDto) {
     return this.prisma.peliculas.update({
