@@ -79,6 +79,7 @@ export class UsersService {
     if (dto.estado) {
       where.estado = dto.estado;
     }
+    where.roles = { nombre: 'Cliente' };
 
     return await this.prismaService.usuarios.findMany({
       where,
