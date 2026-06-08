@@ -2,6 +2,10 @@ import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PagosService } from './pagos.service';
 import { CreatePagosDto } from './dtos/create-pagos.dto';
+import { CreatePagoEfectivoDto } from './dtos/create-pagos-efectivo.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Pagos')
 @Controller('pagos')
@@ -19,5 +23,12 @@ export class PagosController {
   ) { 
     
     return await this.pagosService.procesarPago(createPagoDto);
+  }
+
+  @Post('efectivo')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('RECEPCIONISTA', 'ADMIN') 
+  async crearPagoEfectivo(@Body() createPagoEfectivoDto: CreatePagoEfectivoDto) {
+    return await this.pagosService.procesarPagoEfectivo(createPagoEfectivoDto);
   }
 }
