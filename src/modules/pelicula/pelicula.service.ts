@@ -208,6 +208,69 @@ export class PeliculaService {
     });
   }
 
+  async findCinesByPelicula(id: string) {
+    const peliculaId = this.parseId(id);
+
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: peliculaId },
+      select: { id: true },
+    });
+    if (!pelicula) {
+      throw new NotFoundException('Película no encontrada');
+    }
+
+    return this.prisma.cines.findMany({
+      where: {
+        salas: {
+          some: {
+            funciones: {
+              some: {
+                id_pelicula: peliculaId,
+                estado: 'activo',
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        nombre: true,
+        direccion: true,
+        id_ciudad: true,
+        ciudades: {
+          select: { id: true, nombre: true },
+        },
+        salas: {
+          where: {
+            funciones: {
+              some: {
+                id_pelicula: peliculaId,
+                estado: 'activo',
+              },
+            },
+          },
+          select: {
+            id: true,
+            nombre: true,
+            funciones: {
+              where: {
+                id_pelicula: peliculaId,
+                estado: 'activo',
+              },
+              select: {
+                id: true,
+                fecha_hora: true,
+                estado: true,
+              },
+              orderBy: { fecha_hora: 'asc' },
+            },
+          },
+        },
+      },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
   async findFuncionesByPeliculaAndCine(
     peliculaIdParam: string,
     cineIdParam: string,
