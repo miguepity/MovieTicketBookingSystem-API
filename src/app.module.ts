@@ -19,6 +19,7 @@ import { ReembolsosModule } from './reembolsos/reembolsos.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { AsientosModule } from './asientos/asientos.module';
 import { AsientosFuncionModule } from './asientos-funcion/asientos-funcion.module';
+import { PagosModule } from './pagos/pagos.module';
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { AsientosFuncionModule } from './asientos-funcion/asientos-funcion.modul
     SalaModule,
     ReservasModule,
     AsientosModule,
-    AsientosFuncionModule
+    AsientosFuncionModule,
+    PagosModule
   ],
   controllers: [AppController],
   providers: [AppService],
