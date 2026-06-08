@@ -34,4 +34,21 @@ export class CineService{
         });
         return 'Cinema edited succesfully'
     }
+
+    async getFuncionesDisponibles(id_cine: number){
+        const cine = await this.prisma.cines.findUnique({ where: { id: id_cine } });
+        if(!cine) throw new NotFoundException('Cinema not Found');
+
+        return this.prisma.funciones.findMany({
+            where: {
+                salas: { id_cine },
+                fecha_hora: { gte: new Date() },
+                estado: { not: 'cancelada' },
+            },
+            include: {
+                peliculas: true,
+                salas: true,
+            },
+        });
+    }
 }

@@ -19,7 +19,14 @@ export class CineController{
         }
     }
 
-    @Patch(':id')
+    @Get(':id/funciones')
+    getFuncionesDisponibles(
+        @Param('id', ParseIntPipe) id: number
+    ){
+        return this.cineService.getFuncionesDisponibles(id);
+    }
+
+    @Put()
     editCine(
         @Param('id', ParseIntPipe) id: number,
         @Body() dtoB: EditBodyDto
