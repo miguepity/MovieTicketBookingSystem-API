@@ -7,10 +7,13 @@ import {
   UseGuards,
   Get,
   Query,
+  Request,
+  ForbiddenException,
 } from '@nestjs/common';
+import { SearchUserDto } from './dto/search-user.dto';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { SearchUserDto } from './dto/search-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -53,7 +56,6 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     const usuario = await this.usersService.update(id, updateUserDto);
-
     return {
       ...usuario,
       id: usuario.id.toString(),
@@ -81,7 +83,46 @@ export class UsersController {
       ],
     },
   })
-  async getUsers(@Query() searchUserDto: SearchUserDto) {
+  async getUsers(
+    @Query() searchUserDto: SearchUserDto,
+    @Request() req: Request,
+  ) {
+    if (BigInt(req['user'].role) !== BigInt(1))
+      throw new ForbiddenException(
+        'No tienes permiso para ver esta información',
+      );
+
     return await this.usersService.findAll(searchUserDto);
+  }
+
+  @Put(':id/password')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar la contraseña de un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada exitosamente',
+    schema: {
+      example: { message: 'Contraseña actualizada correctamente' },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La contraseña actual es incorrecta',
+  })
+  async updatePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+    @Request() req: Request,
+  ) {
+    const user = req['user'] as { userId: string; email: string; role: string };
+    if (user.userId !== String(id)) {
+      throw new ForbiddenException(
+        'No tienes permiso para cambiar esta contraseña',
+      );
+    }
+
+    return await this.usersService.updatePassword(id, updatePasswordDto);
   }
 }
