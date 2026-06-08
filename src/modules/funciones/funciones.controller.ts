@@ -8,6 +8,7 @@ import {
   HttpStatus,
   UseGuards,
   Put,
+  Patch,
 } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
@@ -31,6 +32,11 @@ export class FuncionesController {
     return this.funcionesService.findAll();
   }
 
+  @Get('cine/:idCine')
+  findDisponiblesPorCine(@Param('idCine') idCine: string) {
+    return this.funcionesService.findDisponiblesPorCine(idCine);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.funcionesService.findOne(id);
@@ -42,5 +48,13 @@ export class FuncionesController {
   @HttpCode(HttpStatus.OK)
   update(@Param('id') id: string, @Body() dto: UpdateFuncionDto) {
     return this.funcionesService.update(id, dto);
+  }
+
+  @Patch(':id/cancelar')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  cancelar(@Param('id') id: string) {
+    return this.funcionesService.cancelar(id);
   }
 }
