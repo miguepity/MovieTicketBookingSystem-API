@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -12,9 +14,19 @@ import { AuthModule } from './modules/auth/auth.module';
 import { GenerosModule } from './modules/generos/generos.module';
 import { IdiomasModule } from './modules/idiomas/idiomas.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { AsientosModule } from './modules/asientos/asientos.module';
+import { ReservasModule } from './modules/reservas/reservas.module';
+import { PagosModule } from './modules/pagos/pagos.module';
+import { ReembolsosModule } from './modules/reembolsos/reembolsos.module';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+import { PoliticasCancelacionModule } from './modules/politicas-cancelacion/politicas-cancelacion.module';
+import { TiposAsientoModule } from './modules/tipos-asiento/tipos-asiento.module';
+import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     MailModule,
     CineModule,
@@ -26,6 +38,14 @@ import { RolesModule } from './modules/roles/roles.module';
     GenerosModule,
     IdiomasModule,
     RolesModule,
+    AsientosModule,
+    ReservasModule,
+    PagosModule,
+    ReembolsosModule,
+    NotificacionesModule,
+    PoliticasCancelacionModule,
+    TiposAsientoModule,
+    PreciosCineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

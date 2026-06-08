@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtBlacklistCleanupService } from './jwt-blacklist-cleanup.service';
 
 @Module({
   imports: [
@@ -13,8 +14,8 @@ import { JwtStrategy } from './jwt.strategy';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, JwtBlacklistCleanupService],
   controllers: [AuthController],
   exports: [JwtModule],
 })
-export class AuthModule { }
+export class AuthModule {}

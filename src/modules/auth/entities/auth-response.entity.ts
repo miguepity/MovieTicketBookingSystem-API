@@ -7,7 +7,10 @@ class UsuarioResponse {
   @ApiProperty({ description: 'Nombre del usuario', example: 'Juan Pérez' })
   nombre!: string;
 
-  @ApiProperty({ description: 'Email del usuario', example: 'usuario@email.com' })
+  @ApiProperty({
+    description: 'Email del usuario',
+    example: 'usuario@email.com',
+  })
   email!: string;
 
   @ApiProperty({ description: 'ID del rol del usuario', example: '1' })
@@ -21,6 +24,9 @@ export class AuthResponse {
   @ApiProperty({ description: 'Token JWT de acceso' })
   access_token!: string;
 
-  @ApiProperty({ description: 'Datos del usuario autenticado', type: UsuarioResponse })
+  @ApiProperty({
+    description: 'Datos del usuario autenticado',
+    type: UsuarioResponse,
+  })
   usuario!: UsuarioResponse;
 }

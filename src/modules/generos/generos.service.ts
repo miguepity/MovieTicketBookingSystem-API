@@ -41,10 +41,7 @@ export class GenerosService {
     });
   }
 
-  async update(
-    id: string,
-    updateGeneroDto: UpdateGeneroDto,
-  ): Promise<Genero> {
+  async update(id: string, updateGeneroDto: UpdateGeneroDto): Promise<Genero> {
     const generoId = this.parseId(id);
     await this.assertGeneroExists(generoId);
 

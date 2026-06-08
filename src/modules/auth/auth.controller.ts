@@ -1,4 +1,11 @@
-import { Controller, Post, Put, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Put,
+  Body,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -59,7 +66,8 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Email de recuperación enviado (respuesta genérica por seguridad).',
+    description:
+      'Email de recuperación enviado (respuesta genérica por seguridad).',
     schema: {
       example: {
         message:
@@ -82,9 +90,33 @@ export class AuthController {
     description: 'Contraseña actualizada exitosamente.',
     schema: { example: { message: 'Contraseña actualizada exitosamente' } },
   })
-  @ApiResponse({ status: 400, description: 'Token inválido, ya usado o expirado.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido, ya usado o expirado.',
+  })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cerrar sesión',
+    description:
+      'Invalida el token JWT actual agregándolo a la blacklist hasta su expiración.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sesión cerrada exitosamente.',
+    schema: { example: { message: 'Sesión cerrada exitosamente' } },
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  logout(@CurrentUser() user: CurrentUserPayload) {
+    if (!user.jti || !user.exp) {
+      throw new UnauthorizedException('Token sin identificador');
+    }
+    return this.authService.logout(user.jti, user.userId, user.exp);
   }
 
   @Put('change-email')
