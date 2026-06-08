@@ -19,6 +19,7 @@ import { ReservasModule } from './modules/reservas/reservas.module';
 import { PagosModule } from './modules/pagos/pagos.module';
 import { ReembolsosModule } from './modules/reembolsos/reembolsos.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+import { PoliticasCancelacionModule } from './modules/politicas-cancelacion/politicas-cancelacion.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
     PagosModule,
     ReembolsosModule,
     NotificacionesModule,
+    PoliticasCancelacionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
