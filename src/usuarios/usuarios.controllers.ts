@@ -20,7 +20,7 @@ export class UsuariosController {
         return this.usuariosService.notificationStatus(id);
     }
 
-    @Put('cambiar-email')
+    @Put(':id')
     @ApiBearerAuth()
     @ApiResponse({ status: 200, description: 'Correo electrónico actualizado exitosamente'})
     @ApiResponse({ status: 401, description: 'No autorizado'})
