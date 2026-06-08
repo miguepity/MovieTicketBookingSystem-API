@@ -18,7 +18,7 @@ type CineListPayload = Prisma.CinesGetPayload<{
     salas: {
       select: {
         id: true;
-        nombre: true;      
+        nombre: true;
       };
     };
   };
@@ -141,9 +141,7 @@ export class CineService {
     }
   }
 
-  private toListItem(
-    cine: CineListPayload,
-  ): CineListItemResponseDto {
+  private toListItem(cine: CineListPayload): CineListItemResponseDto {
     return {
       id: cine.id.toString(),
       nombre: cine.nombre,
@@ -155,9 +153,9 @@ export class CineService {
             nombre: s.nombre,
           }))
         : [],
-      fecha_creacion: cine.created_at,      
+      fecha_creacion: cine.created_at,
     };
-    };
+  }
 
   private parseId(id: string): bigint {
     try {

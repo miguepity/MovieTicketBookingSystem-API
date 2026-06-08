@@ -22,6 +22,7 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
 import { PoliticasCancelacionModule } from './modules/politicas-cancelacion/politicas-cancelacion.module';
 import { TiposAsientoModule } from './modules/tipos-asiento/tipos-asiento.module';
 import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
+import { FuncionesModule } from './modules/funciones/funciones.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
     PoliticasCancelacionModule,
     TiposAsientoModule,
     PreciosCineModule,
+    FuncionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

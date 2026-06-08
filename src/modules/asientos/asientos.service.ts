@@ -31,7 +31,9 @@ export class AsientosService {
         salas: { select: { filas: true, columnas: true } },
         asientosFuncions: {
           include: {
-            asientos: { include: { tipoAsiento: { select: { nombre: true } } } },
+            asientos: {
+              include: { tipoAsiento: { select: { nombre: true } } },
+            },
           },
           orderBy: [
             { asientos: { fila: 'asc' } },
