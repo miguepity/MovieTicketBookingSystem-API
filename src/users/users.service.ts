@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SearchUserDto } from './dto/search-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Injectable()
 export class UsersService {
@@ -121,5 +122,39 @@ export class UsersService {
       where,
       take: Number(dto.resultados),
     });
+  }
+
+  async updateStatus(id: number, dto: UpdateStatusDto, adminId: number) {
+    const user = await this.prismaService.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const oldStatus = user.estado;
+    const newStatus = dto.estado;
+
+    const [updatedUser] = await this.prismaService.$transaction([
+      this.prismaService.usuarios.update({
+        where: { id: BigInt(id) },
+        data: { estado: newStatus },
+      }),
+      this.prismaService.auditLog.create({
+        data: {
+          id_usuario: BigInt(id),
+          id_auditor: BigInt(adminId),
+          accion: 'CAMBIO_ESTADO',
+          detalle: `Estado cambiado de ${oldStatus} a ${newStatus}`,
+        },
+      }),
+    ]);
+
+    return JSON.parse(
+      JSON.stringify(updatedUser, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    );
   }
 }
