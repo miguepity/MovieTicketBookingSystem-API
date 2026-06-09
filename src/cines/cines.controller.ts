@@ -1,5 +1,19 @@
-import { Controller, Post, Body, UseGuards, Get, Param, ParseIntPipe,Patch, Put } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  ParseIntPipe,
+  Put,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { CinesService } from './cines.service';
 import { CreateCineDto } from './dto/create-cine.dto';
 import { AuthGuard } from '../auth/auth.guard';
@@ -110,7 +124,7 @@ export class CinesController {
       404: { description: 'Cine no encontrado' },
       409: { description: 'Ya existe un cine con ese nombre en esta ciudad' },
       500: { description: 'Error interno del servidor' },
-}
+    },
   })
   @ApiParam({ name: 'id', description: 'ID del cine a actualizar' })
   async update(
@@ -123,5 +137,37 @@ export class CinesController {
       id: cine.id.toString(),
       id_ciudad: cine.id_ciudad.toString(),
     };
+  }
+
+  @Get()
+  @ApiOperation({
+    description: 'Obtener todos los cines',
+    responses: {
+      200: {
+        description: 'Lista de cines',
+        content: {
+          'application/json': {
+            example: [
+              {
+                id: '1',
+                nombre: 'Cinemark',
+                direccion: 'Mall Galerias',
+                id_ciudad: '1',
+                created_at: '2026-06-07T00:00:00.000Z',
+              },
+            ],
+          },
+        },
+      },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  async getCines() {
+    const cines = await this.cinesService.getCines();
+    return cines.map((c) => ({
+      ...c,
+      id: c.id.toString(),
+      id_ciudad: c.id_ciudad.toString(),
+    }));
   }
 }

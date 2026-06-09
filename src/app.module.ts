@@ -28,6 +28,7 @@ import { CinesModule } from './cines/cines.module';
     CuponesModule,
     PoliticaCancelacionModule,
     SalasModule,
+    CinesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

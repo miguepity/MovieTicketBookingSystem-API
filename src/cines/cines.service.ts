@@ -139,16 +139,16 @@ export class CinesService {
   }
 
   async getCines() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  return await this.prisma.cines.findMany({
-    select: {
-      id: true,
-      nombre: true,
-      direccion: true,
-      id_ciudad: true,
-      created_at: true,
-    },
-    orderBy: { nombre: 'asc' },
-  });
-}
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    return await this.prisma.cines.findMany({
+      select: {
+        id: true,
+        nombre: true,
+        direccion: true,
+        id_ciudad: true,
+        created_at: true,
+      },
+      orderBy: { nombre: 'asc' },
+    });
+  }
 }

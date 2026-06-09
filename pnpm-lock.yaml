@@ -34,11 +34,7 @@ importers:
         version: 7.8.0(prisma@7.8.0(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3)
       '@scalar/nestjs-api-reference':
         specifier: ^1.1.19
-<<<<<<< HEAD
         version: 1.1.20
-=======
-        version: 1.1.19
->>>>>>> 4476fa1 (dto, controller, service de salas. Aun en proceso)
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
@@ -54,12 +50,12 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
-<<<<<<< HEAD
       mailersend:
         specifier: ^3.0.0
         version: 3.0.0
-=======
->>>>>>> 4476fa1 (dto, controller, service de salas. Aun en proceso)
+      nodemailer:
+        specifier: ^8.0.10
+        version: 8.0.10
       npm:
         specifier: ^11.16.0
         version: 11.16.0
@@ -1142,7 +1138,6 @@ packages:
       '@types/react':
         optional: true
 
-<<<<<<< HEAD
   '@scalar/client-side-rendering@0.1.13':
     resolution: {integrity: sha512-p8V4HgEWjaCpqsnhclg1pTfjE9JA0AWRr0ocBQHexoHo+pqnSs1d83Mv9rjH7R0FZJrlCSandZZeY3DMX2gYXQ==}
     engines: {node: '>=22'}
@@ -1161,26 +1156,6 @@ packages:
 
   '@scalar/types@0.12.3':
     resolution: {integrity: sha512-7zaXafbgTFmsJ/9AwYeExUWzXoZNyKOL0SEVAUWRaOndcjxpFCtwzuPrc1elMEWdHopWbY1Qe5pWKbE2aqG2HA==}
-=======
-  '@scalar/client-side-rendering@0.1.12':
-    resolution: {integrity: sha512-prwHK4ozTU268BHZ/5OstoKB23JSidDuvddAOp0bVz9c29ZxsyzzxPtPcVgF7X16LiZnS1OzY030FoDCM+iC9Q==}
-    engines: {node: '>=22'}
-
-  '@scalar/helpers@0.8.0':
-    resolution: {integrity: sha512-gmOC6VravNB9VDl6wnt/GOj4K/hn48tj5bpW4AM4MhH8Ubil6uu7g1DSoKHwltu8Ks79KEtR6JmOrROi9R7jaQ==}
-    engines: {node: '>=22'}
-
-  '@scalar/nestjs-api-reference@1.1.19':
-    resolution: {integrity: sha512-XHm0Ohhq6N7sSw980DA34gwXxjNoJC+bl8xFw4QNv32gTsEibb8psZbgte0KOwPbD8M0H814VLrfwQNLQQbnfQ==}
-    engines: {node: '>=22'}
-
-  '@scalar/schemas@0.3.2':
-    resolution: {integrity: sha512-iadXBgJ02XUU5C5s6/xh/PmGLzUPd7X8upXIvPWBXDcQ4FHACNgkG8PPZ/beYM8UPDDkTUPM3ygEs0G6jKwGjQ==}
-    engines: {node: '>=22'}
-
-  '@scalar/types@0.12.2':
-    resolution: {integrity: sha512-EzLkubCb7xioiTm9eYnmn/032akaq4kkrrdclgV2uezwtniR8ErQICjhMl2AjBWL6nstHiFZ9RnPZm2Z2/KM0Q==}
->>>>>>> 4476fa1 (dto, controller, service de salas. Aun en proceso)
     engines: {node: '>=22'}
 
   '@scalar/validation@0.6.0':
@@ -3023,6 +2998,10 @@ packages:
 
   node-releases@2.0.44:
     resolution: {integrity: sha512-5WUyunoPMsvvEhS8AxHtRzP+oA8UCkJ7YRxatWKjngndhDGLiqEVAQKWjFAiAiuL8zMRGzGSJxFnLetoa43qGQ==}
+
+  nodemailer@8.0.10:
+    resolution: {integrity: sha512-BLFuSth7QtHOkBzyqTehWWyub0NTRDuK2Q2SQfnGLsrJnzyU+Yeh4WpV1eZGuARFj1xQJHIdnTuJZLP+b9R1GQ==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -5048,7 +5027,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.15
 
-<<<<<<< HEAD
   '@scalar/client-side-rendering@0.1.13':
     dependencies:
       '@scalar/schemas': 0.3.3
@@ -5069,28 +5047,6 @@ snapshots:
   '@scalar/types@0.12.3':
     dependencies:
       '@scalar/helpers': 0.8.1
-=======
-  '@scalar/client-side-rendering@0.1.12':
-    dependencies:
-      '@scalar/schemas': 0.3.2
-      '@scalar/types': 0.12.2
-      '@scalar/validation': 0.6.0
-
-  '@scalar/helpers@0.8.0': {}
-
-  '@scalar/nestjs-api-reference@1.1.19':
-    dependencies:
-      '@scalar/client-side-rendering': 0.1.12
-
-  '@scalar/schemas@0.3.2':
-    dependencies:
-      '@scalar/helpers': 0.8.0
-      '@scalar/validation': 0.6.0
-
-  '@scalar/types@0.12.2':
-    dependencies:
-      '@scalar/helpers': 0.8.0
->>>>>>> 4476fa1 (dto, controller, service de salas. Aun en proceso)
       nanoid: 5.1.11
       type-fest: 5.7.0
       zod: 4.4.3
@@ -7145,6 +7101,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.44: {}
+
+  nodemailer@8.0.10: {}
 
   normalize-path@3.0.0: {}
 
