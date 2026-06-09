@@ -25,13 +25,33 @@ export class FuncionesService {
     if (!pelicula.activo)
       throw new BadRequestException('No se puede crear una función para una película inactiva');
 
-    return this.prisma.funciones.create({
-      data: {
-        id_pelicula: createFuncionDto.id_pelicula,
-        id_sala: createFuncionDto.id_sala,
-        fecha_hora: new Date(createFuncionDto.fecha_hora),
-        estado: createFuncionDto.estado,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const funcion = await tx.funciones.create({
+        data: {
+          id_pelicula: createFuncionDto.id_pelicula,
+          id_sala: createFuncionDto.id_sala,
+          fecha_hora: new Date(createFuncionDto.fecha_hora),
+          estado: createFuncionDto.estado,
+        },
+      });
+
+      const asientos = await tx.asientos.findMany({
+        where: { id_sala: BigInt(createFuncionDto.id_sala) },
+        select: { id: true },
+      });
+
+      if (asientos.length > 0) {
+        await tx.asientosFuncion.createMany({
+          data: asientos.map((a) => ({
+            id_asiento: a.id,
+            id_funcion: funcion.id,
+            estado: 'disponible',
+            version: 0,
+          })),
+        });
+      }
+
+      return funcion;
     });
   }
 

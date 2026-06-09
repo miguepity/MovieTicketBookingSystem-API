@@ -33,7 +33,7 @@ export class PeliculasService {
     });
 
     // Enviar emails sin bloquear la respuesta
-    Promise.allSettled(
+    await Promise.allSettled(
       usuarios.map((u) =>
         this.emailService.sendNuevaPelicula(
           u.email,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { ReembolsosBodyDto } from "./dto/reembolsos.body.dto"
 import { FilterBodyDto } from "./dto/reembolsos.filters.dto";
@@ -12,21 +12,33 @@ export class ReembolsosService{
             where: {id: BigInt(dto.id_pago)}
         });
         if(!findPago){
-            throw new NotFoundException('No se encontro el Pago');
+            throw new NotFoundException('No se encontró el pago');
+        }
+        if(findPago.estado === 'reembolsado'){
+            throw new BadRequestException('El pago ya fue reembolsado');
+        }
+        if(findPago.estado !== 'completado'){
+            throw new BadRequestException('Solo se pueden reembolsar pagos completados');
         }
 
-        await this.prisma.pagos.update({
-            where: {id: BigInt(dto.id_pago)},
-            data: {estado: 'rembolsado'}
-        });
-
-        const newRem = await this.prisma.reembolsos.create({
-            data: dto
-        });
+        const [newRem] = await this.prisma.$transaction([
+            this.prisma.reembolsos.create({
+                data: {
+                    id_pago: BigInt(dto.id_pago),
+                    monto: dto.monto,
+                    estado: 'pendiente',
+                    fecha_procesado: null,
+                }
+            }),
+            this.prisma.pagos.update({
+                where: {id: BigInt(dto.id_pago)},
+                data: {estado: 'reembolsado'}
+            }),
+        ]);
 
         return {
-            message: 'Estado de pago rembolsado',
-            newRem
+            message: 'Reembolso creado exitosamente',
+            reembolso: newRem,
         };
     }
 
@@ -36,24 +48,25 @@ export class ReembolsosService{
         });
         const findRembolsos = await this.prisma.reembolsos.findMany();
 
-        const filterPagos = dto.created_at?
-        findPagos.filter((pag) => {
-            pag.created_at.getTime() >= dto.created_at.getTime()
-        }): findPagos
-
-        const filterRemboolsos = dto.fecha_procesado? 
-        findRembolsos.filter((rem) => {
-            rem.fecha_procesado!=null &&
-            rem.fecha_procesado.getTime() >= dto.fecha_procesado.getTime()
-        }): findRembolsos
-    
         if(findPagos.length === 0 && findRembolsos.length === 0){
-            throw new NotFoundException('No existe historial de pago y rembolsos');
+            throw new NotFoundException('No existe historial de pagos y reembolsos');
         }
+
+        // Fix: filter callbacks were missing `return`, so they always yielded undefined (empty results)
+        const filterPagos = dto.created_at
+            ? findPagos.filter((pag) => pag.created_at.getTime() >= new Date(dto.created_at).getTime())
+            : findPagos;
+
+        const filterReembolsos = dto.fecha_procesado
+            ? findRembolsos.filter((rem) =>
+                rem.fecha_procesado != null &&
+                rem.fecha_procesado.getTime() >= new Date(dto.fecha_procesado).getTime()
+              )
+            : findRembolsos;
 
         return {
             pagos: filterPagos,
-            reembolso: filterRemboolsos
+            reembolsos: filterReembolsos,
         }
     }
 

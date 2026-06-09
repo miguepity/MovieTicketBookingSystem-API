@@ -61,9 +61,12 @@ export class PagosService {
         reserva.funciones.fecha_hora,
         dto.monto_final,
       )
-      .catch((err) =>
-        this.logger.error('Error enviando email de pago exitoso', err),
-      );
+      .catch((err: unknown) => {
+        this.logger.error(
+          'Error enviando email de pago exitoso',
+          err instanceof Error ? err.message : String(err),
+        );
+      });
 
     return pago;
   }
@@ -85,9 +88,9 @@ export class PagosService {
       this.prisma.pagos.create({
         data: {
           id_reserva: BigInt(dto.id_reserva),
-          monto_original: '0.00', // el recepcionista ingresa el monto en caja
-          monto_descuento: '0.00',
-          monto_final: '0.00',
+          monto_original: dto.monto_original,
+          monto_descuento: dto.monto_descuento,
+          monto_final: dto.monto_final,
           metodo: 'efectivo',
           estado: 'completado',
         },
