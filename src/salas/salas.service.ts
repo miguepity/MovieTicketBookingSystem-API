@@ -10,12 +10,32 @@ export class SalaService{
     async createSala(dto: BodyDto){
         const findCine = await this.prisma.cines.findFirst({
             where: {id: dto.id_cine}
-        }); 
-        if(findCine){
+        });
+        if(!findCine){
             throw new NotFoundException('Cine not found');
         }
-        const newCine = await this.prisma.salas.create({
-            data: dto
+
+        return this.prisma.$transaction(async (tx) => {
+            const newSala = await tx.salas.create({ data: dto });
+
+            const asientos: { id_sala: bigint; fila: string; columna: number; codigo: string; tipo: string }[] = [];
+            for (let f = 0; f < dto.filas; f++) {
+                const fila = String.fromCharCode(65 + f); // A, B, C...
+                const tipo = f === 0 ? 'VIP' : 'ESTANDAR';
+                for (let c = 1; c <= dto.columnas; c++) {
+                    asientos.push({
+                        id_sala: newSala.id,
+                        fila,
+                        columna: c,
+                        codigo: `${fila}-${String(c).padStart(2, '0')}`,
+                        tipo,
+                    });
+                }
+            }
+
+            await tx.asientos.createMany({ data: asientos });
+
+            return newSala;
         });
     }
 

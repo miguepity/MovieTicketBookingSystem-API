@@ -1,19 +1,13 @@
-import { Decimal } from "@prisma/client/runtime/client"
-import { IsNumber, IsDecimal, IsString, IsNotEmpty, IsDateString } from "class-validator"
+import { IsNumber, IsNotEmpty } from "class-validator"
+import { ApiProperty } from "@nestjs/swagger"
 
 export class ReembolsosBodyDto{
+    @ApiProperty({ example: 1 })
     @IsNumber()
     @IsNotEmpty()
     id_pago!: number
 
-    @IsDecimal()
+    @ApiProperty({ example: '75.00' })
     @IsNotEmpty()
-    monto!: Decimal
-
-    @IsString()
-    @IsNotEmpty()
-    estado!: string
-
-    @IsDateString()
-    fecha_procesado!: Date
+    monto!: string
 }
