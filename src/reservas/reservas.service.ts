@@ -10,6 +10,8 @@ export class ReservasService {
     const { id_funcion, asientosFuncionIds } = createReservaDto;
 
     const numeroUnicoReserva = `RES-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    
+    const ahora = new Date();
 
     const nuevaReserva = await this.prisma.$transaction(async (tx) => {
       
@@ -24,13 +26,22 @@ export class ReservasService {
         }
 
         if (Number(asientoFuncion.id_funcion) !== id_funcion) {
-         throw new BadRequestException(
-        `El asiento con ID ${afId} no pertenece a la función ${id_funcion} (pertenece a la función ${asientoFuncion.id_funcion}).`
-        );
+          throw new BadRequestException(
+            `El asiento con ID ${afId} no pertenece a la función ${id_funcion} (pertenece a la función ${asientoFuncion.id_funcion}).`
+          );
         }       
 
         if (asientoFuncion.estado === 'OCUPADO' || asientoFuncion.estado === 'PENDIENTE_DE_PAGO') {
           throw new ConflictException(`El asiento con ID ${afId} ya no se encuentra disponible.`);
+        }
+
+        if (
+          asientoFuncion.estado === 'BLOQUEADO' && 
+          asientoFuncion.bloqueado_hasta && 
+          asientoFuncion.bloqueado_hasta >= ahora && 
+          Number(asientoFuncion.id_usuario) !== userId 
+        ) {
+          throw new ConflictException(`El asiento con ID ${afId} está reservado temporalmente en el carrito de otro cliente.`);
         }
       }
 

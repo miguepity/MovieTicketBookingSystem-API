@@ -251,6 +251,10 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
           throw new NotFoundException(`El asiento-función con ID ${afId} no existe.`);
         }
 
+        if (af.estado === 'MANTENIMIENTO' || af.estado === 'NO_DISPONIBLE') {
+        throw new ConflictException(`El asiento con ID ${afId} está temporalmente fuera de servicio por mantenimiento.`);
+        }
+
         if (Number(af.id_funcion) !== idFuncion) {
           throw new BadRequestException(`El asiento ${afId} no pertenece a la función ${idFuncion}.`);
         }
