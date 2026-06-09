@@ -4,6 +4,7 @@ allowBuilds:
   '@scarf/scarf': true
   bcrypt: true
   core-js: true
+  esbuild: true
   nodemon: true
   prisma: false
   'unrs-resolver': true

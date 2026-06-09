@@ -10,13 +10,14 @@ export class SalaService{
     async createSala(dto: BodyDto){
         const findCine = await this.prisma.cines.findFirst({
             where: {id: dto.id_cine}
-        }); 
-        if(findCine){
+        });
+        if(!findCine){
             throw new NotFoundException('Cine not found');
         }
-        const newCine = await this.prisma.salas.create({
+        const newSala = await this.prisma.salas.create({
             data: dto
         });
+        return newSala;
     }
 
     async getSalas(){

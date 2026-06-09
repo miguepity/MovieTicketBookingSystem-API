@@ -17,7 +17,14 @@ export class FuncionesService {
     private readonly emailService: EmailService,
   ) {}
 
-  create(createFuncionDto: CreateFuncionDto) {
+  async create(createFuncionDto: CreateFuncionDto) {
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: createFuncionDto.id_pelicula },
+    });
+    if (!pelicula) throw new NotFoundException('Película no encontrada');
+    if (!pelicula.activo)
+      throw new BadRequestException('No se puede crear una función para una película inactiva');
+
     return this.prisma.funciones.create({
       data: {
         id_pelicula: createFuncionDto.id_pelicula,
