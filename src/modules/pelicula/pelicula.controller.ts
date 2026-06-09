@@ -72,12 +72,17 @@ export class PeliculaController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Editar una película existente' })
+  @ApiBody({ type: UpdatePeliculaDto })
   @ApiOkResponse({ description: 'Película actualizada exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  updatePelicula(@Param('id') id: string, @Body() data: UpdatePeliculaDto) {
-    return this.peliculaService.updatePelicula(id, data);
+  updatePelicula(
+    @Param('id') id: string,
+    @Body() data: UpdatePeliculaDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.peliculaService.updatePelicula(id, data, BigInt(user.userId));
   }
 
   @Post(':id/poster')
@@ -148,7 +153,10 @@ export class PeliculaController {
   @ApiOkResponse({ description: 'Estado de la película actualizado' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  toggleActivo(@Param('id') id: string) {
-    return this.peliculaService.toggleActivo(id);
+  toggleActivo(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.peliculaService.toggleActivo(id, BigInt(user.userId));
   }
 }

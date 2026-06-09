@@ -3,16 +3,25 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PoliticaCancelacion, Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '../../../generated/prisma/client';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { CreatePoliticaCancelacionDto } from './dto/create-politica-cancelacion.dto';
+import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { ListPoliticasCancelacionQueryDto } from './dto/list-politicas-cancelacion-query.dto';
+import { ReglaPoliticaDto } from './dto/regla-politica.dto';
+import {
+  PoliticasCancelacionListItemResponseDto,
+  ReglaPoliticaResponseDto,
+} from './dto/politicas-cancelacion-list-item.response.dto';
 import { PoliticasCancelacionPageResponseDto } from './dto/politicas-cancelacion-page.response.dto';
-import { PoliticasCancelacionListItemResponseDto } from './dto/politicas-cancelacion-list-item.response.dto';
 
 @Injectable()
 export class PoliticasCancelacionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async findAll(
     query: ListPoliticasCancelacionQueryDto,
@@ -20,6 +29,8 @@ export class PoliticasCancelacionService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.PoliticaCancelacionWhereInput = {};
+    if (query.id_cine !== undefined) where.id_cine = this.parseId(query.id_cine);
+    if (query.activa !== undefined) where.activa = query.activa;
 
     const [total, politicas] = await this.prisma.$transaction([
       this.prisma.politicaCancelacion.count({ where }),
@@ -28,54 +39,198 @@ export class PoliticasCancelacionService {
         orderBy: [{ id: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,
+        include: { reglas: { orderBy: { horas_antes_minimo: 'asc' } } },
       }),
     ]);
 
     return {
-      data: politicas.map((politica) => this.toListItem(politica)),
+      data: politicas.map((p) => this.toListItem(p)),
       total,
       page,
       limit,
     };
   }
 
+  async findOne(id: string): Promise<PoliticasCancelacionListItemResponseDto> {
+    const politicaId = this.parseId(id);
+    const politica = await this.prisma.politicaCancelacion.findUnique({
+      where: { id: politicaId },
+      include: { reglas: { orderBy: { horas_antes_minimo: 'asc' } } },
+    });
+    if (!politica) {
+      throw new NotFoundException('Política de cancelación no encontrada');
+    }
+    return this.toListItem(politica);
+  }
+
+  async create(dto: CreatePoliticaCancelacionDto, auditorId: bigint) {
+    const idCine = this.parseId(dto.id_cine);
+    const cine = await this.prisma.cines.findUnique({
+      where: { id: idCine },
+      select: { id: true },
+    });
+    if (!cine) {
+      throw new BadRequestException('El cine no existe');
+    }
+
+    this.validarReglas(dto.reglas);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      await tx.politicaCancelacion.updateMany({
+        where: { id_cine: idCine, activa: true },
+        data: { activa: false },
+      });
+      const politica = await tx.politicaCancelacion.create({
+        data: {
+          id_cine: idCine,
+          nombre: dto.nombre,
+          activa: true,
+        },
+      });
+      await tx.reglaPoliticaCancelacion.createMany({
+        data: dto.reglas.map((r) => ({
+          id_politica: politica.id,
+          horas_antes_minimo: r.horas_antes_minimo,
+          horas_antes_maximo: r.horas_antes_maximo ?? null,
+          porcentaje_reembolso: new Prisma.Decimal(r.porcentaje_reembolso),
+        })),
+      });
+      return politica;
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'POLITICA_CREAR',
+      detalle: `Política ${created.id.toString()} creada para cine ${idCine.toString()}`,
+    });
+
+    return this.findOne(created.id.toString());
+  }
+
   async update(
     id: string,
-    updatePoliticasCancelacionDto: UpdatePoliticasCancelacionDto,
-  ) {
-    const politicasCancelacionId = this.parseId(id);
-
+    dto: UpdatePoliticasCancelacionDto,
+  ): Promise<PoliticasCancelacionListItemResponseDto> {
+    const politicaId = this.parseId(id);
     const existing = await this.prisma.politicaCancelacion.findUnique({
-      where: { id: politicasCancelacionId },
+      where: { id: politicaId },
       select: { id: true },
     });
     if (!existing) {
       throw new NotFoundException('Política de cancelación no encontrada');
     }
 
-    return this.prisma.politicaCancelacion.update({
-      where: { id: politicasCancelacionId },
-      data: {
-        horas_antes_minimo: updatePoliticasCancelacionDto.horas_antes_minimo,
-        horas_antes_maximo: updatePoliticasCancelacionDto.horas_antes_maximo,
-        porcentaje_reembolso:
-          updatePoliticasCancelacionDto.porcentaje_reembolso !== undefined
-            ? new Prisma.Decimal(
-                updatePoliticasCancelacionDto.porcentaje_reembolso,
-              )
-            : undefined,
-      },
+    if (dto.reglas) {
+      this.validarReglas(dto.reglas);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.nombre !== undefined) {
+        await tx.politicaCancelacion.update({
+          where: { id: politicaId },
+          data: { nombre: dto.nombre },
+        });
+      }
+      if (dto.reglas) {
+        await tx.reglaPoliticaCancelacion.deleteMany({
+          where: { id_politica: politicaId },
+        });
+        await tx.reglaPoliticaCancelacion.createMany({
+          data: dto.reglas.map((r) => ({
+            id_politica: politicaId,
+            horas_antes_minimo: r.horas_antes_minimo,
+            horas_antes_maximo: r.horas_antes_maximo ?? null,
+            porcentaje_reembolso: new Prisma.Decimal(r.porcentaje_reembolso),
+          })),
+        });
+      }
     });
+
+    return this.findOne(id);
   }
 
-  private toListItem(
-    politica: PoliticaCancelacion,
-  ): PoliticasCancelacionListItemResponseDto {
+  async desactivar(id: string, auditorId: bigint) {
+    const politicaId = this.parseId(id);
+    const result = await this.prisma.politicaCancelacion.updateMany({
+      where: { id: politicaId, activa: true },
+      data: { activa: false },
+    });
+    if (result.count !== 1) {
+      throw new NotFoundException(
+        'Política no encontrada o ya estaba desactivada',
+      );
+    }
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'POLITICA_DESACTIVAR',
+      detalle: `Política ${id} desactivada`,
+    });
+    return { id, activa: false };
+  }
+
+  private validarReglas(reglas: ReglaPoliticaDto[]): void {
+    let nullCount = 0;
+    for (const r of reglas) {
+      if (r.horas_antes_maximo === null || r.horas_antes_maximo === undefined) {
+        nullCount++;
+      } else if (r.horas_antes_maximo <= r.horas_antes_minimo) {
+        throw new BadRequestException(
+          'horas_antes_maximo debe ser mayor que horas_antes_minimo',
+        );
+      }
+    }
+    if (nullCount > 1) {
+      throw new BadRequestException(
+        'Solo una regla puede tener horas_antes_maximo = null',
+      );
+    }
+    const sorted = [...reglas].sort(
+      (a, b) => a.horas_antes_minimo - b.horas_antes_minimo,
+    );
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const cur = sorted[i];
+      const next = sorted[i + 1];
+      const curMax = cur.horas_antes_maximo;
+      if (curMax === null || curMax === undefined) {
+        throw new BadRequestException(
+          'La regla con horas_antes_maximo=null debe ser la de mayor rango',
+        );
+      }
+      if (next.horas_antes_minimo < curMax) {
+        throw new BadRequestException(
+          'Las reglas se traslapan entre sí',
+        );
+      }
+    }
+  }
+
+  private toListItem(politica: {
+    id: bigint;
+    id_cine: bigint;
+    nombre: string;
+    activa: boolean;
+    reglas: Array<{
+      id: bigint;
+      horas_antes_minimo: number;
+      horas_antes_maximo: number | null;
+      porcentaje_reembolso: Prisma.Decimal;
+    }>;
+  }): PoliticasCancelacionListItemResponseDto {
     return {
       id: politica.id.toString(),
-      horas_antes_minimo: politica.horas_antes_minimo,
-      horas_antes_maximo: politica.horas_antes_maximo,
-      porcentaje_reembolso: Number(politica.porcentaje_reembolso),
+      id_cine: politica.id_cine.toString(),
+      nombre: politica.nombre,
+      activa: politica.activa,
+      reglas: politica.reglas.map(
+        (r): ReglaPoliticaResponseDto => ({
+          id: r.id.toString(),
+          horas_antes_minimo: r.horas_antes_minimo,
+          horas_antes_maximo: r.horas_antes_maximo,
+          porcentaje_reembolso: Number(r.porcentaje_reembolso),
+        }),
+      ),
     };
   }
 

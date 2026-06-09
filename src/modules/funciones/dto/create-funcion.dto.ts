@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString } from 'class-validator';
+import { IsString, IsDateString, IsEnum } from 'class-validator';
+import { EstadoFuncion } from '../../../common/enums/estado-funcion.enum';
 
 export class CreateFuncionDto {
   @ApiProperty({
@@ -24,9 +25,10 @@ export class CreateFuncionDto {
   fecha_hora!: string;
 
   @ApiProperty({
-    description: 'Estado de la función',
-    example: 'activa',
+    description: 'Estado inicial de la función',
+    enum: EstadoFuncion,
+    example: EstadoFuncion.PROGRAMADA,
   })
-  @IsString()
-  estado!: string;
+  @IsEnum(EstadoFuncion)
+  estado!: EstadoFuncion;
 }

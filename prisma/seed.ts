@@ -21,16 +21,17 @@ import { seedPagos } from './seed/pagos';
 import { seedReembolsos } from './seed/reembolsos';
 import { seedAuditLog } from './seed/audit-log';
 import { seedPasswordResetTokens } from './seed/password-reset-token';
+import { seedDatosInconclusos } from './seed/datos-inconclusos';
 
 async function main() {
   const roles = await seedRoles();
   const ciudades = await seedCiudades();
   const idiomas = await seedIdiomas();
   const generos = await seedGeneros();
-  await seedPoliticaCancelacion();
   const cupones = await seedCupones();
   const usuarios = await seedUsuarios(roles);
   const cines = await seedCines(ciudades);
+  await seedPoliticaCancelacion(cines);
   const salas = await seedSalas(cines);
   const tiposAsiento = await seedTiposAsiento();
   const asientos = await seedAsientos(salas, tiposAsiento);
@@ -42,6 +43,7 @@ async function main() {
   await seedReservaAsientos(reservas, asientosFuncion);
   const pagos = await seedPagos(reservas, cupones);
   await seedReembolsos(pagos);
+  await seedDatosInconclusos(usuarios, funciones);
   await seedAuditLog(usuarios);
   await seedPasswordResetTokens(usuarios);
 

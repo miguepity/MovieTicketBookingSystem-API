@@ -25,12 +25,14 @@ import { PreciosCineModule } from './modules/precios-cine/precios-cine.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { FuncionesModule } from './modules/funciones/funciones.module';
 import { CuponesModule } from './modules/cupones/cupones.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     PrismaModule,
+    AuditLogModule,
     MailModule,
     CineModule,
     CiudadesModule,

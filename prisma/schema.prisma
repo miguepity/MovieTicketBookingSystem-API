@@ -14,14 +14,15 @@ datasource db {
 }
 
 model Cines {
-  id          BigInt        @id @default(autoincrement())
-  nombre      String        @db.VarChar(150)
-  direccion   String?       @db.VarChar(255)
-  id_ciudad   BigInt
-  ciudades    Ciudades      @relation(fields: [id_ciudad], references: [id])
-  created_at  DateTime      @default(now()) @db.Timestamptz
-  salas       Salas[]
-  preciosCine PreciosCine[]
+  id                   BigInt                @id @default(autoincrement())
+  nombre               String                @db.VarChar(150)
+  direccion            String?               @db.VarChar(255)
+  id_ciudad            BigInt
+  ciudades             Ciudades              @relation(fields: [id_ciudad], references: [id])
+  created_at           DateTime              @default(now()) @db.Timestamptz
+  salas                Salas[]
+  preciosCine          PreciosCine[]
+  politicasCancelacion PoliticaCancelacion[]
 
   @@map("cines")
 }
@@ -161,23 +162,44 @@ model Cupones {
 }
 
 model PoliticaCancelacion {
-  id                   BigInt  @id @default(autoincrement())
-  horas_antes_minimo   Int
-  horas_antes_maximo   Int?
-  porcentaje_reembolso Decimal @db.Decimal(5, 2)
+  id         BigInt                     @id @default(autoincrement())
+  id_cine    BigInt
+  cines      Cines                      @relation(fields: [id_cine], references: [id])
+  nombre     String                     @db.VarChar(100)
+  activa     Boolean                    @default(true)
+  created_at DateTime                   @default(now()) @db.Timestamptz
+  reglas     ReglaPoliticaCancelacion[]
+  reembolsos Reembolsos[]
 
+  @@index([id_cine])
   @@map("politica_cancelacion")
 }
 
-model Reembolsos {
-  id              BigInt    @id @default(autoincrement())
-  id_pago         BigInt
-  pagos           Pagos     @relation(fields: [id_pago], references: [id])
-  monto           Decimal   @db.Decimal(10, 2)
-  estado          String    @db.VarChar(20)
-  fecha_procesado DateTime? @db.Timestamptz
-  created_at      DateTime  @default(now()) @db.Timestamptz
+model ReglaPoliticaCancelacion {
+  id                   BigInt              @id @default(autoincrement())
+  id_politica          BigInt
+  politica             PoliticaCancelacion @relation(fields: [id_politica], references: [id], onDelete: Cascade)
+  horas_antes_minimo   Int
+  horas_antes_maximo   Int?
+  porcentaje_reembolso Decimal             @db.Decimal(5, 2)
 
+  @@index([id_politica])
+  @@map("regla_politica_cancelacion")
+}
+
+model Reembolsos {
+  id                  BigInt               @id @default(autoincrement())
+  id_pago             BigInt
+  pagos               Pagos                @relation(fields: [id_pago], references: [id])
+  id_politica         BigInt?
+  politica            PoliticaCancelacion? @relation(fields: [id_politica], references: [id])
+  porcentaje_aplicado Decimal              @default(0) @db.Decimal(5, 2)
+  monto               Decimal              @db.Decimal(10, 2)
+  estado              String               @db.VarChar(20)
+  fecha_procesado     DateTime?            @db.Timestamptz
+  created_at          DateTime             @default(now()) @db.Timestamptz
+
+  @@index([id_politica])
   @@map("reembolsos")
 }
 

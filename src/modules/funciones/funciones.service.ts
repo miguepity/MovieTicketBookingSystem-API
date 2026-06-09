@@ -2,18 +2,23 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
 import { FuncionCanceladaEvent } from './events/funcion-cancelada.event';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { EstadoAsiento } from '../../common/enums/estado-asiento.enum';
+import { EstadoFuncion } from '../../common/enums/estado-funcion.enum';
 
 @Injectable()
 export class FuncionesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   private async checkConflicto(
@@ -31,8 +36,21 @@ export class FuncionesService {
     });
   }
 
-  async create(dto: CreateFuncionDto) {
+  async create(dto: CreateFuncionDto, auditorId: bigint) {
     const fecha = new Date(dto.fecha_hora);
+
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: BigInt(dto.id_pelicula) },
+      select: { activo: true },
+    });
+    if (!pelicula) {
+      throw new NotFoundException('La película no existe');
+    }
+    if (!pelicula.activo) {
+      throw new BadRequestException(
+        'No se puede crear una función para una película desactivada',
+      );
+    }
 
     const conflicto = await this.checkConflicto(BigInt(dto.id_sala), fecha);
 
@@ -52,6 +70,13 @@ export class FuncionesService {
     });
 
     await this.generarAsientos(funcion.id);
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'FUNCION_CREAR',
+      detalle: `Función ${funcion.id.toString()} creada (pelicula=${dto.id_pelicula}, sala=${dto.id_sala})`,
+    });
 
     return funcion;
   }
@@ -79,7 +104,7 @@ export class FuncionesService {
     const data = funcion.salas.asientos.map((a) => ({
       id_asiento: a.id,
       id_funcion,
-      estado: 'DISPONIBLE',
+      estado: EstadoAsiento.DISPONIBLE,
       id_usuario: null,
       version: 1,
       bloqueado_hasta: new Date(),
@@ -115,7 +140,7 @@ export class FuncionesService {
     return funcion;
   }
 
-  async update(id: string, dto: UpdateFuncionDto) {
+  async update(id: string, dto: UpdateFuncionDto, auditorId: bigint) {
     const id_funcion = BigInt(id);
 
     const funcion = await this.prisma.funciones.findUnique({
@@ -130,7 +155,7 @@ export class FuncionesService {
     }
 
     const tieneReservas = (funcion.asientosFuncions ?? []).some(
-      (a) => a.id_usuario !== null || a.estado !== 'DISPONIBLE',
+      (a) => a.id_usuario !== null || a.estado !== EstadoAsiento.DISPONIBLE,
     );
 
     if (tieneReservas) {
@@ -171,13 +196,22 @@ export class FuncionesService {
     if (dto.fecha_hora) data.fecha_hora = new Date(dto.fecha_hora);
     if (dto.estado) data.estado = dto.estado;
 
-    return this.prisma.funciones.update({
+    const updated = await this.prisma.funciones.update({
       where: { id: id_funcion },
       data,
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'FUNCION_EDITAR',
+      detalle: `Función ${id} editada`,
+    });
+
+    return updated;
   }
 
-  async cancelar(id: string) {
+  async cancelar(id: string, auditorId: bigint) {
     const id_funcion = BigInt(id);
 
     const funcion = await this.prisma.funciones.findUnique({
@@ -188,7 +222,7 @@ export class FuncionesService {
       throw new NotFoundException('Función no existe');
     }
 
-    if (funcion.estado === 'CANCELADA') {
+    if (funcion.estado === EstadoFuncion.CANCELADA) {
       throw new ConflictException('La función ya está cancelada');
     }
 
@@ -201,8 +235,15 @@ export class FuncionesService {
     const updated = await this.prisma.funciones.update({
       where: { id: id_funcion },
       data: {
-        estado: 'CANCELADA',
+        estado: EstadoFuncion.CANCELADA,
       },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'FUNCION_CANCELAR',
+      detalle: `Función ${id} cancelada`,
     });
 
     this.eventEmitter.emit(

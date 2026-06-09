@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -29,6 +28,7 @@ export class CreateSalaDto {
   columnas!: number;
 
   @ApiProperty({ type: String, example: '1' })
-  @Transform(({ value }) => BigInt(value as string | number))
-  id_cine!: bigint;
+  @IsString()
+  @IsNotEmpty()
+  id_cine!: string;
 }

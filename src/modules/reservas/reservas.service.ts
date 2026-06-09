@@ -10,6 +10,7 @@ import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
 import { ReembolsosService } from '../reembolsos/reembolsos.service';
 import { ReservaCanceladaEvent } from './events/reserva-cancelada.event';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class ReservasService {
@@ -17,6 +18,7 @@ export class ReservasService {
     private readonly prisma: PrismaService,
     private readonly reembolsosService: ReembolsosService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async crear(
@@ -194,6 +196,8 @@ export class ReservasService {
           tx,
           calculo.pagoId,
           calculo.monto,
+          calculo.porcentaje,
+          calculo.politicaId,
         );
       }
 
@@ -202,6 +206,13 @@ export class ReservasService {
       });
 
       return { reserva: refreshed, reembolso };
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: BigInt(idUsuarioActual),
+      id_auditor: BigInt(idUsuarioActual),
+      accion: 'RESERVA_CANCELAR',
+      detalle: `Reserva ${idReserva} cancelada`,
     });
 
     this.eventEmitter.emit(
