@@ -13,6 +13,7 @@ import { EstadoPago } from 'src/common/enums/estado-pago.enum';
 import { MetodoPago } from 'src/common/enums/metodo-pago.enum';
 import { PagoExitosoEvent } from './events/pago-exitoso.event';
 import { Prisma } from '../../../generated/prisma/client';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 interface ProcesarPagoInput {
   idReserva: string;
@@ -27,6 +28,7 @@ export class PagosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async crear(input: ProcesarPagoInput) {
@@ -159,6 +161,13 @@ export class PagosService {
       ),
     );
 
+    await this.auditLog.registrar({
+      id_usuario: reserva.id_usuario,
+      id_auditor: BigInt(input.idUsuarioActual),
+      accion: 'PAGO_APROBAR',
+      detalle: `Pago ${result.id.toString()} aprobado para reserva ${reserva.id.toString()}`,
+    });
+
     return {
       id_pago: result.id.toString(),
       estado: result.estado,
@@ -178,10 +187,10 @@ export class PagosService {
       where: { id: BigInt(input.idUsuarioActual) },
       include: { roles: { select: { nombre: true } } },
     });
-    if (!usuario || usuario.roles.nombre !== 'taquillero') {
+    if (!usuario || usuario.roles.nombre !== 'admin') {
       throw new ForbiddenException({
         code: 'ROL_NO_AUTORIZADO',
-        message: 'Solo el rol taquillero puede confirmar pagos en efectivo',
+        message: 'Solo el rol admin puede confirmar pagos en efectivo',
       });
     }
 
