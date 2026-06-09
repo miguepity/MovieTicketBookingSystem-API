@@ -15,6 +15,7 @@ import { ChangeEmailDto } from './dto/change-email.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MailService } from 'src/modules/mail/mail.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly auditLog: AuditLogService,
   ) {}
   async login(loginDto: LoginDto) {
     const usuario = await this.prisma.usuarios.findUnique({
@@ -50,8 +52,17 @@ export class AuthService {
       jti: randomUUID(),
     };
 
+    const access_token = this.jwtService.sign(payload);
+
+    await this.auditLog.registrar({
+      id_usuario: usuario.id,
+      id_auditor: usuario.id,
+      accion: 'LOGIN',
+      detalle: `Login: ${usuario.email}`,
+    });
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
       usuario: {
         id: usuario.id.toString(),
         nombre: usuario.nombre,
@@ -267,6 +278,13 @@ export class AuthService {
         id_usuario: BigInt(userId),
         expires_at: new Date(exp * 1000),
       },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: BigInt(userId),
+      id_auditor: BigInt(userId),
+      accion: 'LOGOUT',
+      detalle: `Logout (jti=${jti})`,
     });
 
     return { message: 'Sesión cerrada exitosamente' };
