@@ -13,6 +13,7 @@ import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { CloudinaryService } from './cloudinary.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
@@ -23,6 +24,7 @@ export class PeliculaService {
     private readonly prisma: PrismaService,
     private readonly cloudinary: CloudinaryService,
     private readonly mailService: MailService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async uploadPoster(id: string, file: Express.Multer.File) {
@@ -118,6 +120,13 @@ export class PeliculaService {
       },
     });
 
+    await this.auditLog.registrar({
+      id_usuario: userId,
+      id_auditor: userId,
+      accion: 'PELICULA_CREAR',
+      detalle: `Película ${pelicula.id.toString()} (${pelicula.titulo}) creada`,
+    });
+
     if (pelicula.activo) {
       void this.notificarNuevaPelicula(pelicula);
     }
@@ -178,12 +187,12 @@ export class PeliculaService {
     }
   }
 
-  async updatePelicula(id: string, data: UpdatePeliculaDto) {
+  async updatePelicula(id: string, data: UpdatePeliculaDto, auditorId: bigint) {
     const peliculaId = this.parseId(id);
 
     const existing = await this.prisma.peliculas.findUnique({
       where: { id: peliculaId },
-      select: { id: true },
+      select: { id: true, id_usuario: true, titulo: true },
     });
     if (!existing) {
       throw new NotFoundException('Película no encontrada');
@@ -192,7 +201,7 @@ export class PeliculaService {
     await this.assertIdiomaExists(data.id_idioma);
     await this.assertGeneroExists(data.id_genero);
 
-    return this.prisma.peliculas.update({
+    const updated = await this.prisma.peliculas.update({
       where: { id: peliculaId },
       data: {
         titulo: data.titulo,
@@ -205,7 +214,28 @@ export class PeliculaService {
           : undefined,
         activo: data.activo,
       },
+      select: {
+        id: true,
+        titulo: true,
+        sinopsis: true,
+        poster_url: true,
+        fecha_estreno: true,
+        activo: true,
+        id_genero: true,
+        id_idioma: true,
+        generos: { select: { id: true, nombre: true } },
+        idiomas: { select: { id: true, nombre: true } },
+      },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: existing.id_usuario,
+      id_auditor: auditorId,
+      accion: 'PELICULA_EDITAR',
+      detalle: `Película ${peliculaId.toString()} (${existing.titulo}) editada`,
+    });
+
+    return updated;
   }
 
   async findCinesByPelicula(id: string) {
@@ -346,22 +376,31 @@ export class PeliculaService {
     };
   }
 
-  async toggleActivo(id: string) {
+  async toggleActivo(id: string, auditorId: bigint) {
     const peliculaId = this.parseId(id);
 
     const existing = await this.prisma.peliculas.findUnique({
       where: { id: peliculaId },
-      select: { activo: true },
+      select: { activo: true, id_usuario: true, titulo: true },
     });
     if (!existing) {
       throw new NotFoundException('Película no encontrada');
     }
 
-    return this.prisma.peliculas.update({
+    const updated = await this.prisma.peliculas.update({
       where: { id: peliculaId },
       data: { activo: !existing.activo },
       select: { id: true, activo: true },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: existing.id_usuario,
+      id_auditor: auditorId,
+      accion: 'PELICULA_TOGGLE',
+      detalle: `Película ${peliculaId.toString()} (${existing.titulo}) toggled a ${!existing.activo}`,
+    });
+
+    return updated;
   }
 
   private parseId(id: string): bigint {
