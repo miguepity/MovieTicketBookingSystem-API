@@ -5,6 +5,7 @@ import { Transform } from 'class-transformer';
 export class UpdateSalaDto {
   @ApiPropertyOptional({
     description: 'Nombre de la sala',
+    example: 'Sala VIP',
     minLength: 2,
     maxLength: 50,
   })
