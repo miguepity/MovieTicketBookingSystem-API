@@ -19,7 +19,7 @@ export class SalasService {
     const created = await this.prisma.salas.create({
       data: {
         nombre: createSalaDto.nombre,
-        id_cine: createSalaDto.id_cine,
+        id_cine: BigInt(createSalaDto.id_cine),
         filas: createSalaDto.filas,
         columnas: createSalaDto.columnas,
       },
@@ -72,7 +72,10 @@ export class SalasService {
       where: { id: salaId },
       data: {
         nombre: updateSalaDto.nombre,
-        id_cine: updateSalaDto.id_cine,
+        id_cine:
+          updateSalaDto.id_cine !== undefined
+            ? BigInt(updateSalaDto.id_cine)
+            : undefined,
         filas: updateSalaDto.filas,
         columnas: updateSalaDto.columnas,
       },
