@@ -38,4 +38,12 @@ export class FuncionesService {
       return funcion;
     });
   }
+
+  async cancel(id: string) {
+    await this.prisma.funciones.update({
+      where: { id: BigInt(id) },
+      data: { estado: 'cancelada' },
+    });
+    return;
+  }
 }

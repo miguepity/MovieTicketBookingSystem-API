@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Param, Patch } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
@@ -31,5 +31,15 @@ export class FuncionesController {
       id_sala: newFuncion.id_sala.toString(),
       id_pelicula: newFuncion.id_pelicula.toString(),
     };
+  }
+
+  @Patch(':id/cancelar')
+  @ApiOperation({ summary: 'Cancela una función' })
+  @ApiResponse({
+    status: 200,
+    description: 'Función cancelada exitosamente',
+  })
+  async cancel(@Param('id') id: string) {
+    return this.funcionesService.cancel(id);
   }
 }
