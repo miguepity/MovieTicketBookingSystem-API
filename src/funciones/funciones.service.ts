@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MailService } from 'src/mail/mail.service';
+import { UpdateFuncioneDto } from './dto/update-funcione.dto';
 
 @Injectable()
 export class FuncionesService {
@@ -73,5 +74,17 @@ export class FuncionesService {
     }
 
     return;
+  }
+
+  async edit(id: string, dto: UpdateFuncioneDto) {
+    const funcion = await this.prisma.funciones.update({
+      where: { id: BigInt(id) },
+      data: {
+        ...(dto.id_pelicula && { id_pelicula: BigInt(dto.id_pelicula) }),
+        ...(dto.id_sala && { id_sala: BigInt(dto.id_sala) }),
+        ...(dto.fecha_hora && { fecha_hora: new Date(dto.fecha_hora) }),
+      },
+    });
+    return funcion;
   }
 }

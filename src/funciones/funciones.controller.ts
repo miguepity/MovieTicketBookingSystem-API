@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Param, Patch, Put } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
+import { UpdateFuncioneDto } from './dto/update-funcione.dto';
 
 @ApiTags('Funciones')
 @Controller('funciones')
@@ -40,6 +41,11 @@ export class FuncionesController {
     description: 'Función cancelada exitosamente',
   })
   async cancel(@Param('id') id: string) {
-    return this.funcionesService.cancel(id);
+    return await this.funcionesService.cancel(id);
+  }
+
+  @Put(':id')
+  async edit(@Param('id') id: string, @Body() dto: UpdateFuncioneDto) {
+    return await this.funcionesService.edit(id, dto);
   }
 }
