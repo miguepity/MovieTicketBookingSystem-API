@@ -10,6 +10,8 @@ import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
 import { FuncionCanceladaEvent } from './events/funcion-cancelada.event';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { EstadoAsiento } from '../../common/enums/estado-asiento.enum';
+import { EstadoFuncion } from '../../common/enums/estado-funcion.enum';
 
 @Injectable()
 export class FuncionesService {
@@ -102,7 +104,7 @@ export class FuncionesService {
     const data = funcion.salas.asientos.map((a) => ({
       id_asiento: a.id,
       id_funcion,
-      estado: 'DISPONIBLE',
+      estado: EstadoAsiento.DISPONIBLE,
       id_usuario: null,
       version: 1,
       bloqueado_hasta: new Date(),
@@ -153,7 +155,7 @@ export class FuncionesService {
     }
 
     const tieneReservas = (funcion.asientosFuncions ?? []).some(
-      (a) => a.id_usuario !== null || a.estado !== 'DISPONIBLE',
+      (a) => a.id_usuario !== null || a.estado !== EstadoAsiento.DISPONIBLE,
     );
 
     if (tieneReservas) {
@@ -220,7 +222,7 @@ export class FuncionesService {
       throw new NotFoundException('Función no existe');
     }
 
-    if (funcion.estado === 'CANCELADA') {
+    if (funcion.estado === EstadoFuncion.CANCELADA) {
       throw new ConflictException('La función ya está cancelada');
     }
 
@@ -233,7 +235,7 @@ export class FuncionesService {
     const updated = await this.prisma.funciones.update({
       where: { id: id_funcion },
       data: {
-        estado: 'CANCELADA',
+        estado: EstadoFuncion.CANCELADA,
       },
     });
 

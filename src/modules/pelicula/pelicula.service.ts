@@ -13,6 +13,7 @@ import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { CloudinaryService } from './cloudinary.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
+import { EstadoFuncion } from 'src/common/enums/estado-funcion.enum';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import type { Prisma } from '../../../generated/prisma/client';
 
@@ -256,7 +257,7 @@ export class PeliculaService {
             funciones: {
               some: {
                 id_pelicula: peliculaId,
-                estado: 'activo',
+                estado: EstadoFuncion.PROGRAMADA,
               },
             },
           },
@@ -275,7 +276,7 @@ export class PeliculaService {
             funciones: {
               some: {
                 id_pelicula: peliculaId,
-                estado: 'activo',
+                estado: EstadoFuncion.PROGRAMADA,
               },
             },
           },
@@ -285,7 +286,7 @@ export class PeliculaService {
             funciones: {
               where: {
                 id_pelicula: peliculaId,
-                estado: 'activo',
+                estado: EstadoFuncion.PROGRAMADA,
               },
               select: {
                 id: true,
@@ -328,7 +329,7 @@ export class PeliculaService {
     const funciones = await this.prisma.funciones.findMany({
       where: {
         id_pelicula: peliculaId,
-        estado: 'activo',
+        estado: EstadoFuncion.PROGRAMADA,
         fecha_hora: { gte: new Date() },
         salas: { id_cine: cineId },
       },
