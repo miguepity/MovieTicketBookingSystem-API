@@ -83,7 +83,7 @@ export class UsersService {
 
     return await this.prismaService.usuarios.findMany({
       where,
-      take: dto.resultados,
+      take: Number(dto.resultados),
     });
   }
 }
