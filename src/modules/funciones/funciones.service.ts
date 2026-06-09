@@ -2,18 +2,21 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
 import { FuncionCanceladaEvent } from './events/funcion-cancelada.event';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class FuncionesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   private async checkConflicto(
@@ -31,8 +34,21 @@ export class FuncionesService {
     });
   }
 
-  async create(dto: CreateFuncionDto) {
+  async create(dto: CreateFuncionDto, auditorId: bigint) {
     const fecha = new Date(dto.fecha_hora);
+
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: BigInt(dto.id_pelicula) },
+      select: { activo: true },
+    });
+    if (!pelicula) {
+      throw new NotFoundException('La película no existe');
+    }
+    if (!pelicula.activo) {
+      throw new BadRequestException(
+        'No se puede crear una función para una película desactivada',
+      );
+    }
 
     const conflicto = await this.checkConflicto(BigInt(dto.id_sala), fecha);
 
@@ -52,6 +68,13 @@ export class FuncionesService {
     });
 
     await this.generarAsientos(funcion.id);
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'FUNCION_CREAR',
+      detalle: `Función ${funcion.id.toString()} creada (pelicula=${dto.id_pelicula}, sala=${dto.id_sala})`,
+    });
 
     return funcion;
   }
@@ -115,7 +138,7 @@ export class FuncionesService {
     return funcion;
   }
 
-  async update(id: string, dto: UpdateFuncionDto) {
+  async update(id: string, dto: UpdateFuncionDto, auditorId: bigint) {
     const id_funcion = BigInt(id);
 
     const funcion = await this.prisma.funciones.findUnique({
@@ -171,13 +194,22 @@ export class FuncionesService {
     if (dto.fecha_hora) data.fecha_hora = new Date(dto.fecha_hora);
     if (dto.estado) data.estado = dto.estado;
 
-    return this.prisma.funciones.update({
+    const updated = await this.prisma.funciones.update({
       where: { id: id_funcion },
       data,
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'FUNCION_EDITAR',
+      detalle: `Función ${id} editada`,
+    });
+
+    return updated;
   }
 
-  async cancelar(id: string) {
+  async cancelar(id: string, auditorId: bigint) {
     const id_funcion = BigInt(id);
 
     const funcion = await this.prisma.funciones.findUnique({
@@ -203,6 +235,13 @@ export class FuncionesService {
       data: {
         estado: 'CANCELADA',
       },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'FUNCION_CANCELAR',
+      detalle: `Función ${id} cancelada`,
     });
 
     this.eventEmitter.emit(

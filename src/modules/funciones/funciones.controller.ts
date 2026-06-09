@@ -26,6 +26,8 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Funciones')
 @Controller('funciones')
@@ -43,8 +45,11 @@ export class FuncionesController {
     description: 'Ya existe una función programada para esa sala y horario',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(@Body() dto: CreateFuncionDto) {
-    return this.funcionesService.create(dto);
+  create(
+    @Body() dto: CreateFuncionDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.funcionesService.create(dto, BigInt(user.userId));
   }
 
   @Get()
@@ -78,8 +83,12 @@ export class FuncionesController {
       'No se puede editar porque hay reservas o ya existe otra función en esa sala y horario',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(@Param('id') id: string, @Body() dto: UpdateFuncionDto) {
-    return this.funcionesService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateFuncionDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.funcionesService.update(id, dto, BigInt(user.userId));
   }
 
   @Patch(':id/cancelar')
@@ -95,7 +104,10 @@ export class FuncionesController {
     description: 'La función ya está cancelada o ya inició',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  cancelar(@Param('id') id: string) {
-    return this.funcionesService.cancelar(id);
+  cancelar(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.funcionesService.cancelar(id, BigInt(user.userId));
   }
 }
