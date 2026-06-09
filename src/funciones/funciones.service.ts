@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class FuncionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(createFuncioneDto: CreateFuncioneDto) {
     return await this.prisma.$transaction(async (tx) => {
@@ -37,5 +41,37 @@ export class FuncionesService {
 
       return funcion;
     });
+  }
+
+  async cancel(id: string) {
+    const funcion = await this.prisma.funciones.update({
+      where: { id: BigInt(id) },
+      data: { estado: 'cancelada' },
+      include: { peliculas: { select: { titulo: true } } },
+    });
+
+    const reservas = await this.prisma.reservas.findMany({
+      where: { id_funcion: BigInt(id) },
+      include: {
+        usuarios: {
+          select: { email: true, nombre: true, notificaciones_activas: true },
+        },
+      },
+    });
+
+    const sentEmails = new Set<string>();
+    for (const reserva of reservas) {
+      const user = reserva.usuarios;
+      if (!user.notificaciones_activas || sentEmails.has(user.email)) continue;
+      sentEmails.add(user.email);
+
+      void this.mailService.sendEmail(
+        user.email,
+        'Función cancelada - MovieSys',
+        `<h1>Hola ${user.nombre}</h1><p>Lamentamos informarte que la función <strong>${funcion.peliculas.titulo}</strong> del ${new Date(funcion.fecha_hora).toLocaleString()} ha sido cancelada.</p><p>Si realizaste un pago, recibirás un reembolso pronto.</p>`,
+      );
+    }
+
+    return;
   }
 }
