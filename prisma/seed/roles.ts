@@ -1,18 +1,7 @@
 import { prisma } from './client';
 import { upsertByNombre } from './helpers';
 
-const ROLES = [
-  'admin',
-  'cliente',
-  'empleado',
-  'gerente',
-  'soporte',
-  'taquillero',
-  'jefe_sala',
-  'limpieza',
-  'auditor',
-  'marketing',
-];
+const ROLES = ['admin', 'cliente'];
 
 export type RolesMap = Record<string, { id: bigint }>;
 

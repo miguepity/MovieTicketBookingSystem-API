@@ -1,6 +1,7 @@
 import { prisma } from './client';
+import type { CinesMap } from './cines';
 
-const POLITICAS: ReadonlyArray<{
+const REGLAS_DEFAULT: ReadonlyArray<{
   horas_antes_minimo: number;
   horas_antes_maximo: number | null;
   porcentaje_reembolso: number;
@@ -13,30 +14,29 @@ const POLITICAS: ReadonlyArray<{
   { horas_antes_minimo: 12, horas_antes_maximo: 24, porcentaje_reembolso: 60 },
   { horas_antes_minimo: 24, horas_antes_maximo: 48, porcentaje_reembolso: 75 },
   { horas_antes_minimo: 48, horas_antes_maximo: 72, porcentaje_reembolso: 85 },
-  {
-    horas_antes_minimo: 72,
-    horas_antes_maximo: 168,
-    porcentaje_reembolso: 95,
-  },
-  {
-    horas_antes_minimo: 168,
-    horas_antes_maximo: null,
-    porcentaje_reembolso: 100,
-  },
+  { horas_antes_minimo: 72, horas_antes_maximo: 168, porcentaje_reembolso: 95 },
+  { horas_antes_minimo: 168, horas_antes_maximo: null, porcentaje_reembolso: 100 },
 ];
 
-export async function seedPoliticaCancelacion(): Promise<void> {
-  for (const p of POLITICAS) {
+export async function seedPoliticaCancelacion(cines: CinesMap): Promise<void> {
+  for (const cine of cines.all) {
     const existing = await prisma.politicaCancelacion.findFirst({
-      where: { horas_antes_minimo: p.horas_antes_minimo },
+      where: { id_cine: cine.id, activa: true },
       select: { id: true },
     });
     if (existing) continue;
     await prisma.politicaCancelacion.create({
       data: {
-        horas_antes_minimo: p.horas_antes_minimo,
-        horas_antes_maximo: p.horas_antes_maximo,
-        porcentaje_reembolso: p.porcentaje_reembolso,
+        id_cine: cine.id,
+        nombre: `Política base ${cine.nombre}`,
+        activa: true,
+        reglas: {
+          create: REGLAS_DEFAULT.map((r) => ({
+            horas_antes_minimo: r.horas_antes_minimo,
+            horas_antes_maximo: r.horas_antes_maximo,
+            porcentaje_reembolso: r.porcentaje_reembolso,
+          })),
+        },
       },
     });
   }
