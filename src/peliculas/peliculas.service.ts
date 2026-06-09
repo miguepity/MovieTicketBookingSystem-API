@@ -76,18 +76,6 @@ export class PeliculasService {
           : undefined,
         id_usuario: BigInt(idUsuario),
       },
-      select: {
-        id: true,
-        titulo: true,
-        sinopsis: true,
-        poster_url: true,
-        fecha_estreno: true,
-        activo: true,
-        updated_at: true,
-        id_usuario: true,
-        idiomas: { select: { nombre: true } },
-        generos: { select: { nombre: true } },
-      },
     });
   }
 
