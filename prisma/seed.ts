@@ -226,6 +226,60 @@ async function main() {
     }
   }
 
+  // 10. Sample Reservation
+  console.log('[Seeding] Creating sample reservation...');
+  const firstUser = await prisma.usuarios.findFirst();
+  const firstFuncion = await prisma.funciones.findFirst();
+
+  if (firstUser && firstFuncion) {
+    const existingReserva = await prisma.reservas.findFirst({
+      where: { id_usuario: firstUser.id, id_funcion: firstFuncion.id },
+    });
+
+    if (!existingReserva) {
+      const reservationNumber = `SEED-RES-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+      const reserva = await prisma.reservas.create({
+        data: {
+          numero_reserva: reservationNumber,
+          id_usuario: firstUser.id,
+          id_funcion: firstFuncion.id,
+          estado: 'confirmada',
+        },
+      });
+
+      // Tomar 2 asientos disponibles para esta función
+      const asientosDisponibles = await prisma.asientosFuncion.findMany({
+        where: { id_funcion: firstFuncion.id, estado: 'disponible' },
+        take: 2,
+      });
+
+      if (asientosDisponibles.length > 0) {
+        // Crear relación Reserva-Asientos
+        await prisma.reservaAsientos.createMany({
+          data: asientosDisponibles.map((af) => ({
+            id_reserva: reserva.id,
+            id_asiento_funcion: af.id,
+          })),
+        });
+
+        // Marcar asientos como reservados
+        await prisma.asientosFuncion.updateMany({
+          where: {
+            id: { in: asientosDisponibles.map((af) => af.id) },
+          },
+          data: {
+            estado: 'reservado',
+            id_usuario: firstUser.id,
+          },
+        });
+        console.log(
+          `[Seeding] Created reservation ${reservationNumber} with 2 seats.`,
+        );
+      }
+    }
+  }
+
   console.log('[Seeding] Seed completed successfully!');
 }
 

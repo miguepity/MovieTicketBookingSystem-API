@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -164,6 +165,34 @@ export class FuncionesService {
     }
 
     console.log('Asientos bloqueados liberados: ', asientosALiberar.length);
+  }
+
+  async getAsientos(id: number) {
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!funcion) throw new NotFoundException('Función no encontrada');
+
+    const asientosFuncion = await this.prisma.asientosFuncion.findMany({
+      where: { id_funcion: BigInt(id) },
+      include: { asientos: true },
+      orderBy: [{ asientos: { fila: 'asc' } }, { asientos: { columna: 'asc' } }],
+    });
+
+    return asientosFuncion.reduce<Record<string, object[]>>((acc, af) => {
+      const fila = af.asientos.fila;
+      if (!acc[fila]) acc[fila] = [];
+      acc[fila].push({
+        id: af.id.toString(),
+        columna: af.asientos.columna,
+        codigo: af.asientos.codigo,
+        tipo: af.asientos.tipo,
+        estado: af.estado,
+        bloqueado_hasta: af.bloqueado_hasta,
+      });
+      return acc;
+    }, {});
   }
 
   async bloquearAsientos(id_asiento: bigint, id_funcion: bigint) {

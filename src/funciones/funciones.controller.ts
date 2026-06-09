@@ -1,11 +1,12 @@
 import {
   Controller,
   Post,
-  Body,
-  Param,
-  Patch,
   Get,
+  Body,
+  UseGuards,
+  Param,
   ParseIntPipe,
+  Patch,
 } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
@@ -51,6 +52,22 @@ export class FuncionesController {
   })
   async cancel(@Param('id') id: string) {
     return this.funcionesService.cancel(id);
+  }
+
+  @Get('/:id/asientos')
+  @ApiOperation({
+    summary: 'Estado actual de todos los asientos de una función',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la función' })
+  @ApiResponse({
+    status: 200,
+    description: 'Mapa de asientos agrupado por fila',
+  })
+  @ApiResponse({ status: 404, description: 'Función no encontrada' })
+  getAsientos(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.getAsientos(id);
+  }
+
   @Post('/:id/asientos/bloquear')
   @UseGuards(AuthGuard)
   @ApiOperation({
@@ -73,8 +90,6 @@ export class FuncionesController {
       401: { description: 'No autorizado' },
     },
   })
-}
-
   async bloquearAsientos(
     @Body() body: BloquearAsientoDto,
     @Param('id') funcion_id: string,
