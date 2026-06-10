@@ -24,4 +24,11 @@ export class GeneroService {
       },
     });
   }
+
+  async getAll() {
+    return await this.prisma.generos.findMany({
+        select: {id:true, nombre: true },
+        orderBy: { nombre: 'asc' },
+    });
+  }
 }
