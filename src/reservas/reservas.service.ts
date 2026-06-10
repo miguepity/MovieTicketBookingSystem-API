@@ -12,6 +12,32 @@ import { nanoid } from 'nanoid';
 export class ReservasService {
   constructor(private prisma: PrismaService) {}
 
+  readonly email_confirmation: string = `
+    <h1>Confirmación de Reserva - MovieSys</h1>
+    <p><strong>Reserva:</strong> {{numero_reserva}}</p>
+    <p><strong>Película:</strong> {{pelicula}}</p>
+    <p><strong>Cine:</strong> {{cine}}</p>
+    <p><strong>Asientos:</strong> {{asientos}}</p>
+    <p><strong>Total:</strong> Q{{monto}}</p>
+    <p>¡Gracias por tu compra!</p>
+  `;
+
+  // para usar llamar this.renderEmailConfirmation({ data }).
+  renderEmailConfirmation(data: {
+    numero_reserva: string;
+    pelicula: string;
+    cine: string;
+    asientos: string;
+    monto: string;
+  }): string {
+    return this.email_confirmation
+      .replace('{{numero_reserva}}', data.numero_reserva)
+      .replace('{{pelicula}}', data.pelicula)
+      .replace('{{cine}}', data.cine)
+      .replace('{{asientos}}', data.asientos)
+      .replace('{{monto}}', data.monto);
+  }
+
   private serialize<T>(data: T): T {
     return JSON.parse(
       JSON.stringify(data, (key, value) =>
