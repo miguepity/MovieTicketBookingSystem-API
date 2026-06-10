@@ -71,7 +71,7 @@ export class IdiomasService {
       throw new ConflictException('El idioma no existe');
     }
 
-    const existe = await this.prisma.idiomas.findFirst({
+    const existe = await this.prisma.idiomas.findUnique({
       where: {
         nombre: dto.nombre,
         deletedAt: null,
@@ -90,5 +90,21 @@ export class IdiomasService {
         descripcion: dto.descripcion,
       },
     });
+  }
+
+  async delete(id: number) {
+    const idioma = await this.prisma.idiomas.findUnique({
+      where: { id: BigInt(id), deletedAt: null },
+    });
+    if (!idioma) {
+      throw new ConflictException('El idioma no existe');
+    }
+
+    await this.prisma.idiomas.update({
+      where: { id: BigInt(id) },
+      data: { deletedAt: new Date() },
+    });
+
+    return { message: `Idioma con id ${id} desactivado exitosamente` };
   }
 }
