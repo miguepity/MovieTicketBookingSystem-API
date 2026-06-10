@@ -13,7 +13,7 @@ import { Prisma } from '@prisma/client';
 export class SalaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createSalaDto: CreateSalaDto) {
+  async create(createSalaDto: CreateSalaDto, auditorId: number) {
     const { nombre, id_cine, filas, columnas } = createSalaDto;
 
     const salaExistente = await this.prisma.salas.findFirst({
@@ -67,6 +67,15 @@ export class SalaService {
         data: asientosData,
       });
 
+      await tx.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'SALA_CREADA',
+          detalle: `Sala "${nombre}" creada en cine ${id_cine}`,
+        },
+      });
+
       return nuevaSala;
     });
     return this.serializeSala(sala);
@@ -97,7 +106,7 @@ export class SalaService {
     return this.serializeSala(sala);
   }
 
-  async update(id: number, updateSalaDto: UpdateSalaDto) {
+  async update(id: number, updateSalaDto: UpdateSalaDto, auditorId: number) {
     const { id_cine, filas, columnas, ...restoDatos } = updateSalaDto;
     const salaIdBigInt = BigInt(id);
 
@@ -183,10 +192,19 @@ export class SalaService {
       return sala;
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'SALA_ACTUALIZADA',
+        detalle: `Sala ${id} actualizada`,
+      },
+    });
+
     return this.serializeSala(salaActualizada);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
 
     try {
@@ -196,6 +214,14 @@ export class SalaService {
         });
         await tx.salas.delete({
           where: { id: BigInt(id) },
+        });
+        await tx.auditLog.create({
+          data: {
+            id_usuario: BigInt(auditorId),
+            id_auditor: BigInt(auditorId),
+            accion: 'SALA_ELIMINADA',
+            detalle: `Sala ${id} eliminada`,
+          },
         });
       });
 

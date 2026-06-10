@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { SalaService } from './sala.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
@@ -38,8 +39,9 @@ export class SalaController {
     description: 'La sala ha sido creada exitosamente con sus asientos.',
   })
   @ApiResponse({ status: 404, description: 'Cine no encontrado.' })
-  create(@Body() createSalaDto: CreateSalaDto) {
-    return this.salaService.create(createSalaDto);
+  create(@Body() createSalaDto: CreateSalaDto,
+    @Req() req: any) {
+    return this.salaService.create(createSalaDto, req.user.id);
   }
 
   @Get()
@@ -75,8 +77,9 @@ export class SalaController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSalaDto: UpdateSalaDto,
+    @Req() req: any,
   ) {
-    return this.salaService.update(id, updateSalaDto);
+    return this.salaService.update(id, updateSalaDto, req.user.id);
   }
 
   @Delete(':id')
@@ -92,7 +95,8 @@ export class SalaController {
     description: 'No se puede eliminar (tiene funciones asociadas).',
   })
   @ApiParam({ name: 'id', description: 'ID de la sala a eliminar' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.salaService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number,
+    @Req() req: any) {
+    return this.salaService.remove(id, req.user.id);
   }
 }
