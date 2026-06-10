@@ -5,9 +5,12 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SearchUserDto } from './dto/search-user.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -56,5 +59,29 @@ export class UsersController {
       id: usuario.id.toString(),
       id_rol: usuario.id_rol.toString(),
     };
+  }
+
+  @Get()
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener todos los usuarios' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios',
+    schema: {
+      example: [
+        {
+          id: '1',
+          nombre: 'Juan Perez',
+          email: 'juan.nuevo@example.com',
+          telefono: '+50211223344',
+          id_rol: '2',
+          estado: 'active',
+        },
+      ],
+    },
+  })
+  async getUsers(@Query() searchUserDto: SearchUserDto) {
+    return await this.usersService.findAll(searchUserDto);
   }
 }

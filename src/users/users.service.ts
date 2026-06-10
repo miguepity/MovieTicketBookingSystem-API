@@ -1,5 +1,6 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { SearchUserDto } from './dto/search-user.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -63,6 +64,26 @@ export class UsersService {
       data: {
         ...data,
       },
+    });
+  }
+
+  async findAll(dto: SearchUserDto) {
+    const where: any = {};
+
+    if (dto.nombre) {
+      where.nombre = { contains: dto.nombre, mode: 'insensitive' };
+    }
+    if (dto.email) {
+      where.email = { contains: dto.email, mode: 'insensitive' };
+    }
+    if (dto.estado) {
+      where.estado = dto.estado;
+    }
+    where.roles = { nombre: 'Cliente' };
+
+    return await this.prismaService.usuarios.findMany({
+      where,
+      take: Number(dto.resultados),
     });
   }
 }
