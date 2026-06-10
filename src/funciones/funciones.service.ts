@@ -127,6 +127,8 @@ export class FuncionesService {
     }
 
     return funcion;
+  }
+
   async getFuncionesPorCine(idPelicula: string, idCine: string) {
     const funciones = await this.prisma.funciones.findMany({
       where: {
@@ -223,7 +225,10 @@ export class FuncionesService {
     const asientosFuncion = await this.prisma.asientosFuncion.findMany({
       where: { id_funcion: BigInt(id) },
       include: { asientos: true },
-      orderBy: [{ asientos: { fila: 'asc' } }, { asientos: { columna: 'asc' } }],
+      orderBy: [
+        { asientos: { fila: 'asc' } },
+        { asientos: { columna: 'asc' } },
+      ],
     });
 
     return asientosFuncion.reduce<Record<string, object[]>>((acc, af) => {
