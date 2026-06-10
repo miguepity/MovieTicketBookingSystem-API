@@ -22,15 +22,19 @@ export class MailService {
   }
 
   async sendEmail(to: string, subject: string, html: string) {
-    const recipient = new Recipient(to);
-    const sentFrom = new Sender(`no-reply@${this.domain}`, 'MovieSys');
+    try {
+      const recipient = new Recipient(to);
+      const sentFrom = new Sender(`no-reply@${this.domain}`, 'MovieSys');
 
-    const emailParams = new EmailParams()
-      .setFrom(sentFrom)
-      .setTo([recipient])
-      .setSubject(subject)
-      .setHtml(html);
+      const emailParams = new EmailParams()
+        .setFrom(sentFrom)
+        .setTo([recipient])
+        .setSubject(subject)
+        .setHtml(html);
 
-    await this.client.email.send(emailParams);
+      await this.client.email.send(emailParams);
+    } catch (err) {
+      console.log(err);
+    }
   }
 }

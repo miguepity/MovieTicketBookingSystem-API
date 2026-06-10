@@ -45,7 +45,27 @@ export class FuncionesController {
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Editar una funcion' })
+  @ApiResponse({
+    status: 200,
+    description: 'Función actualizada exitosamente',
+    schema: {
+      example: {
+        id: '1',
+        id_pelicula: '1',
+        id_sala: '1',
+        fecha_hora: '2026-06-07T18:00:00Z',
+        estado: 'active',
+      },
+    },
+  })
   async edit(@Param('id') id: string, @Body() dto: UpdateFuncioneDto) {
-    return await this.funcionesService.edit(id, dto);
+    const funcion = await this.funcionesService.edit(id, dto);
+    return {
+      ...funcion,
+      id: funcion.id.toString(),
+      id_sala: funcion.id_sala.toString(),
+      id_pelicula: funcion.id_pelicula.toString(),
+    };
   }
 }
