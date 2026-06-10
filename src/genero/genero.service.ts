@@ -48,4 +48,34 @@ export class GeneroService {
 
     return genero;
   }
+
+  async update(id: number, dto: CreateGeneroDto) {
+    const genero = await this.prisma.generos.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!genero) {
+      throw new NotFoundException(`Género con id ${id} no encontrado`);
+    }
+
+    const existe = await this.prisma.generos.findUnique({
+      where: {
+        nombre: dto.nombre,
+      },
+    });
+
+    if (existe && existe.id !== BigInt(id)) {
+      throw new ConflictException(
+        'Ya existe un genero con el nombre ' + dto.nombre,
+      );
+    }
+
+    return await this.prisma.generos.update({
+      where: { id: BigInt(id) },
+      data: {
+        nombre: dto.nombre,
+        descripcion: dto.descripcion,
+      },
+    });
+  }
 }
