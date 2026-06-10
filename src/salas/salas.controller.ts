@@ -6,6 +6,8 @@ import {
   ParseIntPipe,
   UseGuards,
   Get,
+  Put,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,9 +17,9 @@ import {
 } from '@nestjs/swagger';
 import { SalasService } from './salas.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
+import { UpdateSalaDto } from './dto/update-sala.dto';
 import { AuthGuard } from '../auth/auth.guard';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Salas')
 @Controller('cines')
 export class SalasController {
@@ -25,7 +27,6 @@ export class SalasController {
 
   @Post(':id/salas')
   @UseGuards(AuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiBearerAuth()
   @ApiOperation({
     description:
@@ -68,7 +69,6 @@ export class SalasController {
 
   @Get('salas/:id')
   @UseGuards(AuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiBearerAuth()
   @ApiOperation({
     description: 'Obtener detalles de una sala por su ID',
@@ -136,12 +136,111 @@ export class SalasController {
       ...sala,
       id: sala.id.toString(),
       id_cine: sala.id_cine.toString(),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       asientos: sala.asientos.map((asiento) => ({
         ...asiento,
         id: asiento.id.toString(),
         id_sala: asiento.id_sala.toString(),
       })),
     };
+  }
+
+  @Get('salas')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    description: 'Obtener todas las salas de un cine',
+    responses: {
+      200: {
+        description: 'Lista de salas',
+        content: {
+          'application/json': {
+            example: [
+              {
+                id: '1',
+                nombre: 'Sala 1',
+                filas: 3,
+                columnas: 4,
+                id_cine: '1',
+              },
+              {
+                id: '2',
+                nombre: 'Sala 2',
+                filas: 5,
+                columnas: 6,
+                id_cine: '1',
+              },
+            ],
+          },
+        },
+      },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  @ApiParam({ name: 'id', description: 'ID del cine' })
+  async getSalas(@Param('id', ParseIntPipe) id?: number) {
+    const salas = await this.salasService.getSalas(id);
+    return salas.map((s) => ({
+      ...s,
+      id: s.id.toString(),
+      id_cine: s.id_cine.toString(),
+    }));
+  }
+
+  @Put('salas/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    description: 'Actualizar una sala por su ID',
+    responses: {
+      200: {
+        description: 'Sala actualizada exitosamente',
+        content: {
+          'application/json': {
+            example: {
+              id: '1',
+              nombre: 'Sala Actualizada',
+              filas: 3,
+              columnas: 4,
+              id_cine: '1',
+            },
+          },
+        },
+      },
+      400: { description: 'Datos inválidos' },
+      401: { description: 'No autorizado' },
+      404: { description: 'Sala no encontrada' },
+      409: { description: 'Ya existe una sala con ese nombre en este cine' },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  @ApiParam({ name: 'id', description: 'ID de la sala a actualizar' })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateSalaDto,
+  ) {
+    const sala = await this.salasService.update(id, dto);
+    return {
+      ...sala,
+      id: sala.id.toString(),
+      id_cine: sala.id_cine.toString(),
+    };
+  }
+
+  @Delete('salas/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    description: 'Eliminar una sala por su ID',
+    responses: {
+      200: { description: 'Sala eliminada exitosamente' },
+      401: { description: 'No autorizado' },
+      404: { description: 'Sala no encontrada' },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  @ApiParam({ name: 'id', description: 'ID de la sala a eliminar' })
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    await this.salasService.delete(id);
+    return { message: 'Sala eliminada exitosamente' };
   }
 }
