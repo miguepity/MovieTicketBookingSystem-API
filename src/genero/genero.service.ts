@@ -11,13 +11,14 @@ export class GeneroService {
   constructor(private readonly prisma: PrismaService) {}
 
   async crearGenero(dto: CreateGeneroDto) {
-    const exite = await this.prisma.generos.findUnique({
+    const existe = await this.prisma.generos.findUnique({
       where: {
         nombre: dto.nombre,
+        deteledAt: null,
       },
     });
 
-    if (exite) {
+    if (existe) {
       throw new ConflictException('El género ya existe');
     }
 
@@ -30,28 +31,47 @@ export class GeneroService {
   }
 
   async getAll() {
+    const generos = await this.prisma.generos.findMany({
+      where: { deletedAt: null },
+      select: { id: true, nombre: true, deletedAt: true },
+      orderBy: { nombre: 'asc' },
+    });
+
+    return generos.map((g) => ({
+      ...g,
+      activo: g.deletedAt === null,
+      deletedAt: undefined,
+    }));
+  }
+
+  async getAllActive() {
     return await this.prisma.generos.findMany({
+      where: { deletedAt: null },
       select: { id: true, nombre: true },
       orderBy: { nombre: 'asc' },
     });
   }
 
   async getById(id: number) {
-    const genero = await this.prisma.generos.findUnique({
-      where: { id: BigInt(id) },
-      select: { id: true, nombre: true },
+    const genero = await this.prisma.generos.findFirst({
+      where: { id: BigInt(id), deletedAt: null },
+      select: { id: true, nombre: true, deletedAt: true },
     });
 
     if (!genero) {
       throw new NotFoundException(`Género con id ${id} no encontrado`);
     }
 
-    return genero;
+    return {
+      ...genero,
+      activo: genero.deletedAt === null,
+      deletedAt: undefined,
+    };
   }
 
   async update(id: number, dto: CreateGeneroDto) {
     const genero = await this.prisma.generos.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: BigInt(id), deletedAt: null },
     });
 
     if (!genero) {
@@ -61,6 +81,8 @@ export class GeneroService {
     const existe = await this.prisma.generos.findUnique({
       where: {
         nombre: dto.nombre,
+        deletedAt: null,
+        NOT: { id: BigInt(id) },
       },
     });
 
@@ -77,5 +99,22 @@ export class GeneroService {
         descripcion: dto.descripcion,
       },
     });
+  }
+
+  async delete(id: number) {
+    const genero = await this.prisma.generos.findUnique({
+      where: { id: BigInt(id), deletedAt: null },
+    });
+
+    if (!genero) {
+      throw new NotFoundException(`Género con id ${id} no encontrado`);
+    }
+
+    await this.prisma.generos.update({
+      where: { id: BigInt(id) },
+      data: { deletedAt: new Date() },
+    });
+
+    return { message: `Género con id ${id} eliminado exitosamente` };
   }
 }
