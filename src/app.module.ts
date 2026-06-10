@@ -15,9 +15,12 @@ import { PoliticaCancelacionModule } from './politica-cancelacion/politica-cance
 import { SalasModule } from './salas/salas.module';
 import { CinesModule } from './cines/cines.module';
 import { PagosModule } from './pagos/pagos.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     PeliculasModule,
@@ -30,7 +33,11 @@ import { PagosModule } from './pagos/pagos.module';
     PoliticaCancelacionModule,
     SalasModule,
     CinesModule,
+<<<<<<< HEAD
     PagosModule,
+=======
+    ReservasModule,
+>>>>>>> 4615227 (  feat: register ReservasModule and add GET /funciones/:id/asientos)
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -1,16 +1,21 @@
 import {
   Controller,
   Put,
+  Patch,
   Body,
   Param,
   ParseIntPipe,
   UseGuards,
   Get,
   Query,
+  Request,
+  ForbiddenException,
 } from '@nestjs/common';
+import { SearchUserDto } from './dto/search-user.dto';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { SearchUserDto } from './dto/search-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -19,6 +24,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
+import { IsAdminGuard } from '../roles/admin.guard';
 
 @ApiTags('Usuarios')
 @Controller('users')
@@ -53,7 +59,6 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     const usuario = await this.usersService.update(id, updateUserDto);
-
     return {
       ...usuario,
       id: usuario.id.toString(),
@@ -81,7 +86,68 @@ export class UsersController {
       ],
     },
   })
-  async getUsers(@Query() searchUserDto: SearchUserDto) {
+  async getUsers(
+    @Query() searchUserDto: SearchUserDto,
+    @Request() req: Request,
+  ) {
+    if (BigInt(req['user'].role) !== BigInt(1))
+      throw new ForbiddenException(
+        'No tienes permiso para ver esta información',
+      );
+
     return await this.usersService.findAll(searchUserDto);
+  }
+
+  @Put(':id/password')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar la contraseña de un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada exitosamente',
+    schema: {
+      example: { message: 'Contraseña actualizada correctamente' },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La contraseña actual es incorrecta',
+  })
+  async updatePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+    @Request() req: any,
+  ) {
+    const user = req.user as { userId: string; email: string; role: string };
+    if (user.userId !== String(id)) {
+      throw new ForbiddenException(
+        'No tienes permiso para cambiar esta contraseña',
+      );
+    }
+
+    return await this.usersService.updatePassword(id, updatePasswordDto);
+  }
+
+  @Patch('/admin/users/:id/status')
+  @UseGuards(AuthGuard, IsAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cambiar estado de un usuario (Admin)' })
+  @ApiParam({ name: 'id', description: 'ID del usuario a modificar' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado actualizado y registrado en bitácora',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Prohibido: Solo administradores pueden realizar esta acción',
+  })
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateStatusDto: UpdateStatusDto,
+    @Request() req: any,
+  ) {
+    const adminId = Number(req.user.userId);
+    return await this.usersService.updateStatus(id, updateStatusDto, adminId);
   }
 }

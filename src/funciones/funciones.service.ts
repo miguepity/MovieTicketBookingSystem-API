@@ -1,7 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MailService } from 'src/mail/mail.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class FuncionesService {
@@ -132,5 +138,100 @@ export class FuncionesService {
         },
       };
     });
+  }
+
+  @Cron('* * * * *')
+  async liberarAsientosJob() {
+    const now = new Date();
+
+    const asientosALiberar = await this.prisma.asientosFuncion.findMany({
+      where: {
+        estado: 'bloqueado',
+        bloqueado_hasta: {
+          lt: now,
+        },
+      },
+    });
+
+    for (const asiento of asientosALiberar) {
+      await this.prisma.asientosFuncion.update({
+        where: { id: asiento.id },
+        data: {
+          estado: 'disponible',
+          version: asiento.version + 1,
+          bloqueado_hasta: undefined,
+        },
+      });
+    }
+
+    console.log('Asientos bloqueados liberados: ', asientosALiberar.length);
+  }
+
+  async getAsientos(id: number) {
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!funcion) throw new NotFoundException('Función no encontrada');
+
+    const asientosFuncion = await this.prisma.asientosFuncion.findMany({
+      where: { id_funcion: BigInt(id) },
+      include: { asientos: true },
+      orderBy: [{ asientos: { fila: 'asc' } }, { asientos: { columna: 'asc' } }],
+    });
+
+    return asientosFuncion.reduce<Record<string, object[]>>((acc, af) => {
+      const fila = af.asientos.fila;
+      if (!acc[fila]) acc[fila] = [];
+      acc[fila].push({
+        id: af.id.toString(),
+        columna: af.asientos.columna,
+        codigo: af.asientos.codigo,
+        tipo: af.asientos.tipo,
+        estado: af.estado,
+        bloqueado_hasta: af.bloqueado_hasta,
+      });
+      return acc;
+    }, {});
+  }
+
+  async bloquearAsientos(id_asiento: bigint, id_funcion: bigint) {
+    const asientoExistente = await this.prisma.asientosFuncion.findFirst({
+      where: {
+        id_asiento: id_asiento,
+        id_funcion: id_funcion,
+      },
+    });
+
+    if (!asientoExistente) {
+      throw new BadRequestException(
+        'Asiento no encontrado para la función especificada',
+      );
+    }
+
+    if (asientoExistente.estado === 'bloqueado') {
+      throw new ConflictException({
+        message: 'El asiento ya está bloqueado',
+        asiento: {
+          ...asientoExistente,
+          id_asiento: asientoExistente.id_asiento.toString(),
+          id_funcion: asientoExistente.id_funcion.toString(),
+          id: asientoExistente.id.toString(),
+        },
+      });
+    }
+
+    const updatedAsiento = await this.prisma.asientosFuncion.update({
+      where: { id: asientoExistente.id },
+      data: {
+        estado: 'bloqueado',
+        version: asientoExistente.version + 1,
+        bloqueado_hasta: new Date(
+          Date.now() + parseInt(process.env.SEAT_BLOCK_SECONDS || '180') * 1000,
+        ),
+      },
+    });
+
+    return updatedAsiento;
   }
 }
