@@ -1,4 +1,8 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateIdiomaDto } from './dto/create-idioma.dto';
 
@@ -10,7 +14,6 @@ export class IdiomasService {
     const existe = await this.prisma.idiomas.findUnique({
       where: {
         nombre: dto.nombre,
-        deletedAt: null,
       },
     });
 
@@ -21,60 +24,42 @@ export class IdiomasService {
     return await this.prisma.idiomas.create({
       data: {
         nombre: dto.nombre,
-        descripcion: dto.descripcion,
+        select: { id: true, nombre: true, activo: true },
       },
     });
   }
 
   async getAll() {
-    const idiomas = await this.prisma.idiomas.findMany({
-      where: { deletedAt: null },
-      select: { id: true, nombre: true, deletedAt: true },
-      orderBy: { nombre: 'asc' },
-    });
-    return idiomas.map((i) => ({
-      ...i,
-      activo: i.deletedAt === null,
-      deletedAt: undefined,
-    }));
-  }
-
-  async getAllActive() {
     return await this.prisma.idiomas.findMany({
-      where: { deletedAt: null },
-      select: { id: true, nombre: true },
+      select: { id: true, nombre: true, activo: true },
       orderBy: { nombre: 'asc' },
     });
   }
 
   async getById(id: number) {
-    const idioma = await this.prisma.idiomas.findFirst({
-      where: { id: BigInt(id), deletedAt: null },
-      select: { id: true, nombre: true, deletedAt: true },
+    const idioma = await this.prisma.idiomas.findUnique({
+      where: { id: BigInt(id) },
+      select: { id: true, nombre: true, activo: true },
     });
+
     if (!idioma) {
-      throw new ConflictException('El idioma no existe');
+      throw new NotFoundException(`Idioma con id ${id} no encontrado`);
     }
-    return {
-      ...idioma,
-      activo: idioma.deletedAt === null,
-      deletedAt: undefined,
-    };
+
+    return idioma;
   }
 
   async update(id: number, dto: CreateIdiomaDto) {
     const idioma = await this.prisma.idiomas.findUnique({
       where: { id: BigInt(id) },
     });
-    if (!idioma) {
-      throw new ConflictException('El idioma no existe');
+    if (!idioma || !idioma.activo) {
+      throw new NotFoundException('El idioma no existe');
     }
 
     const existe = await this.prisma.idiomas.findUnique({
       where: {
         nombre: dto.nombre,
-        deletedAt: null,
-        NOT: { id: BigInt(id) },
       },
     });
 
@@ -86,22 +71,23 @@ export class IdiomasService {
       where: { id: BigInt(id) },
       data: {
         nombre: dto.nombre,
-        descripcion: dto.descripcion,
       },
+      select: { id: true, nombre: true, activo: true },
     });
   }
 
   async delete(id: number) {
     const idioma = await this.prisma.idiomas.findUnique({
-      where: { id: BigInt(id), deletedAt: null },
+      where: { id: BigInt(id) },
     });
-    if (!idioma) {
-      throw new ConflictException('El idioma no existe');
+
+    if (!idioma || !idioma.activo) {
+      throw new NotFoundException('El idioma no existe');
     }
 
     await this.prisma.idiomas.update({
       where: { id: BigInt(id) },
-      data: { deletedAt: new Date() },
+      data: { activo: false },
     });
 
     return { message: `Idioma con id ${id} desactivado exitosamente` };

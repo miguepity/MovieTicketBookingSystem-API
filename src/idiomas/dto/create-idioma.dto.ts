@@ -1,20 +1,9 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateIdiomaDto {
-  @ApiProperty({
-    description: 'Nombre del idioma',
-    example: 'Español',
-  })
+  @ApiProperty({ description: 'Nombre del idioma', example: 'Español' })
   @IsString()
-  @IsNotEmpty()
+  @Length(2, 60, { message: 'El nombre debe tener entre 2 y 60 caracteres' })
   nombre: string;
-
-  @ApiProperty({
-    description: 'Descripción del idioma',
-    example: 'Idioma español para películas y subtítulos',
-  })
-  @IsString()
-  @IsNotEmpty()
-  descripcion: string;
 }
