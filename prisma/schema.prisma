@@ -226,6 +226,8 @@ model Usuarios {
 model Idiomas {
   id        BigInt      @id @default(autoincrement())
   nombre    String      @unique @db.VarChar(60)
+  activo    Boolean     @default(true)
+  deletedAt DateTime?   // null = activo, fecha = eliminado
   peliculas Peliculas[]
 
   @@map("idiomas")
