@@ -181,11 +181,7 @@ async function main() {
   const countPoliticas = await prisma.politicaCancelacion.count();
   if (countPoliticas === 0) {
     await prisma.politicaCancelacion.createMany({
-      data: [
-        { horas_antes_minimo: 24, porcentaje_reembolso: 100.0 },
-        { horas_antes_minimo: 12, porcentaje_reembolso: 50.0 },
-        { horas_antes_minimo: 0, porcentaje_reembolso: 0.0 },
-      ],
+      data: [{ horas_antes_minimo: 4, porcentaje_reembolso: 30.0 }],
     });
   }
 
