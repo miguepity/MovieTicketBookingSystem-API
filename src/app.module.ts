@@ -33,11 +33,8 @@ import { ReservasModule } from './reservas/reservas.module';
     PoliticaCancelacionModule,
     SalasModule,
     CinesModule,
-<<<<<<< HEAD
     PagosModule,
-=======
     ReservasModule,
->>>>>>> 4615227 (  feat: register ReservasModule and add GET /funciones/:id/asientos)
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
