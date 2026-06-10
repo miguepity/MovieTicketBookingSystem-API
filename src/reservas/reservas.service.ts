@@ -1,0 +1,215 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateReservaDto } from './dto/create-reserva.dto';
+import { UpdateReservaDto } from './dto/update-reserva.dto';
+import { nanoid } from 'nanoid';
+
+@Injectable()
+export class ReservasService {
+  constructor(private prisma: PrismaService) {}
+
+  private serialize<T>(data: T): T {
+    return JSON.parse(
+      JSON.stringify(data, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    ) as T;
+  }
+
+  async create(createReservaDto: CreateReservaDto) {
+    const { id_usuario, id_funcion, asientosIds } = createReservaDto;
+
+    // Verificar que los asientos estén disponibles
+    const asientos = await this.prisma.asientosFuncion.findMany({
+      where: {
+        id: { in: asientosIds.map((id) => BigInt(id)) },
+        id_funcion: BigInt(id_funcion),
+        estado: 'disponible',
+      },
+    });
+
+    if (asientos.length !== asientosIds.length) {
+      throw new BadRequestException('Uno o más asientos no están disponibles');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Crear la reserva
+      const reserva = await tx.reservas.create({
+        data: {
+          numero_reserva: `RES-${nanoid(10).toUpperCase()}`,
+          id_usuario: BigInt(id_usuario),
+          id_funcion: BigInt(id_funcion),
+          estado: 'pendiente',
+        },
+      });
+
+      // 2. Asociar los asientos a la reserva
+      await tx.reservaAsientos.createMany({
+        data: asientosIds.map((asientoId) => ({
+          id_reserva: reserva.id,
+          id_asiento_funcion: BigInt(asientoId),
+        })),
+      });
+
+      // 3. Actualizar el estado de los asientos
+      await tx.asientosFuncion.updateMany({
+        where: {
+          id: { in: asientosIds.map((id) => BigInt(id)) },
+        },
+        data: {
+          estado: 'reservado',
+          id_usuario: BigInt(id_usuario),
+        },
+      });
+
+      return this.serialize(reserva);
+    });
+  }
+
+  async findAll() {
+    const reservas = await this.prisma.reservas.findMany({
+      include: {
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: {
+                asientos: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    return this.serialize(reservas);
+  }
+
+  async findOne(id: number) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: {
+                asientos: true,
+              },
+            },
+          },
+        },
+        usuarios: {
+          select: {
+            nombre: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    return this.serialize(reserva);
+  }
+
+  async update(id: number, updateReservaDto: UpdateReservaDto) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    const updated = await this.prisma.reservas.update({
+      where: { id: BigInt(id) },
+      data: updateReservaDto,
+    });
+
+    return this.serialize(updated);
+  }
+
+  async remove(id: number) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        reservaAsientos: true,
+      },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Liberar asientos
+      await tx.asientosFuncion.updateMany({
+        where: {
+          id: {
+            in: reserva.reservaAsientos.map((ra) => ra.id_asiento_funcion),
+          },
+        },
+        data: {
+          estado: 'disponible',
+          id_usuario: null,
+        },
+      });
+
+      // Eliminar relaciones de asientos
+      await tx.reservaAsientos.deleteMany({
+        where: { id_reserva: BigInt(id) },
+      });
+
+      // Eliminar reserva
+      const deleted = await tx.reservas.delete({
+        where: { id: BigInt(id) },
+      });
+
+      return this.serialize(deleted);
+    });
+  }
+
+  async cancelar(id: bigint) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id },
+      include: {
+        reservaAsientos: true,
+      },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    if (reserva.estado === 'cancelada') {
+      throw new BadRequestException('La reserva ya está cancelada');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Liberar asientos
+      await tx.asientosFuncion.updateMany({
+        where: {
+          id: {
+            in: reserva.reservaAsientos.map((ra) => ra.id_asiento_funcion),
+          },
+        },
+        data: {
+          estado: 'disponible',
+          id_usuario: null,
+        },
+      });
+
+      // Actualizar estado de la reserva a cancelada
+      const updated = await tx.reservas.update({
+        where: { id },
+        data: { estado: 'cancelada' },
+      });
+
+      return this.serialize(updated);
+    });
+  }
+}

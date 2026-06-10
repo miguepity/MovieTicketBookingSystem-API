@@ -21,6 +21,12 @@ async function bootstrap() {
     }),
   );
 
+  // Serializar BigInt como string en respuestas JSON
+  (BigInt.prototype as unknown as { toJSON: () => string }).toJSON =
+    function () {
+      return this.toString();
+    };
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

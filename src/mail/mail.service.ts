@@ -1,40 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { EmailParams, MailerSend, Recipient, Sender } from 'mailersend';
+import { BrevoClient } from '@getbrevo/brevo';
 
 @Injectable()
 export class MailService {
-  private domain: string;
-  private client: MailerSend;
+  private client: BrevoClient;
+
+  private senderEmail: string;
 
   constructor() {
-    const domain = process.env.MAILSEND_DOMAIN;
-    const key = process.env.MAILSEND_API_KEY;
+    const key = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
 
-    if (!key || !domain)
+    if (!key || !senderEmail)
       throw new Error(
-        'MAILSEND_API_KEY o MAILSEND_DOMAIN no están definidos en las variables de entorno',
+        'BREVO_API_KEY o BREVO_SENDER_EMAIL no están definidos en las variables de entorno',
       );
 
-    this.domain = domain;
-    this.client = new MailerSend({
-      apiKey: process.env.MAILSEND_API_KEY || '',
+    this.senderEmail = senderEmail;
+    this.client = new BrevoClient({
+      apiKey: key,
     });
   }
 
   async sendEmail(to: string, subject: string, html: string) {
     try {
-      const recipient = new Recipient(to);
-      const sentFrom = new Sender(`no-reply@${this.domain}`, 'MovieSys');
+      const result = await this.client.transactionalEmails.sendTransacEmail({
+        subject: subject,
+        htmlContent: html,
+        sender: { name: 'MovieSys', email: this.senderEmail },
+        to: [{ email: to, name: to.split('@')[0] }],
+      });
 
-      const emailParams = new EmailParams()
-        .setFrom(sentFrom)
-        .setTo([recipient])
-        .setSubject(subject)
-        .setHtml(html);
-
-      await this.client.email.send(emailParams);
-    } catch (err) {
-      console.log(err);
+      console.log('Email sent. Message ID:', result.messageId);
+    } catch (error) {
+      console.error('Error al enviar el correo:', error);
+      throw new Error('No se pudo enviar el correo');
     }
   }
 }

@@ -181,11 +181,7 @@ async function main() {
   const countPoliticas = await prisma.politicaCancelacion.count();
   if (countPoliticas === 0) {
     await prisma.politicaCancelacion.createMany({
-      data: [
-        { horas_antes_minimo: 24, porcentaje_reembolso: 100.0 },
-        { horas_antes_minimo: 12, porcentaje_reembolso: 50.0 },
-        { horas_antes_minimo: 0, porcentaje_reembolso: 0.0 },
-      ],
+      data: [{ horas_antes_minimo: 4, porcentaje_reembolso: 30.0 }],
     });
   }
 
@@ -222,6 +218,60 @@ async function main() {
             version: 1,
           })),
         });
+      }
+    }
+  }
+
+  // 10. Sample Reservation
+  console.log('[Seeding] Creating sample reservation...');
+  const firstUser = await prisma.usuarios.findFirst();
+  const firstFuncion = await prisma.funciones.findFirst();
+
+  if (firstUser && firstFuncion) {
+    const existingReserva = await prisma.reservas.findFirst({
+      where: { id_usuario: firstUser.id, id_funcion: firstFuncion.id },
+    });
+
+    if (!existingReserva) {
+      const reservationNumber = `SEED-RES-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+      const reserva = await prisma.reservas.create({
+        data: {
+          numero_reserva: reservationNumber,
+          id_usuario: firstUser.id,
+          id_funcion: firstFuncion.id,
+          estado: 'confirmada',
+        },
+      });
+
+      // Tomar 2 asientos disponibles para esta función
+      const asientosDisponibles = await prisma.asientosFuncion.findMany({
+        where: { id_funcion: firstFuncion.id, estado: 'disponible' },
+        take: 2,
+      });
+
+      if (asientosDisponibles.length > 0) {
+        // Crear relación Reserva-Asientos
+        await prisma.reservaAsientos.createMany({
+          data: asientosDisponibles.map((af) => ({
+            id_reserva: reserva.id,
+            id_asiento_funcion: af.id,
+          })),
+        });
+
+        // Marcar asientos como reservados
+        await prisma.asientosFuncion.updateMany({
+          where: {
+            id: { in: asientosDisponibles.map((af) => af.id) },
+          },
+          data: {
+            estado: 'reservado',
+            id_usuario: firstUser.id,
+          },
+        });
+        console.log(
+          `[Seeding] Created reservation ${reservationNumber} with 2 seats.`,
+        );
       }
     }
   }

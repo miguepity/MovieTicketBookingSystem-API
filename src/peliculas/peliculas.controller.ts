@@ -19,19 +19,18 @@ import {
 } from '@nestjs/swagger';
 import { PeliculasService } from './peliculas.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
-import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { UploadPosterDto } from './dto/upload-poster.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { AuthGuard } from '../auth/auth.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Peliculas')
 @Controller('peliculas')
 export class PeliculasController {
   constructor(private readonly peliculasService: PeliculasService) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  @Post()
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     description: 'Create a new movie.',
     responses: {
@@ -55,17 +54,39 @@ export class PeliculasController {
           },
         },
       },
+      500: { description: 'Internal server error' },
     },
   })
-  @Post()
   createPelicula(@Body() dto: CreatePeliculaDto) {
     return this.peliculasService.createPelicula(dto);
   }
 
   @Get()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Obtener películas activas, con búsqueda opcional por título',
+    description: 'Obtener peliculas activas con busqueda opcional por titulo',
+    responses: {
+      200: {
+        description: 'Lista de peliculas',
+        content: {
+          'application/json': {
+            example: [
+              {
+                id: '1',
+                titulo: 'Avatar',
+                sinopsis: 'Sinopsis',
+                poster_url: 'http://image.link/12345',
+                fecha_estreno: '2026-03-09',
+                idiomas: { nombre: 'Ingles' },
+                generos: { nombre: 'Accion' },
+              },
+            ],
+          },
+        },
+      },
+      500: { description: 'Error interno del servidor' },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -98,13 +119,13 @@ export class PeliculasController {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  @Post(':id/poster')
   @ApiOperation({
-    description: 'Upload the poster for a movie by its id.',
+    description: 'Subir el poster de una pelicula por su ID',
     responses: {
-      201: {
-        description: 'Poster uploaded succesfully',
-      },
+      201: { description: 'Poster subido exitosamente' },
+      404: { description: 'Pelicula no encontrada' },
+      500: { description: 'Error interno del servidor' },
     },
   })
   @Post(':id/poster')
@@ -122,27 +143,34 @@ export class PeliculasController {
   @Put(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  @ApiOperation({ summary: 'Editar una película por ID' })
-  @ApiParam({ name: 'id', description: 'ID de la película a editar' })
-  @ApiResponse({
-    status: 200,
-    description: 'Película actualizada exitosamente',
-    schema: {
-      example: {
-        id: 1,
-        titulo: 'The Matrix Updated',
-        sinopsis: '...',
-        poster_url: '...',
-        fecha_estreno: '1999-03-31',
-        activo: true,
-        updated_at: '2026-06-07T12:00:00Z',
-        id_usuario: '1',
-        idiomas: { nombre: 'Inglés' },
-        generos: { nombre: 'Ciencia Ficción' },
+  @ApiOperation({
+    description: 'Editar una pelicula por ID',
+    responses: {
+      200: {
+        description: 'Pelicula actualizada exitosamente',
+        content: {
+          'application/json': {
+            example: {
+              id: '1',
+              titulo: 'Avatar actualizado',
+              sinopsis: 'Sinopsis actualizada',
+              poster_url: 'http://image.link/12345',
+              fecha_estreno: '2026-03-09',
+              activo: true,
+              updated_at: '2026-06-07T00:00:00.000Z',
+              id_usuario: '1',
+              idiomas: { nombre: 'Ingles' },
+              generos: { nombre: 'Accion' },
+            },
+          },
+        },
       },
+      401: { description: 'No autorizado' },
+      404: { description: 'Pelicula no encontrada' },
+      500: { description: 'Error interno del servidor' },
     },
   })
+  @ApiParam({ name: 'id', description: 'ID de la pelicula a editar' })
   async editar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePeliculaDto,
@@ -159,7 +187,6 @@ export class PeliculasController {
   }
 
   @Get(':id/cines/:cineId/funciones')
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiOperation({
     summary:
       'Obtener funciones de una película en un cine específico con disponibilidad de asientos',

@@ -11,9 +11,16 @@ import { FuncionesModule } from './funciones/funciones.module';
 import { RolesModule } from './roles/roles.module';
 import { MailModule } from './mail/mail.module';
 import { CuponesModule } from './cupones/cupones.module';
+import { PoliticaCancelacionModule } from './politica-cancelacion/politica-cancelacion.module';
+import { SalasModule } from './salas/salas.module';
+import { CinesModule } from './cines/cines.module';
+import { PagosModule } from './pagos/pagos.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     PeliculasModule,
@@ -23,6 +30,11 @@ import { CuponesModule } from './cupones/cupones.module';
     RolesModule,
     MailModule,
     CuponesModule,
+    PoliticaCancelacionModule,
+    SalasModule,
+    CinesModule,
+    PagosModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
