@@ -19,12 +19,10 @@ import {
 } from '@nestjs/swagger';
 import { PeliculasService } from './peliculas.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
-import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { UploadPosterDto } from './dto/upload-poster.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { AuthGuard } from '../auth/auth.guard';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Peliculas')
 @Controller('peliculas')
 export class PeliculasController {
@@ -32,9 +30,7 @@ export class PeliculasController {
 
   @Post()
   @UseGuards(AuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiBearerAuth()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiOperation({
     description: 'Create a new movie.',
     responses: {
@@ -66,9 +62,7 @@ export class PeliculasController {
   }
 
   @Get()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @UseGuards(AuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiBearerAuth()
   @ApiOperation({
     description: 'Obtener peliculas activas con busqueda opcional por titulo',
@@ -126,7 +120,6 @@ export class PeliculasController {
   }
 
   @Post(':id/poster')
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiOperation({
     description: 'Subir el poster de una pelicula por su ID',
     responses: {
@@ -149,7 +142,6 @@ export class PeliculasController {
 
   @Put(':id')
   @UseGuards(AuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiBearerAuth()
   @ApiOperation({
     description: 'Editar una pelicula por ID',
@@ -195,7 +187,6 @@ export class PeliculasController {
   }
 
   @Get(':id/cines/:cineId/funciones')
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiOperation({
     summary:
       'Obtener funciones de una película en un cine específico con disponibilidad de asientos',

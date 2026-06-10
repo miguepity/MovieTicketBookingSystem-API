@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
+import { UpdateSalaDto } from './dto/update-sala.dto';
 
 const maxSalas = 20;
 
@@ -14,7 +15,6 @@ export class SalasService {
   constructor(private readonly prisma: PrismaService) {}
 
   async crearSala(idCine: number, dto: CreateSalaDto) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const cine = await this.prisma.cines.findUnique({
       where: { id: BigInt(idCine) },
     });
@@ -23,7 +23,6 @@ export class SalasService {
       throw new NotFoundException(`Cine con id ${idCine} no encontrado`);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const totalSalas = await this.prisma.salas.count({
       where: { id_cine: BigInt(idCine) },
     });
@@ -34,7 +33,6 @@ export class SalasService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const salaExistente = await this.prisma.salas.findFirst({
       where: {
         nombre: dto.nombre,
@@ -60,7 +58,6 @@ export class SalasService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const sala = await this.prisma.salas.create({
       data: {
         nombre: dto.nombre,
@@ -99,7 +96,6 @@ export class SalasService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.prisma.asientos.createMany({ data: asientos });
 
     return {
@@ -109,7 +105,6 @@ export class SalasService {
   }
 
   async getSala(id: number) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const sala = await this.prisma.salas.findUnique({
       where: { id: BigInt(id) },
       select: {
@@ -136,5 +131,73 @@ export class SalasService {
     }
 
     return sala;
+  }
+
+  async getSalas(idCine?: number) {
+    return await this.prisma.salas.findMany({
+      where: idCine ? { id_cine: BigInt(idCine) } : {},
+      select: {
+        id: true,
+        nombre: true,
+        filas: true,
+        columnas: true,
+        id_cine: true,
+      },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  async update(id: number, dto: UpdateSalaDto) {
+    const sala = await this.prisma.salas.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!sala) {
+      throw new NotFoundException(`Sala con id ${id} no encontrada`);
+    }
+
+    if (dto.nombre) {
+      const salaExistente = await this.prisma.salas.findFirst({
+        where: {
+          nombre: dto.nombre,
+          id_cine: sala.id_cine,
+          NOT: { id: BigInt(id) },
+        },
+      });
+
+      if (salaExistente) {
+        throw new ConflictException(
+          `Ya existe una sala con el nombre "${dto.nombre}" en este cine`,
+        );
+      }
+    }
+
+    return await this.prisma.salas.update({
+      where: { id: BigInt(id) },
+      data: {
+        nombre: dto.nombre,
+      },
+      select: {
+        id: true,
+        nombre: true,
+        filas: true,
+        columnas: true,
+        id_cine: true,
+      },
+    });
+  }
+
+  async delete(id: number) {
+    const sala = await this.prisma.salas.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!sala) {
+      throw new NotFoundException(`Sala con id ${id} no encontrada`);
+    }
+
+    await this.prisma.salas.delete({
+      where: { id: BigInt(id) },
+    });
   }
 }
