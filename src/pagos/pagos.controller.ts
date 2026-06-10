@@ -23,7 +23,9 @@ export class PagosController {
   }
 
   @Post('efectivo')
-  @ApiOperation({ summary: 'Registrar un pago en efectivo (solo recepcionista)' })
+  @ApiOperation({
+    summary: 'Registrar un pago en efectivo (solo recepcionista)',
+  })
   async pagoEfectivo(@Body() dto: CreatePagoEfectivoDto) {
     return await this.pagosService.pagoEfectivo(dto);
   }

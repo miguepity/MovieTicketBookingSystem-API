@@ -15,7 +15,10 @@ export class CreateCuponeDto {
   @IsNotEmpty()
   codigo: string;
 
-  @ApiProperty({ example: 'PORCENTAJE', description: 'Tipo de descuento (ej: PORCENTAJE, MONTO)' })
+  @ApiProperty({
+    example: 'PORCENTAJE',
+    description: 'Tipo de descuento (ej: PORCENTAJE, MONTO)',
+  })
   @IsString()
   @IsNotEmpty()
   tipo: string;
@@ -25,7 +28,10 @@ export class CreateCuponeDto {
   @IsNotEmpty()
   valor: number;
 
-  @ApiProperty({ example: '2026-12-31T23:59:59Z', description: 'Fecha de expiración' })
+  @ApiProperty({
+    example: '2026-12-31T23:59:59Z',
+    description: 'Fecha de expiración',
+  })
   @IsDateString()
   @IsNotEmpty()
   fecha_expiracion: string;
@@ -35,7 +41,10 @@ export class CreateCuponeDto {
   @IsOptional()
   usos_maximos?: number;
 
-  @ApiPropertyOptional({ example: true, description: 'Si el cupón está activo' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Si el cupón está activo',
+  })
   @IsBoolean()
   @IsOptional()
   activo?: boolean;

@@ -23,7 +23,9 @@ export class FuncionesService {
     });
     if (!pelicula) throw new NotFoundException('Película no encontrada');
     if (!pelicula.activo)
-      throw new BadRequestException('No se puede crear una función para una película inactiva');
+      throw new BadRequestException(
+        'No se puede crear una función para una película inactiva',
+      );
 
     return this.prisma.$transaction(async (tx) => {
       const funcion = await tx.funciones.create({

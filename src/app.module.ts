@@ -43,7 +43,7 @@ import { PagosModule } from './pagos/pagos.module';
     ReservasModule,
     AsientosModule,
     AsientosFuncionModule,
-    PagosModule
+    PagosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -34,7 +34,9 @@ export class UsuariosController {
   }
 
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Cambiar el estado (activo/inactivo) de un usuario' })
+  @ApiOperation({
+    summary: 'Cambiar el estado (activo/inactivo) de un usuario',
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
@@ -56,25 +58,25 @@ export class UsuariosController {
   }
 
   @Patch(':id/notifications')
-  @ApiOperation({ summary: 'Activar o desactivar notificaciones de un usuario' })
+  @ApiOperation({
+    summary: 'Activar o desactivar notificaciones de un usuario',
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
-  toggleNotifications(
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  toggleNotifications(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.toggleNotifications(id);
   }
 
   @Post(':id/trigger-cancelacion')
   @ApiOperation({ summary: 'Disparar cancelación manual para un usuario' })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
-  triggerCancelacion(
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  triggerCancelacion(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.triggerCancelacionUsuario(id);
   }
 
   @Get('suscritos-nueva-pelicula')
-  @ApiOperation({ summary: 'Listar clientes suscritos a notificaciones de nuevas películas' })
+  @ApiOperation({
+    summary: 'Listar clientes suscritos a notificaciones de nuevas películas',
+  })
   getClientesSuscritos() {
     return this.usuariosService.findClientesSuscritos();
   }
