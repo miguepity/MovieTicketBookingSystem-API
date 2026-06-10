@@ -26,9 +26,16 @@ export class IdiomasController {
           },
         },
       },
+      401: { description: 'No autorizado' },
+      409: { description: 'Ya existe un idioma con ese nombre' },
+      500: { description: 'Error interno del servidor' },
     },
   })
-  create(@Body() dto: CreateIdiomaDto) {
-    return this.idiomasService.create(dto);
+  async create(@Body() dto: CreateIdiomaDto) {
+    const idioma = await this.idiomasService.create(dto);
+    return {
+      ...idioma,
+      id: idioma.id.toString(),
+    };
   }
 }

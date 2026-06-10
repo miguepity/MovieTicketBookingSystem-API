@@ -9,12 +9,4 @@ export class CreateGeneroDto {
     example: 'Acción',
   })
   nombre: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
-    description: 'Descripción del genero',
-    example: 'Películas de acción con mucha adrenalina',
-  })
-  descripcion: string;
 }
