@@ -1,13 +1,8 @@
-import { IsDateString, IsNumber, IsString, IsOptional } from 'class-validator';
+import { IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCiudadeDto {
-  @IsNumber()
-  id!: number;
-
+  @ApiProperty({ example: 'Tegucigalpa' })
   @IsString()
   nombre!: string;
-
-  @IsDateString()
-  @IsOptional()
-  created_at?: string;
 }
