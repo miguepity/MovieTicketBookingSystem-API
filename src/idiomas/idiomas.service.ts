@@ -62,4 +62,33 @@ export class IdiomasService {
       deletedAt: undefined,
     };
   }
+
+  async update(id: number, dto: CreateIdiomaDto) {
+    const idioma = await this.prisma.idiomas.findUnique({
+      where: { id: BigInt(id) },
+    });
+    if (!idioma) {
+      throw new ConflictException('El idioma no existe');
+    }
+
+    const existe = await this.prisma.idiomas.findFirst({
+      where: {
+        nombre: dto.nombre,
+        deletedAt: null,
+        NOT: { id: BigInt(id) },
+      },
+    });
+
+    if (existe && existe.id !== BigInt(id)) {
+      throw new ConflictException('El idioma ya existe');
+    }
+
+    return await this.prisma.idiomas.update({
+      where: { id: BigInt(id) },
+      data: {
+        nombre: dto.nombre,
+        descripcion: dto.descripcion,
+      },
+    });
+  }
 }
