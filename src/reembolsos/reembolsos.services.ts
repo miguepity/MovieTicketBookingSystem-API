@@ -44,23 +44,25 @@ export class ReembolsosService{
 
     async getPaymentHistory(dto: FilterBodyDto){
         const findPagos = await this.prisma.pagos.findMany({
-            where: {estado: dto.estado}
+            where: {estado: dto.estado_pagos}
         });
-        const findRembolsos = await this.prisma.reembolsos.findMany();
+        const findRembolsos = await this.prisma.reembolsos.findMany({
+            where: {estado: dto.estado_reembolsos}
+        });
 
         if(findPagos.length === 0 && findRembolsos.length === 0){
             throw new NotFoundException('No existe historial de pagos y reembolsos');
         }
 
         // Fix: filter callbacks were missing `return`, so they always yielded undefined (empty results)
-        const filterPagos = dto.created_at
-            ? findPagos.filter((pag) => pag.created_at.getTime() >= new Date(dto.created_at).getTime())
+        const filterPagos = dto.fecha_limite_pagos
+            ? findPagos.filter((pag) => pag.created_at.getTime() >= new Date(dto.fecha_limite_pagos).getTime())
             : findPagos;
 
-        const filterReembolsos = dto.fecha_procesado
+        const filterReembolsos = dto.fecha_limite_reembolsos
             ? findRembolsos.filter((rem) =>
                 rem.fecha_procesado != null &&
-                rem.fecha_procesado.getTime() >= new Date(dto.fecha_procesado).getTime()
+                rem.fecha_procesado.getTime() >= new Date(dto.fecha_limite_reembolsos).getTime()
               )
             : findRembolsos;
 
