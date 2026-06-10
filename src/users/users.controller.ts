@@ -1,6 +1,7 @@
 import {
   Controller,
   Put,
+  Patch,
   Body,
   Param,
   ParseIntPipe,
@@ -8,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ToggleNotificacionesDto } from './dto/toggle-notificaciones.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -55,6 +57,42 @@ export class UsersController {
       ...usuario,
       id: usuario.id.toString(),
       id_rol: usuario.id_rol.toString(),
+    };
+  }
+
+  @Patch(':id/notificaciones')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Toggle de preferencia de notificaciones del usuario',
+  })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferencia de notificaciones actualizada exitosamente',
+    schema: {
+      example: {
+        id: '1',
+        notificaciones_activas: true,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  async toggleNotificaciones(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() toggleDto: ToggleNotificacionesDto,
+  ) {
+    const usuario = await this.usersService.toggleNotificaciones(
+      id,
+      toggleDto.notificaciones_activas,
+    );
+
+    return {
+      id: usuario.id.toString(),
+      notificaciones_activas: usuario.notificaciones_activas,
     };
   }
 }
