@@ -74,4 +74,63 @@ export class FuncionesService {
 
     return;
   }
+
+  async getFuncionesPorCine(idPelicula: string, idCine: string) {
+    const funciones = await this.prisma.funciones.findMany({
+      where: {
+        id_pelicula: BigInt(idPelicula),
+        salas: {
+          id_cine: BigInt(idCine),
+        },
+        estado: 'active',
+      },
+      select: {
+        id: true,
+        fecha_hora: true,
+        salas: {
+          select: {
+            id: true,
+            nombre: true,
+            filas: true,
+            columnas: true,
+          },
+        },
+        asientosFuncions: {
+          select: {
+            id: true,
+            estado: true,
+          },
+        },
+      },
+      orderBy: {
+        fecha_hora: 'asc',
+      },
+    });
+
+    return funciones.map((funcion) => {
+      const totalAsientos = funcion.asientosFuncions.length;
+      const asientosDisponibles = funcion.asientosFuncions.filter(
+        (a) => a.estado === 'disponible',
+      ).length;
+
+      return {
+        id: funcion.id.toString(),
+        fecha_hora: funcion.fecha_hora,
+        sala: {
+          id: funcion.salas.id.toString(),
+          nombre: funcion.salas.nombre,
+          filas: funcion.salas.filas,
+          columnas: funcion.salas.columnas,
+        },
+        disponibilidad: {
+          total: totalAsientos,
+          disponibles: asientosDisponibles,
+          ocupados: totalAsientos - asientosDisponibles,
+          porcentaje_disponibilidad: Math.round(
+            (asientosDisponibles / totalAsientos) * 100,
+          ),
+        },
+      };
+    });
+  }
 }
