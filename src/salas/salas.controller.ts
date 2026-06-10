@@ -17,8 +17,8 @@ import {
 } from '@nestjs/swagger';
 import { SalasService } from './salas.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
-import { UpdateSalaDto } from './dto/update-sala.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { UpdateSalaDto } from './dto/update-sala.dto';
 
 @ApiTags('Salas')
 @Controller('cines')
@@ -198,10 +198,11 @@ export class SalasController {
           'application/json': {
             example: {
               id: '1',
-              nombre: 'Sala Actualizada',
-              filas: 3,
-              columnas: 4,
+              nombre: 'Sala VIP',
+              filas: 5,
+              columnas: 10,
               id_cine: '1',
+              advertencia: 'Esta sala tiene 2 funcion(es) activa(s)',
             },
           },
         },

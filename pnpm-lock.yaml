@@ -53,9 +53,6 @@ importers:
       mailersend:
         specifier: ^3.0.0
         version: 3.0.0
-      nodemailer:
-        specifier: ^8.0.10
-        version: 8.0.10
       npm:
         specifier: ^11.16.0
         version: 11.16.0
@@ -2998,10 +2995,6 @@ packages:
 
   node-releases@2.0.44:
     resolution: {integrity: sha512-5WUyunoPMsvvEhS8AxHtRzP+oA8UCkJ7YRxatWKjngndhDGLiqEVAQKWjFAiAiuL8zMRGzGSJxFnLetoa43qGQ==}
-
-  nodemailer@8.0.10:
-    resolution: {integrity: sha512-BLFuSth7QtHOkBzyqTehWWyub0NTRDuK2Q2SQfnGLsrJnzyU+Yeh4WpV1eZGuARFj1xQJHIdnTuJZLP+b9R1GQ==}
-    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -7101,8 +7094,6 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.44: {}
-
-  nodemailer@8.0.10: {}
 
   normalize-path@3.0.0: {}
 
