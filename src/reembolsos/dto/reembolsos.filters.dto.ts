@@ -1,12 +1,19 @@
-import { IsString, IsDateString } from "class-validator"
+import { IsString, IsDateString, IsOptional } from "class-validator"
 
 export class FilterBodyDto{
+    @IsOptional()
     @IsString()
-    estado!: string
+    estado_pagos!: string
 
-    @IsDateString()
-    created_at!: Date
+    @IsOptional()
+    @IsString()
+    estado_reembolsos!: string
 
+    @IsOptional()
     @IsDateString()
-    fecha_procesado!: Date
+    fecha_limite_pagos!: Date
+
+    @IsOptional()
+    @IsDateString()
+    fecha_limite_reembolsos!: Date
 }
