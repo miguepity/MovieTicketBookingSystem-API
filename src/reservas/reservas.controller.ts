@@ -42,7 +42,7 @@ export class ReservasController {
   @ApiOperation({ summary: 'Cancelar una reserva por su ID' })
   @ApiResponse({ status: 200, description: 'Reserva dada de baja. Asientos reabiertos.' })
   @ApiResponse({ status: 400, description: 'Infracción de política horaria o reserva ya cancelada.' })
-  cancelarReserva(@Param('id', ParseIntPipe) id: number) {
-    return this.reservasService.cancelarReserva(id);
+  cancelarReserva(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.reservasService.cancelarReserva(id, req.user.id);
   }
 }
