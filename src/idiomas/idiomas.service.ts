@@ -1,5 +1,4 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { Prisma } from 'generated/prisma/browser';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateIdiomaDto } from './dto/create-idioma.dto';
 
