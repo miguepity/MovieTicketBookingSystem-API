@@ -17,6 +17,7 @@ import { CinesModule } from './cines/cines.module';
 import { PagosModule } from './pagos/pagos.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReservasModule } from './reservas/reservas.module';
+import { ReembolsosModule } from './reembolsos/reembolsos.module';
 import { GeneroModule } from './genero/genero.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
 
@@ -37,6 +38,7 @@ import { IdiomasModule } from './idiomas/idiomas.module';
     CinesModule,
     PagosModule,
     ReservasModule,
+    ReembolsosModule,
     GeneroModule,
     IdiomasModule,
   ],
