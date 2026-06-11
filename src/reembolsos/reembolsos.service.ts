@@ -26,7 +26,7 @@ export class ReembolsosService {
       throw new NotFoundException(`Pago con id ${dto.id_pago} no encontrado`);
     }
 
-    if (pago.estado !== 'COMPLETADO') {
+    if (pago.estado !== 'completado') {
       throw new BadRequestException(
         `El pago con id ${dto.id_pago} no se ha completado y no es elegible para reembolso`,
       );
