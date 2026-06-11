@@ -19,7 +19,10 @@ export class CreatePeliculaDto {
   @IsString()
   sinopsis?: string;
 
-  @ApiPropertyOptional({ example: '/uploads/posters/pelicula.jpg', maxLength: 500 })
+  @ApiPropertyOptional({
+    example: '/uploads/posters/pelicula.jpg',
+    maxLength: 500,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)

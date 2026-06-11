@@ -164,23 +164,23 @@ export class UsuariosService {
       id: cliente.id.toString(),
     }));
   }
-  
-  async toggleNotifications(id: number){
+
+  async toggleNotifications(id: number) {
     const findUsuario = await this.prisma.usuarios.findUnique({
-      where: { id: BigInt(id) }
+      where: { id: BigInt(id) },
     });
     if (!findUsuario) {
       throw new NotFoundException(`Usuario no encontrado.`);
     }
 
     await this.prisma.usuarios.update({
-      where: {id: BigInt(id)},
-      data: {notificaciones_activas: !findUsuario.notificaciones_activas}
+      where: { id: BigInt(id) },
+      data: { notificaciones_activas: !findUsuario.notificaciones_activas },
     });
-    
-    if(findUsuario.notificaciones_activas){
+
+    if (findUsuario.notificaciones_activas) {
       return 'Notificaciones desactivadas';
-    }else{
+    } else {
       return 'Notificaciones activadas';
     }
   }
@@ -198,13 +198,13 @@ export class UsuariosService {
       },
     });
 
-    return clientes.map(c => ({ ...c, id: c.id.toString() }));
+    return clientes.map((c) => ({ ...c, id: c.id.toString() }));
   }
 
   async triggerCancelacionUsuario(id: number) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
-      include: { reservas: { where: { estado: 'confirmada' } } }
+      include: { reservas: { where: { estado: 'confirmada' } } },
     });
 
     if (!usuario) {
@@ -213,7 +213,7 @@ export class UsuariosService {
 
     // Aquí se dispararía la lógica para cancelar sus reservas activas
     // y notificar al usuario. Por ahora, marcamos como un trigger exitoso.
-    
+
     return {
       message: `Proceso de cancelación iniciado para el usuario ${usuario.nombre}`,
       reservas_a_cancelar: usuario.reservas.length,

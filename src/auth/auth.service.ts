@@ -60,7 +60,9 @@ export class AuthService {
     );
 
     // TODO: Enviar email de confirmación con el token
-    console.log(`Token de confirmación para ${user.email}: ${confirmationToken}`);
+    console.log(
+      `Token de confirmación para ${user.email}: ${confirmationToken}`,
+    );
 
     return {
       user: {
@@ -68,7 +70,8 @@ export class AuthService {
         id: user.id.toString(),
       },
       confirmation_token: confirmationToken,
-      message: 'Usuario registrado. Por favor confirme su cuenta usando el token enviado.',
+      message:
+        'Usuario registrado. Por favor confirme su cuenta usando el token enviado.',
     };
   }
 

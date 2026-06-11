@@ -40,7 +40,9 @@ export class AsientosFuncionController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar el estado de un asiento en una función' })
+  @ApiOperation({
+    summary: 'Actualizar el estado de un asiento en una función',
+  })
   @ApiParam({ name: 'id', description: 'ID del asiento-función' })
   update(
     @Param('id', ParseIntPipe) id: number,

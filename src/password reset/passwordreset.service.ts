@@ -1,5 +1,9 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as bcrypt from 'bcrypt';
@@ -16,7 +20,10 @@ export class PasswordResetService {
 
     if (!user) {
       // Por seguridad, no revelamos si el usuario existe o no
-      return { message: 'Si el correo existe, se ha enviado un enlace para restablecer la contraseña.' };
+      return {
+        message:
+          'Si el correo existe, se ha enviado un enlace para restablecer la contraseña.',
+      };
     }
 
     const token = uuidv4();
@@ -34,7 +41,10 @@ export class PasswordResetService {
     // TODO: Integrar con EmailService para enviar el token
     console.log(`Token de recuperación para ${dto.email}: ${token}`);
 
-    return { message: 'Si el correo existe, se ha enviado un enlace para restablecer la contraseña.' };
+    return {
+      message:
+        'Si el correo existe, se ha enviado un enlace para restablecer la contraseña.',
+    };
   }
 
   async resetPassword(dto: ResetPasswordDto) {

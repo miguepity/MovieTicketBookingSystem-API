@@ -66,16 +66,18 @@ export class PeliculasController {
       }),
       fileFilter: (_, file, cb) => {
         if (!file.mimetype.match(/image\/(jpg|jpeg|png|webp)/)) {
-          return cb(new BadRequestException('Solo se permiten imágenes (jpg, jpeg, png, webp)'), false);
+          return cb(
+            new BadRequestException(
+              'Solo se permiten imágenes (jpg, jpeg, png, webp)',
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
     }),
   )
-  uploadPoster(
-    @Param('id') id: string,
-    @UploadedFile() file: any,
-  ) {
+  uploadPoster(@Param('id') id: string, @UploadedFile() file: any) {
     return this.peliculasService.uploadPoster(+id, file);
   }
 
