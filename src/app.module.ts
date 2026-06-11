@@ -17,6 +17,7 @@ import { CinesModule } from './cines/cines.module';
 import { PagosModule } from './pagos/pagos.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReservasModule } from './reservas/reservas.module';
+import { ReembolsosModule } from './reembolsos/reembolsos.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ReservasModule } from './reservas/reservas.module';
     CinesModule,
     PagosModule,
     ReservasModule,
+    ReembolsosModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
