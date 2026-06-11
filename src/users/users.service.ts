@@ -157,4 +157,21 @@ export class UsersService {
       ),
     );
   }
+
+  async toggleNotificaciones(id: number, notificaciones_activas: boolean) {
+    const user = await this.prismaService.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!user) {
+      throw new ConflictException('Usuario no encontrado');
+    }
+
+    return await this.prismaService.usuarios.update({
+      where: { id: BigInt(id) },
+      data: {
+        notificaciones_activas,
+      },
+    });
+  }
 }

@@ -14,6 +14,7 @@ import {
 import { SearchUserDto } from './dto/search-user.dto';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ToggleNotificacionesDto } from './dto/toggle-notificaciones.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import {
@@ -66,6 +67,42 @@ export class UsersController {
     };
   }
 
+  @Patch(':id/notificaciones')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Toggle de preferencia de notificaciones del usuario',
+  })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferencia de notificaciones actualizada exitosamente',
+    schema: {
+      example: {
+        id: '1',
+        notificaciones_activas: true,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  async toggleNotificaciones(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() toggleDto: ToggleNotificacionesDto,
+  ) {
+    const usuario = await this.usersService.toggleNotificaciones(
+      id,
+      toggleDto.notificaciones_activas,
+    );
+
+    return {
+      id: usuario.id.toString(),
+      notificaciones_activas: usuario.notificaciones_activas,
+    };
+    }    
+  
   @Get()
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -96,8 +133,8 @@ export class UsersController {
       );
 
     return await this.usersService.findAll(searchUserDto);
-  }
-
+    }
+  
   @Put(':id/password')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

@@ -19,7 +19,6 @@ import { CreateCineDto } from './dto/create-cine.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { UpdateCineDto } from './dto/update-cine.dto';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 @ApiTags('Cines')
 @Controller('cines')
 export class CinesController {
@@ -27,7 +26,6 @@ export class CinesController {
 
   @Post()
   @UseGuards(AuthGuard)
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @ApiBearerAuth()
   @ApiOperation({
     description: 'Crear un nuevo cine',
