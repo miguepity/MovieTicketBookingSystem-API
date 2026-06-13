@@ -19,9 +19,9 @@ export class ReservasService {
     const ahora = new Date();
 
     const nuevaReserva = await this.prisma.$transaction(async (tx) => {
-      
+
       for (const afId of asientosFuncionIds) {
-        
+
         const asientoFuncion = await tx.asientosFuncion.findUnique({
           where: { id: BigInt(afId) },
         });
@@ -66,10 +66,19 @@ export class ReservasService {
       await tx.reservaAsientos.createMany({ data: registrosIntermedios });
 
       await tx.asientosFuncion.updateMany({
-        where: { id: { in: asientosFuncionIds.map(id => BigInt(id)) } },
-        data: { 
+        where: { id: { in: asientosFuncionIds.map((id) => BigInt(id)) } },
+        data: {
           estado: 'PENDIENTE_DE_PAGO',
-          id_usuario: BigInt(userId) 
+          id_usuario: BigInt(userId),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: BigInt(userId),
+          id_auditor: BigInt(userId),
+          accion: 'RESERVA_CREADA',
+          detalle: `Reserva ${numeroUnicoReserva} creada para función ${id_funcion} con ${asientosFuncionIds.length} asiento(s)`,
         },
       });
 
@@ -84,48 +93,48 @@ export class ReservasService {
     };
   }
 
-async findAll(userId: number, userRole: string) {
-  const filtro = userRole === 'ADMIN' ? {} : { id_usuario: BigInt(userId) };
+  async findAll(userId: number, userRole: string) {
+    const filtro = userRole === 'ADMIN' ? {} : { id_usuario: BigInt(userId) };
 
-  return await this.prisma.reservas.findMany({
-    where: filtro,
-    include: {
-      funciones: {
-        include: { peliculas: true } 
+    return await this.prisma.reservas.findMany({
+      where: filtro,
+      include: {
+        funciones: {
+          include: { peliculas: true },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: { asientos: true },
+            },
+          },
+        },
       },
-      reservaAsientos: {
-        include: {
-          asientosfuncion: {
-            include: { asientos: true } 
-          }
-        }
-      }
-    },
-    orderBy: { created_at: 'desc' },
-  });
-}
-
-async findOne(id: number, userId: number, userRole: string) {
-  const reserva = await this.prisma.reservas.findUnique({
-    where: { id: BigInt(id) },
-    include: {
-      funciones: { include: { peliculas: true } },
-      reservaAsientos: {
-        include: { asientosfuncion: { include: { asientos: true } } }
-      }
-    }
-  });
-
-  if (!reserva) throw new NotFoundException(`La reserva con ID ${id} no existe.`);
-
-  if (userRole !== 'ADMIN' && Number(reserva.id_usuario) !== userId) {
-    throw new ForbiddenException('No tienes permiso para ver esta reserva.');
+      orderBy: { created_at: 'desc' },
+    });
   }
 
-  return reserva;
-}
+  async findOne(id: number, userId: number, userRole: string) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        funciones: { include: { peliculas: true } },
+        reservaAsientos: {
+          include: { asientosfuncion: { include: { asientos: true } } },
+        },
+      },
+    });
 
-  async cancelarReserva(idReserva: number) {
+    if (!reserva) throw new NotFoundException(`La reserva con ID ${id} no existe.`);
+
+    if (userRole !== 'ADMIN' && Number(reserva.id_usuario) !== userId) {
+      throw new ForbiddenException('No tienes permiso para ver esta reserva.');
+    }
+
+    return reserva;
+  }
+
+  async cancelarReserva(idReserva: number, userId: number) {
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(idReserva) },
       include: {
@@ -168,17 +177,26 @@ async findOne(id: number, userId: number, userRole: string) {
         data: { estado: 'CANCELADA' },
       });
 
-      const asientosAFacilitar = reserva.reservaAsientos.map(ra => ra.id_asiento_funcion);
+      const asientosAFacilitar = reserva.reservaAsientos.map((ra) => ra.id_asiento_funcion);
 
       if (asientosAFacilitar.length > 0) {
         await tx.asientosFuncion.updateMany({
           where: { id: { in: asientosAFacilitar } },
-          data: { 
+          data: {
             estado: 'DISPONIBLE',
-            id_usuario: null 
+            id_usuario: null,
           },
         });
       }
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: reserva.id_usuario,
+          id_auditor: BigInt(userId),
+          accion: 'RESERVA_CANCELADA',
+          detalle: `Reserva ${idReserva} cancelada`,
+        },
+      });
     });
 
     await this.notifyReservationCancellation(reserva);
@@ -186,7 +204,7 @@ async findOne(id: number, userId: number, userRole: string) {
     return {
       message: 'Reserva cancelada exitosamente. Los asientos han sido reabiertos al público.',
       idReserva,
-      nuevoEstado: 'CANCELADA'
+      nuevoEstado: 'CANCELADA',
     };
   }
 

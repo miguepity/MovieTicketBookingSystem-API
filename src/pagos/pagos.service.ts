@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CreatePagosDto } from './dtos/create-pagos.dto';
 import { CreatePagoEfectivoDto } from './dtos/create-pagos-efectivo.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,7 +18,7 @@ export class PagosService {
         private readonly mailService: MailService,
     ) {}
 
-    async procesarPago(createPagoDto: CreatePagosDto) {
+  async procesarPago(createPagoDto: CreatePagosDto, auditorId?: number) {
     const {
       id_reserva,
       id_cupon,
@@ -34,10 +39,14 @@ export class PagosService {
     }
 
     if (reserva.estado === 'PAGADA') {
-      throw new BadRequestException('Esta reserva ya ha sido pagada previamente.');
+      throw new BadRequestException(
+        'Esta reserva ya ha sido pagada previamente.',
+      );
     }
     if (reserva.estado === 'CANCELADA') {
-      throw new BadRequestException('No se puede pagar una reserva que ha sido cancelada.');
+      throw new BadRequestException(
+        'No se puede pagar una reserva que ha sido cancelada.',
+      );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -60,14 +69,25 @@ export class PagosService {
         data: { estado: 'PAGADA' },
       });
 
-      const asientosIds = reserva.reservaAsientos.map((ra) => ra.id_asiento_funcion);
-      
+      const asientosIds = reserva.reservaAsientos.map(
+        (ra) => ra.id_asiento_funcion,
+      );
+
       if (asientosIds.length > 0) {
         await tx.asientosFuncion.updateMany({
           where: { id: { in: asientosIds } },
           data: { estado: 'OCUPADO' },
         });
       }
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: reserva.id_usuario,
+          id_auditor: auditorId ? BigInt(auditorId) : reserva.id_usuario,
+          accion: 'PAGO_PROCESADO',
+          detalle: `Pago ${metodo} por ${monto_final} aprobado para reserva ${id_reserva}`,
+        },
+      });
 
       return {
         message: 'Pago procesado y reserva confirmada con éxito.',
@@ -81,7 +101,10 @@ export class PagosService {
     return result;
   }
 
-  async procesarPagoEfectivo(createPagoEfectivoDto: CreatePagoEfectivoDto) {
+  async procesarPagoEfectivo(
+    createPagoEfectivoDto: CreatePagoEfectivoDto,
+    auditorId: number,
+  ) {
     const {
       id_reserva,
       id_cupon,
@@ -100,10 +123,14 @@ export class PagosService {
     }
 
     if (reserva.estado === 'PAGADA') {
-      throw new BadRequestException('Esta reserva ya ha sido pagada previamente.');
+      throw new BadRequestException(
+        'Esta reserva ya ha sido pagada previamente.',
+      );
     }
     if (reserva.estado === 'CANCELADA') {
-      throw new BadRequestException('No se puede pagar una reserva que ha sido cancelada.');
+      throw new BadRequestException(
+        'No se puede pagar una reserva que ha sido cancelada.',
+      );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -126,14 +153,25 @@ export class PagosService {
         data: { estado: 'PAGADA' },
       });
 
-      const asientosIds = reserva.reservaAsientos.map((ra) => ra.id_asiento_funcion);
-      
+      const asientosIds = reserva.reservaAsientos.map(
+        (ra) => ra.id_asiento_funcion,
+      );
+
       if (asientosIds.length > 0) {
         await tx.asientosFuncion.updateMany({
           where: { id: { in: asientosIds } },
           data: { estado: 'OCUPADO' },
         });
       }
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: reserva.id_usuario,
+          id_auditor: BigInt(auditorId),
+          accion: 'PAGO_EFECTIVO_PROCESADO',
+          detalle: `Pago efectivo por ${monto_final} aprobado para reserva ${id_reserva} registrado por usuario ${auditorId}`,
+        },
+      });
 
       return {
         message: 'Pago procesado y reserva confirmada con éxito.',
