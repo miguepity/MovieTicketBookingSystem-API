@@ -9,7 +9,7 @@ export class CuponesService {
   constructor(private readonly prisma: PrismaService) {}
 
   
-  async create(createCuponDto: CreateCuponDto) {
+  async create(createCuponDto: CreateCuponDto, auditorId: number) {
     const codigoFormateado = createCuponDto.codigo.toUpperCase().trim();
 
     const existente = await this.prisma.cupones.findUnique({
@@ -19,13 +19,24 @@ export class CuponesService {
       throw new ConflictException(`El cupón con código '${codigoFormateado}' ya se encuentra registrado.`);
     }
 
-    return await this.prisma.cupones.create({
+    const nuevoCupon = await this.prisma.cupones.create({
       data: {
         ...createCuponDto,
         codigo: codigoFormateado,
         fecha_expiracion: new Date(createCuponDto.fecha_expiracion),
       },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'CUPON_CREADO',
+        detalle: `Cupón '${codigoFormateado}' creado`,
+      },
+    });
+
+    return nuevoCupon;
   }
 
   async findAll() {
@@ -42,7 +53,7 @@ export class CuponesService {
     return cupon;
   }
 
-  async update(id: number, updateCuponDto: UpdateCuponDto) {
+  async update(id: number, updateCuponDto: UpdateCuponDto, auditorId: number) {
     await this.findOne(id);
 
     if (updateCuponDto.codigo) {
@@ -56,22 +67,45 @@ export class CuponesService {
       updateCuponDto.codigo = codigoFormateado;
     }
 
-    return await this.prisma.cupones.update({
+    const cuponActualizado = await this.prisma.cupones.update({
       where: { id: BigInt(id) },
       data: {
         ...updateCuponDto,
         fecha_expiracion: updateCuponDto.fecha_expiracion ? new Date(updateCuponDto.fecha_expiracion) : undefined,
       },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'CUPON_ACTUALIZADO',
+        detalle: `Cupón ${id} actualizado`,
+      },
+    });
+
+    return cuponActualizado;
   }
 
-  async toggleStatus(id: number) {
+  async toggleStatus(id: number, auditorId: number) {
     const cupon = await this.findOne(id);
+    const nuevoEstado = !cupon.activo;
 
-    return await this.prisma.cupones.update({
+    const cuponActualizado = await this.prisma.cupones.update({
       where: { id: BigInt(id) },
-      data: { activo: !cupon.activo },
+      data: { activo: nuevoEstado },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: nuevoEstado ? 'CUPON_ACTIVADO' : 'CUPON_DESACTIVADO',
+        detalle: `Cupón ${id} ${nuevoEstado ? 'activado' : 'desactivado'}`,
+      },
+    });
+
+    return cuponActualizado;
   }
 
   async validar(validarCuponDto: ValidarCuponDto) {
@@ -108,12 +142,22 @@ export class CuponesService {
     };
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
     try {
       await this.prisma.cupones.delete({
         where: { id: BigInt(id) },
       });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'CUPON_ELIMINADO',
+          detalle: `Cupón ${id} eliminado`,
+        },
+      });
+
       return { message: `Cupón con ID ${id} eliminado correctamente.` };
     } catch {
       throw new ConflictException('No se puede eliminar el cupón porque registra un historial de pagos asociados.');

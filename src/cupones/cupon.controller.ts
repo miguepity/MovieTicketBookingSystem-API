@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CuponesService } from './cupon.service';
 import { CreateCuponDto } from './create-cupon.dto';
@@ -31,8 +31,8 @@ export class CuponesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'El código del cupón ya existe.' })
-  create(@Body() createCuponDto: CreateCuponDto) {
-    return this.cuponesService.create(createCuponDto);
+  create(@Body() createCuponDto: CreateCuponDto, @Req() req: any) {
+    return this.cuponesService.create(createCuponDto, req.user.id);
   }
 
   @Get()
@@ -68,8 +68,8 @@ export class CuponesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Cupón no encontrado.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateCuponDto: UpdateCuponDto) {
-    return this.cuponesService.update(id, updateCuponDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateCuponDto: UpdateCuponDto, @Req() req: any) {
+    return this.cuponesService.update(id, updateCuponDto, req.user.id);
   }
 
   @Patch(':id/status')
@@ -80,8 +80,8 @@ export class CuponesController {
   @ApiResponse({ status: 200, description: 'Estado del cupón actualizado con éxito.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Cupón no encontrado.' })
-  toggleStatus(@Param('id', ParseIntPipe) id: number) {
-    return this.cuponesService.toggleStatus(id);
+  toggleStatus(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.cuponesService.toggleStatus(id, req.user.id);
   }
 
   @Delete(':id')
@@ -92,7 +92,7 @@ export class CuponesController {
   @ApiResponse({ status: 200, description: 'Cupón eliminado con éxito.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Cupón no encontrado.' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.cuponesService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.cuponesService.remove(id, req.user.id);
   }
 }
