@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -138,8 +139,9 @@ export class PeliculasController {
     status: 403,
     description: 'Acceso denegado. Se requiere rol ADMIN.',
   })
-  create(@Body() body: CreatePeliculaDto) {
-    return this.peliculasService.create(body);
+  create(@Body() body: CreatePeliculaDto,
+    @Req() req: any) {
+    return this.peliculasService.create(body, req.user.id);
   }
 
   @Post(':id/poster')
@@ -179,6 +181,7 @@ export class PeliculasController {
   @ApiResponse({ status: 404, description: 'Película no encontrada.' })
   uploadPoster(
     @Param('id') id: string,
+    @Req() req: any,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -189,7 +192,7 @@ export class PeliculasController {
     )
     file: Express.Multer.File,
   ) {
-    return this.peliculasService.uploadPoster(id, file);
+    return this.peliculasService.uploadPoster(id, file, req.user.id);
   }
 
   @Put(':id')
@@ -213,8 +216,9 @@ export class PeliculasController {
     description: 'Acceso denegado. Se requiere rol ADMIN.',
   })
   @ApiResponse({ status: 404, description: 'Película no encontrada.' })
-  update(@Param('id') id: string, @Body() body: UpdatePeliculaDto) {
-    return this.peliculasService.update(id, body);
+  update(@Param('id') id: string, @Body() body: UpdatePeliculaDto,
+    @Req() req: any) {
+    return this.peliculasService.update(id, body, req.user.id);
   }
 
   @Patch(':id/status')
@@ -237,8 +241,9 @@ export class PeliculasController {
     description: 'Acceso denegado. Se requiere rol ADMIN.',
   })
   @ApiResponse({ status: 404, description: 'Película no encontrada.' })
-  toggleStatus(@Param('id') id: string, @Body() body: ToggleStatusPeliculaDto) {
-    return this.peliculasService.toggleStatus(id, body);
+  toggleStatus(@Param('id') id: string, @Body() body: ToggleStatusPeliculaDto,
+    @Req() req: any) {
+    return this.peliculasService.toggleStatus(id, body, req.user.id);
   }
 
   @Post(':id/notificar-suscritos')

@@ -22,7 +22,7 @@ export class PeliculasService {
     private readonly mailService: MailService,
   ) {}
 
-  async create(dto: CreatePeliculaDto) {
+  async create(dto: CreatePeliculaDto, auditorId: number) {
     try {
       const pelicula = await this.prisma.peliculas.create({
         data: {
@@ -34,6 +34,15 @@ export class PeliculasService {
           fecha_estreno: dto.fecha_estreno ? new Date(dto.fecha_estreno) : null,
           activo: dto.activo ?? true,
           id_usuario: BigInt(dto.id_usuario),
+        },
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'PELICULA_CREADA',
+          detalle: `Película "${dto.titulo}" creada`,
         },
       });
 
@@ -51,7 +60,7 @@ export class PeliculasService {
     }
   }
 
-  async update(id: string, dto: UpdatePeliculaDto) {
+  async update(id: string, dto: UpdatePeliculaDto, auditorId: number) {
     await this.findOneOrFail(id);
 
     const pelicula = await this.prisma.peliculas.update({
@@ -72,6 +81,15 @@ export class PeliculasService {
       },
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'PELICULA_ACTUALIZADA',
+        detalle: `Película ${id} actualizada`,
+      },
+    });
+
     return {
       message: 'Película actualizada exitosamente',
       data: this.serializePelicula(pelicula),
@@ -82,12 +100,21 @@ export class PeliculasService {
     };
   }
 
-  async toggleStatus(id: string, dto: ToggleStatusPeliculaDto) {
+  async toggleStatus(id: string, dto: ToggleStatusPeliculaDto, auditorId: number) {
     const existing = await this.findOneOrFail(id);
 
     const pelicula = await this.prisma.peliculas.update({
       where: { id: BigInt(id) },
       data: { activo: !existing.activo },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: pelicula.activo ? 'PELICULA_ACTIVADA' : 'PELICULA_DESACTIVADA',
+        detalle: `Película ${id} ${pelicula.activo ? 'activada' : 'desactivada'}`,
+      },
     });
 
     return {
@@ -103,7 +130,7 @@ export class PeliculasService {
     };
   }
 
-  async uploadPoster(id: string, file: Express.Multer.File) {
+  async uploadPoster(id: string, file: Express.Multer.File, auditorId: number) {
     await this.findOneOrFail(id);
 
     const ext = file.originalname.split('.').pop() ?? 'jpg';
@@ -113,6 +140,15 @@ export class PeliculasService {
     const pelicula = await this.prisma.peliculas.update({
       where: { id: BigInt(id) },
       data: { poster_url: url },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'PELICULA_POSTER_ACTUALIZADO',
+        detalle: `Poster de película ${id} actualizado`,
+      },
     });
 
     return {
