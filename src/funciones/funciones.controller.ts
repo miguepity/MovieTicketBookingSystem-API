@@ -1,5 +1,23 @@
-import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards, Req} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncionDto } from './create-funciones.dto';
 import { UpdateFuncionDto } from './update-funciones.dto';
@@ -19,16 +37,22 @@ export class FuncionesController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear una función ' })
   @ApiResponse({ status: 201, description: 'Función agendada con éxito.' })
-  @ApiResponse({ status: 409, description: 'La sala está ocupada en ese horario.' })
+  @ApiResponse({
+    status: 409,
+    description: 'La sala está ocupada en ese horario.',
+  })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
-  create(@Body() createFuncionDto: CreateFuncionDto) {
-    return this.funcionesService.create(createFuncionDto);
+  create(@Body() createFuncionDto: CreateFuncionDto, @Req() req: any) {
+    return this.funcionesService.create(createFuncionDto, req.user.id);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todas las funciones vigentes ' })
-  @ApiResponse({ status: 200, description: 'Lista de funciones retornada con éxito.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de funciones retornada con éxito.',
+  })
   @ApiResponse({ status: 404, description: 'No se encontraron funciones.' })
   findAll() {
     return this.funcionesService.findAll();
@@ -36,7 +60,10 @@ export class FuncionesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener detalles de una función por su ID' })
-  @ApiResponse({ status: 200, description: 'Detalles de la función retornados con éxito.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Detalles de la función retornados con éxito.',
+  })
   @ApiResponse({ status: 404, description: 'Función no encontrada.' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.funcionesService.findOne(id);
@@ -51,16 +78,26 @@ export class FuncionesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Función no encontrada.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateFuncionDto: UpdateFuncionDto) {
-    return this.funcionesService.update(id, updateFuncionDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateFuncionDto: UpdateFuncionDto,
+    @Req() req: any,
+  ) {
+    return this.funcionesService.update(id, updateFuncionDto, req.user.id);
   }
 
   @Patch(':id/cancelar')
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Cancelar una función por emergencia, liberando asientos y notificando usuarios' })
-  @ApiResponse({ status: 200, description: 'Función dada de baja. Correos emitidos.' })
+  @ApiOperation({
+    summary:
+      'Cancelar una función por emergencia, liberando asientos y notificando usuarios',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Función dada de baja. Correos emitidos.',
+  })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Función no encontrada.' })
@@ -84,19 +121,30 @@ export class FuncionesController {
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Eliminar físicamente una función de la base de datos' })
+  @ApiOperation({
+    summary: 'Eliminar físicamente una función de la base de datos',
+  })
   @ApiResponse({ status: 200, description: 'Función eliminada con éxito.' })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Función no encontrada.' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.funcionesService.remove(id);
-  } 
-  
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.funcionesService.remove(id, req.user.id);
+  }
+
   @Get(':id/asientos')
-  @ApiOperation({ summary: 'Obtener el mapa de ocupación actual de todos los asientos de una función' })
-  @ApiResponse({ status: 200, description: 'Mapa de asientos devuelto exitosamente.' })
-  @ApiResponse({ status: 404, description: 'La función especificada no existe.' })
+  @ApiOperation({
+    summary:
+      'Obtener el mapa de ocupación actual de todos los asientos de una función',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Mapa de asientos devuelto exitosamente.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'La función especificada no existe.',
+  })
   getMapaAsientos(@Param('id', ParseIntPipe) id: number) {
     return this.funcionesService.getMapaAsientos(id);
   }
@@ -104,9 +152,19 @@ export class FuncionesController {
   @Post(':id/asientos/bloquear')
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Bloquear asientos temporalmente en el carrito (Expiración configurable)' })
-  @ApiResponse({ status: 201, description: 'Asientos bloqueados temporalmente.' })
-  @ApiResponse({ status: 409, description: 'Conflicto: Uno o más asientos ya están tomados por otro usuario.' })
+  @ApiOperation({
+    summary:
+      'Bloquear asientos temporalmente en el carrito (Expiración configurable)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Asientos bloqueados temporalmente.',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Conflicto: Uno o más asientos ya están tomados por otro usuario.',
+  })
   bloquearAsientos(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: BloquearAsientosDto,

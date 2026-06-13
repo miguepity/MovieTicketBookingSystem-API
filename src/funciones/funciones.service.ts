@@ -23,10 +23,10 @@ export class FuncionesService {
     };
   }
 
-  async create(createFuncionDto: CreateFuncionDto) {
+  async create(createFuncionDto: CreateFuncionDto, auditorId: number) {
     const fechaInicioNueva = new Date(createFuncionDto.fecha_hora);
-    
-    const DURACION_PELICULA_MS = 120 * 60 * 1000; 
+
+    const DURACION_PELICULA_MS = 120 * 60 * 1000;
     const fechaFinNueva = new Date(fechaInicioNueva.getTime() + DURACION_PELICULA_MS);
 
     const margenInicioBusqueda = new Date(fechaInicioNueva.getTime() - DURACION_PELICULA_MS);
@@ -51,7 +51,7 @@ export class FuncionesService {
 
     const salaConAsientos = await this.prisma.salas.findUnique({
       where: { id: BigInt(createFuncionDto.id_sala) },
-      include: { asientos: true }
+      include: { asientos: true },
     });
 
     if (!salaConAsientos) {
@@ -82,16 +82,26 @@ export class FuncionesService {
         });
       }
 
+      await tx.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'FUNCION_CREADA',
+          detalle: `Función creada para película ${createFuncionDto.id_pelicula} en sala ${createFuncionDto.id_sala} el ${fechaInicioNueva.toISOString()}`,
+        },
+      });
+
       return funcion;
     });
 
     return this.serializeFuncion(nuevaFuncion);
   }
+
   async findAll() {
     const funciones = await this.prisma.funciones.findMany({
       include: { peliculas: true, salas: true },
     });
-    return funciones.map(f => this.serializeFuncion(f));
+    return funciones.map((f) => this.serializeFuncion(f));
   }
 
   async findOne(id: number) {
@@ -103,7 +113,7 @@ export class FuncionesService {
     return this.serializeFuncion(funcion);
   }
 
-async update(id: number, updateFuncionDto: UpdateFuncionDto) {
+  async update(id: number, updateFuncionDto: UpdateFuncionDto, auditorId: number) {
     await this.findOne(id);
 
     const tieneReservas = await this.prisma.reservas.findFirst({
@@ -141,9 +151,7 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
     }
 
     const actualizada = await this.prisma.$transaction(async (tx) => {
-      
       if (updateFuncionDto.id_sala && BigInt(updateFuncionDto.id_sala) !== fActual!.id_sala) {
-        
         const nuevaSalaConAsientos = await tx.salas.findUnique({
           where: { id: BigInt(updateFuncionDto.id_sala) },
           include: { asientos: true },
@@ -153,7 +161,6 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
           throw new NotFoundException(`La nueva sala con ID ${updateFuncionDto.id_sala} no existe.`);
         }
 
-       
         await tx.asientosFuncion.deleteMany({
           where: { id_funcion: BigInt(id) },
         });
@@ -173,7 +180,7 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
         }
       }
 
-      return await tx.funciones.update({
+      const funcion = await tx.funciones.update({
         where: { id: BigInt(id) },
         data: {
           id_pelicula: updateFuncionDto.id_pelicula ? BigInt(updateFuncionDto.id_pelicula) : undefined,
@@ -182,6 +189,17 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
           estado: updateFuncionDto.estado,
         },
       });
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'FUNCION_ACTUALIZADA',
+          detalle: `Función ${id} actualizada`,
+        },
+      });
+
+      return funcion;
     });
 
     return this.serializeFuncion(actualizada);
@@ -294,42 +312,50 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
     };
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
     try {
       await this.prisma.funciones.delete({ where: { id: BigInt(id) } });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'FUNCION_ELIMINADA',
+          detalle: `Función ${id} eliminada permanentemente`,
+        },
+      });
+
       return { message: `Función con ID ${id} borrada definitivamente.` };
     } catch {
       throw new ConflictException('No se puede eliminar físicamente; contiene dependencias de transacciones.');
     }
   }
 
-
   async getMapaAsientos(idFuncion: number) {
     await this.findOne(idFuncion);
 
     const asientosFuncion = await this.prisma.asientosFuncion.findMany({
-    where: { id_funcion: BigInt(idFuncion) },
-    include: {
+      where: { id_funcion: BigInt(idFuncion) },
+      include: {
         asientos: true,
-        },
-    orderBy: [
+      },
+      orderBy: [
         { asientos: { fila: 'asc' } },
         { asientos: { columna: 'asc' } },
-    ],
+      ],
     });
 
     const ahora = new Date();
 
     return asientosFuncion.map((af) => {
-    let estadoReal = af.estado;
+      let estadoReal = af.estado;
 
-        
-    if (af.estado === 'BLOQUEADO' && af.bloqueado_hasta && af.bloqueado_hasta < ahora) {
+      if (af.estado === 'BLOQUEADO' && af.bloqueado_hasta && af.bloqueado_hasta < ahora) {
         estadoReal = 'DISPONIBLE';
-    }
+      }
 
-    return {
+      return {
         id_asiento_funcion: Number(af.id),
         id_asiento_fisico: Number(af.id_asiento),
         fila: af.asientos.fila.trim(),
@@ -339,13 +365,13 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
         estado: estadoReal,
         id_usuario: af.id_usuario ? Number(af.id_usuario) : null,
         bloqueado_hasta: af.bloqueado_hasta,
-        };
-        });
-    }
+      };
+    });
+  }
 
   async bloquearAsientos(idFuncion: number, userId: number, dto: BloquearAsientosDto) {
     const { asientosFuncionIds, minutosExpiracion } = dto;
-    const minutos = minutosExpiracion || 5; // Por defecto 5 minutos
+    const minutos = minutosExpiracion || 5;
     const fechaExpiracion = new Date(Date.now() + minutos * 60 * 1000);
     const ahora = new Date();
 
@@ -367,14 +393,14 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
           throw new BadRequestException(`El asiento ${afId} no pertenece a la función ${idFuncion}.`);
         }
 
-             if (af.estado === 'OCUPADO' || af.estado === 'PENDIENTE_DE_PAGO') {
+        if (af.estado === 'OCUPADO' || af.estado === 'PENDIENTE_DE_PAGO') {
           throw new ConflictException(`El asiento con ID ${afId} ya no se encuentra disponible.`);
         }
 
         if (
-          af.estado === 'BLOQUEADO' && 
-          af.bloqueado_hasta && 
-          af.bloqueado_hasta >= ahora && 
+          af.estado === 'BLOQUEADO' &&
+          af.bloqueado_hasta &&
+          af.bloqueado_hasta >= ahora &&
           Number(af.id_usuario) !== userId
         ) {
           throw new ConflictException(`El asiento con ID ${afId} está reservado temporalmente por otro cliente.`);
@@ -382,7 +408,7 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
       }
 
       await tx.asientosFuncion.updateMany({
-        where: { id: { in: asientosFuncionIds.map(id => BigInt(id)) } },
+        where: { id: { in: asientosFuncionIds.map((id) => BigInt(id)) } },
         data: {
           estado: 'BLOQUEADO',
           id_usuario: BigInt(userId),
@@ -398,7 +424,6 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
     };
   }
 
-  
   @Cron(CronExpression.EVERY_MINUTE)
   async handleLiberarBloqueosExpirados() {
     const ahora = new Date();
