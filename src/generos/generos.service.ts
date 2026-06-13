@@ -11,7 +11,7 @@ export class GenerosService {
     return { ...genero, id: Number(genero.id) };
   }
 
-  async create(createGeneroDto: CreateGeneroDto) {
+  async create(createGeneroDto: CreateGeneroDto, auditorId: number) {
     const nombreFormateado = createGeneroDto.nombre.toUpperCase().trim();
 
     const existing = await this.prisma.generos.findUnique({
@@ -22,6 +22,16 @@ export class GenerosService {
     const nuevo = await this.prisma.generos.create({
       data: { nombre: nombreFormateado },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'GENERO_CREADO',
+        detalle: `Género '${nombreFormateado}' creado`,
+      },
+    });
+
     return this.serializeGenero(nuevo);
   }
 
@@ -36,13 +46,13 @@ export class GenerosService {
     return this.serializeGenero(genero);
   }
 
-  async update(id: number, updateGeneroDto: UpdateGeneroDto) {
+  async update(id: number, updateGeneroDto: UpdateGeneroDto, auditorId: number) {
     await this.findOne(id);
 
     if (updateGeneroDto.nombre) {
       const nombreFormateado = updateGeneroDto.nombre.toUpperCase().trim();
       const existing = await this.prisma.generos.findUnique({ where: { nombre: nombreFormateado } });
-      
+
       if (existing && Number(existing.id) !== id) {
         throw new ConflictException(`Ya existe otro género con el nombre '${nombreFormateado}'.`);
       }
@@ -53,13 +63,33 @@ export class GenerosService {
       where: { id: BigInt(id) },
       data: updateGeneroDto,
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'GENERO_ACTUALIZADO',
+        detalle: `Género ${id} actualizado`,
+      },
+    });
+
     return this.serializeGenero(actualizado);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
     try {
       await this.prisma.generos.delete({ where: { id: BigInt(id) } });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'GENERO_ELIMINADO',
+          detalle: `Género ${id} eliminado`,
+        },
+      });
+
       return { message: `Género con ID ${id} eliminado exitosamente.` };
     } catch {
       throw new ConflictException('No se puede eliminar porque existen películas vinculadas a este género.');
