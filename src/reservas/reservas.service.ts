@@ -1,10 +1,15 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReservaDto } from './create-reserva.dto';
+import { MailService } from '../mail/mail.service';
+import { buildReservationCancellationTemplate } from '../mail/templates/reservation-cancellation.template';
 
 @Injectable()
 export class ReservasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async createReserva(createReservaDto: CreateReservaDto, userId: number) {
     const { id_funcion, asientosFuncionIds } = createReservaDto;
@@ -123,9 +128,24 @@ async findOne(id: number, userId: number, userRole: string) {
   async cancelarReserva(idReserva: number) {
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(idReserva) },
-      include: { 
-        funciones: true,
-        reservaAsientos: true 
+      include: {
+        usuarios: true,
+        funciones: {
+          include: {
+            peliculas: true,
+            salas: {
+              include: {
+                cines: true,
+              },
+            },
+          },
+        },
+        reservaAsientos: true,
+        pagos: {
+          include: {
+            reembolsos: true,
+          },
+        },
       },
     });
 
@@ -161,10 +181,34 @@ async findOne(id: number, userId: number, userRole: string) {
       }
     });
 
+    await this.notifyReservationCancellation(reserva);
+
     return {
       message: 'Reserva cancelada exitosamente. Los asientos han sido reabiertos al público.',
       idReserva,
       nuevoEstado: 'CANCELADA'
     };
+  }
+
+  private async notifyReservationCancellation(reserva: any) {
+    try {
+      const pago = reserva.pagos?.[0];
+      const reembolso = pago?.reembolsos?.[0];
+      const refundStatus = reembolso?.estado ?? (pago ? 'Pendiente de procesamiento' : 'No aplica');
+
+      await this.mailService.sendEmail({
+        to: reserva.usuarios.email,
+        subject: 'Reserva cancelada',
+        html: buildReservationCancellationTemplate({
+          reservationNumber: reserva.numero_reserva,
+          movieTitle: reserva.funciones.peliculas.titulo,
+          cinemaName: reserva.funciones.salas.cines.nombre,
+          refundStatus,
+          refundAmount: reembolso?.monto,
+        }),
+      });
+    } catch (error) {
+      console.error('No se pudo enviar el correo de cancelacion de reserva.', error);
+    }
   }
 }
