@@ -12,6 +12,7 @@ import { RegisterDto } from './register.dto';
 import { MailService } from '../mail/mail.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { buildRegistrationConfirmationTemplate } from '../mail/templates/registration-confirmation.template';
 
 @Injectable()
 export class AuthService {
@@ -107,6 +108,15 @@ export class AuthService {
     };
 
     const access_token = this.jwtService.sign(payload);
+
+    await this.mailService.sendEmail({
+      to: newUser.email,
+      subject: 'Registro confirmado',
+      html: buildRegistrationConfirmationTemplate({
+        name: newUser.nombre,
+        email: newUser.email,
+      }),
+    });
 
     return {
       access_token,

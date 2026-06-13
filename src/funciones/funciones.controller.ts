@@ -105,6 +105,18 @@ export class FuncionesController {
     return this.funcionesService.cancelar(id);
   }
 
+  @Post(':id/notificar-cancelacion')
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Enviar email masivo a clientes con reservas afectadas por funcion cancelada' })
+  @ApiResponse({ status: 201, description: 'Emails de funcion cancelada procesados.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'FunciÃ³n no encontrada.' })
+  notifyCancelledFunctionReservations(@Param('id', ParseIntPipe) id: number) {
+    return this.funcionesService.notifyCancelledFunctionReservations(id);
+  }
+
   @Delete(':id')
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)

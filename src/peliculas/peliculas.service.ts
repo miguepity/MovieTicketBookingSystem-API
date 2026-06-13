@@ -11,12 +11,15 @@ import { UpdatePeliculaDto } from './dto/update-pelicula.dto.js';
 import { ToggleStatusPeliculaDto } from './dto/toggle-status-pelicula.dto.js';
 import { BuscarPeliculaDto } from './dto/buscar-pelicula.dto.js';
 import { R2Service } from './r2.service.js';
+import { MailService } from '../mail/mail.service.js';
+import { buildNewMovieTemplate } from '../mail/templates/new-movie.template.js';
 
 @Injectable()
 export class PeliculasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly r2: R2Service,
+    private readonly mailService: MailService,
   ) {}
 
   async create(dto: CreatePeliculaDto) {
@@ -225,6 +228,54 @@ export class PeliculasService {
     };
   }
 
+  async notifySubscribedClients(id: string) {
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: BigInt(id) },
+      include: { generos: true },
+    });
+
+    if (!pelicula) {
+      throw new NotFoundException(`PelÃ­cula con id ${id} no encontrada`);
+    }
+
+    const usuarios = await this.prisma.usuarios.findMany({
+      where: {
+        notificaciones_activas: true,
+        estado: 'ACTIVO',
+      },
+      select: {
+        email: true,
+      },
+    });
+
+    let enviados = 0;
+    const movieUrl = this.buildMovieUrl(id);
+
+    for (const usuario of usuarios) {
+      try {
+        await this.mailService.sendEmail({
+          to: usuario.email,
+          subject: `Nueva pelicula: ${pelicula.titulo}`,
+          html: buildNewMovieTemplate({
+            title: pelicula.titulo,
+            genre: pelicula.generos?.nombre,
+            releaseDate: pelicula.fecha_estreno,
+            link: movieUrl,
+          }),
+        });
+        enviados += 1;
+      } catch (error) {
+        console.error(`No se pudo enviar email de nueva pelicula a ${usuario.email}.`, error);
+      }
+    }
+
+    return {
+      message: 'Notificacion de nueva pelicula procesada',
+      total_suscritos: usuarios.length,
+      emails_enviados: enviados,
+    };
+  }
+
   private async findOneOrFail(id: string) {
     const pelicula = await this.prisma.peliculas.findUnique({
       where: { id: BigInt(id) },
@@ -330,5 +381,11 @@ export class PeliculasService {
         typeof value === 'bigint' ? Number(value) : value,
       ),
     );
+  }
+
+  private buildMovieUrl(id: string) {
+    const baseUrl = process.env.MOVIE_DETAIL_BASE_URL ?? 'http://localhost:3000/peliculas';
+
+    return `${baseUrl.replace(/\/$/, '')}/${id}`;
   }
 }
