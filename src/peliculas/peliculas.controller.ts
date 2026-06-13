@@ -240,4 +240,18 @@ export class PeliculasController {
   toggleStatus(@Param('id') id: string, @Body() body: ToggleStatusPeliculaDto) {
     return this.peliculasService.toggleStatus(id, body);
   }
+
+  @Post(':id/notificar-suscritos')
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Enviar email masivo a clientes suscritos por nueva pelicula' })
+  @ApiParam({ name: 'id', description: 'ID de la pelicula nueva', example: '1' })
+  @ApiResponse({ status: 201, description: 'Notificaciones enviadas a clientes suscritos.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN.' })
+  @ApiResponse({ status: 404, description: 'Pelicula no encontrada.' })
+  notifySubscribedClients(@Param('id') id: string) {
+    return this.peliculasService.notifySubscribedClients(id);
+  }
 }
