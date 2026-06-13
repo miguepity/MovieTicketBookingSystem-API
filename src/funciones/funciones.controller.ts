@@ -101,8 +101,8 @@ export class FuncionesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Función no encontrada.' })
-  cancelar(@Param('id', ParseIntPipe) id: number) {
-    return this.funcionesService.cancelar(id);
+  cancelar(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.funcionesService.cancelar(id, req.user.id);
   }
 
   @Post(':id/notificar-cancelacion')
