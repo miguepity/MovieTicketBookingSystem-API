@@ -1,15 +1,22 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReservaDto } from './create-reserva.dto';
+import { MailService } from '../mail/mail.service';
+import { buildReservationCancellationTemplate } from '../mail/templates/reservation-cancellation.template';
 
 @Injectable()
 export class ReservasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async createReserva(createReservaDto: CreateReservaDto, userId: number) {
     const { id_funcion, asientosFuncionIds } = createReservaDto;
 
     const numeroUnicoReserva = `RES-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    
+    const ahora = new Date();
 
     const nuevaReserva = await this.prisma.$transaction(async (tx) => {
 
@@ -27,10 +34,19 @@ export class ReservasService {
           throw new BadRequestException(
             `El asiento con ID ${afId} no pertenece a la función ${id_funcion} (pertenece a la función ${asientoFuncion.id_funcion}).`
           );
-        }
+        }       
 
         if (asientoFuncion.estado === 'OCUPADO' || asientoFuncion.estado === 'PENDIENTE_DE_PAGO') {
           throw new ConflictException(`El asiento con ID ${afId} ya no se encuentra disponible.`);
+        }
+
+        if (
+          asientoFuncion.estado === 'BLOQUEADO' && 
+          asientoFuncion.bloqueado_hasta && 
+          asientoFuncion.bloqueado_hasta >= ahora && 
+          Number(asientoFuncion.id_usuario) !== userId 
+        ) {
+          throw new ConflictException(`El asiento con ID ${afId} está reservado temporalmente en el carrito de otro cliente.`);
         }
       }
 
@@ -122,8 +138,23 @@ export class ReservasService {
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(idReserva) },
       include: {
-        funciones: true,
+        usuarios: true,
+        funciones: {
+          include: {
+            peliculas: true,
+            salas: {
+              include: {
+                cines: true,
+              },
+            },
+          },
+        },
         reservaAsientos: true,
+        pagos: {
+          include: {
+            reembolsos: true,
+          },
+        },
       },
     });
 
@@ -168,10 +199,34 @@ export class ReservasService {
       });
     });
 
+    await this.notifyReservationCancellation(reserva);
+
     return {
       message: 'Reserva cancelada exitosamente. Los asientos han sido reabiertos al público.',
       idReserva,
       nuevoEstado: 'CANCELADA',
     };
+  }
+
+  private async notifyReservationCancellation(reserva: any) {
+    try {
+      const pago = reserva.pagos?.[0];
+      const reembolso = pago?.reembolsos?.[0];
+      const refundStatus = reembolso?.estado ?? (pago ? 'Pendiente de procesamiento' : 'No aplica');
+
+      await this.mailService.sendEmail({
+        to: reserva.usuarios.email,
+        subject: 'Reserva cancelada',
+        html: buildReservationCancellationTemplate({
+          reservationNumber: reserva.numero_reserva,
+          movieTitle: reserva.funciones.peliculas.titulo,
+          cinemaName: reserva.funciones.salas.cines.nombre,
+          refundStatus,
+          refundAmount: reembolso?.monto,
+        }),
+      });
+    } catch (error) {
+      console.error('No se pudo enviar el correo de cancelacion de reserva.', error);
+    }
   }
 }

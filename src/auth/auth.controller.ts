@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './register.dto';
@@ -57,7 +57,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Cerrar sesión de usuario' })
   @ApiResponse({ status: 200, description: 'Sesión cerrada con éxito.' })
   @ApiResponse({ status: 401, description: 'No autorizado. Token inválido o ausente.' })
-  logout() {
-    return this.authService.logout();
+  logout(@Req() req: any) {
+    return this.authService.logout(req.user.id);
   }
 }
