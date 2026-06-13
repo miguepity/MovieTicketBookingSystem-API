@@ -188,7 +188,56 @@ async update(id: number, updateFuncionDto: UpdateFuncionDto) {
   }
 
   async cancelar(id: number) {
-   
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        reservas: {
+          where: {
+            estado: { not: 'CANCELADA' },
+          },
+        },
+      },
+    });
+
+    if (!funcion) {
+      throw new NotFoundException(`La funciÃ³n con ID ${id} no existe.`);
+    }
+
+    if (funcion.estado === 'CANCELADA') {
+      throw new BadRequestException('La funciÃ³n ya se encuentra cancelada.');
+    }
+
+    const notificaciones = await this.notifyCancelledFunctionReservations(id);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.funciones.update({
+        where: { id: BigInt(id) },
+        data: { estado: 'CANCELADA' },
+      });
+
+      await tx.reservas.updateMany({
+        where: {
+          id_funcion: BigInt(id),
+          estado: { not: 'CANCELADA' },
+        },
+        data: { estado: 'CANCELADA' },
+      });
+
+      await tx.asientosFuncion.updateMany({
+        where: { id_funcion: BigInt(id) },
+        data: {
+          estado: 'DISPONIBLE',
+          id_usuario: null,
+        },
+      });
+    });
+
+    return {
+      message: 'FunciÃ³n cancelada exitosamente. Reservas afectadas notificadas.',
+      idFuncion: id,
+      reservas_afectadas: funcion.reservas.length,
+      emails_enviados: notificaciones.emails_enviados,
+    };
   }
 
   async notifyCancelledFunctionReservations(id: number) {
