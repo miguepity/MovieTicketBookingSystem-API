@@ -114,4 +114,22 @@ export class EmailService {
     `,
     });
   }
+
+  async sendNotificacionGeneral(
+    to: string,
+    nombre: string,
+    subject: string,
+    message: string,
+  ): Promise<void> {
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM ?? 'no-reply@movieticketing.com',
+      to,
+      subject,
+      html: `
+        <h2>Hola, ${nombre}</h2>
+        <p>${message}</p>
+        <p><em>El equipo de MovieTicket</em></p>
+      `,
+    });
+  }
 }
