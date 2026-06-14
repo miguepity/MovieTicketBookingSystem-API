@@ -14,7 +14,7 @@ export class CiudadesService {
     };
   }
 
-  async create(createCiudadDto: CreateCiudadDto) {
+  async create(createCiudadDto: CreateCiudadDto, auditorId: number) {
     const existing = await this.prisma.ciudades.findUnique({
       where: { nombre: createCiudadDto.nombre },
     });
@@ -25,6 +25,15 @@ export class CiudadesService {
 
     const nuevaCiudad = await this.prisma.ciudades.create({
       data: createCiudadDto,
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'CIUDAD_CREADA',
+        detalle: `Ciudad '${createCiudadDto.nombre}' creada`,
+      },
     });
 
     return this.serializeCiudad(nuevaCiudad);
@@ -49,7 +58,7 @@ export class CiudadesService {
     return this.serializeCiudad(ciudad);
   }
 
-  async update(id: number, updateCiudadDto: UpdateCiudadDto) {
+  async update(id: number, updateCiudadDto: UpdateCiudadDto, auditorId: number) {
     await this.findOne(id);
 
     if (updateCiudadDto.nombre) {
@@ -66,16 +75,35 @@ export class CiudadesService {
       data: updateCiudadDto,
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'CIUDAD_ACTUALIZADA',
+        detalle: `Ciudad ${id} actualizada`,
+      },
+    });
+
     return this.serializeCiudad(ciudadActualizada);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
 
     try {
       await this.prisma.ciudades.delete({
         where: { id: BigInt(id) },
       });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'CIUDAD_ELIMINADA',
+          detalle: `Ciudad ${id} eliminada`,
+        },
+      });
+
       return { message: `Ciudad con ID ${id} eliminada exitosamente` };
     } catch (error) {
       throw new ConflictException('No se puede eliminar la ciudad porque tiene cines asociados');
