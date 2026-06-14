@@ -22,6 +22,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { PagosModule } from './pagos/pagos.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { PassportModule } from '@nestjs/passport';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { PassportModule } from '@nestjs/passport';
     UsuariosModule,
     PagosModule,
     ReportesModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

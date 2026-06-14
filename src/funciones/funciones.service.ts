@@ -205,7 +205,7 @@ export class FuncionesService {
     return this.serializeFuncion(actualizada);
   }
 
-  async cancelar(id: number) {
+  async cancelar(id: number, auditorId: number) {
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(id) },
       include: {
@@ -246,6 +246,15 @@ export class FuncionesService {
         data: {
           estado: 'DISPONIBLE',
           id_usuario: null,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'FUNCION_CANCELADA',
+          detalle: `Función ${id} cancelada. Reservas afectadas: ${funcion.reservas.length}`,
         },
       });
     });
