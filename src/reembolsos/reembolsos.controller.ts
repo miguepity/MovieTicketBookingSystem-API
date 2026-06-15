@@ -3,6 +3,8 @@ import { ReembolsosService } from './reembolsos.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateReembolsoDto } from './dto/create-reembolso.dto';
+import { CreateReembolsoEfectivoDto } from './dto/create-reembolso-efectivo.dto';
+import { RecepcionistaGuard } from 'src/auth/recepcionista.guard';
 
 @ApiTags('Reembolsos')
 @Controller('reembolsos')
