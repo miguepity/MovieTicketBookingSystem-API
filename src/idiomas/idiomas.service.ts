@@ -21,12 +21,15 @@ export class IdiomasService {
       throw new ConflictException('El idioma ya existe');
     }
 
-    return await this.prisma.idiomas.create({
-      data: {
-        nombre: dto.nombre,
-        select: { id: true, nombre: true, activo: true },
-      },
+    const idioma = await this.prisma.idiomas.create({
+      data: { nombre: dto.nombre },
     });
+
+    return {
+      id: idioma.id,
+      nombre: idioma.nombre,
+      activo: idioma.activo,
+    };
   }
 
   async getAll() {

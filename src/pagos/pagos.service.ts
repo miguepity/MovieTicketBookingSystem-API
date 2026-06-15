@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
+import { CreatePagoEfectivoDto } from './dto/create-pago-efectivo.dto';
 
 @Injectable()
 export class PagosService {
@@ -102,6 +103,65 @@ export class PagosService {
           data: { usos_actuales: { increment: 1 } },
         });
       }
+
+      return {
+        ...pago,
+        id: pago.id.toString(),
+        monto_original: pago.monto_original.toString(),
+        monto_descuento: pago.monto_descuento.toString(),
+        monto_final: pago.monto_final.toString(),
+      };
+    });
+  }
+
+  async procesarPagoEfectivo(dto: CreatePagoEfectivoDto) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: BigInt(dto.id_reserva) },
+      include: { reservaAsientos: true },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('La reserva no fue encontrada');
+    }
+
+    if (reserva.estado === 'pagada') {
+      throw new BadRequestException('La reserva ya fue pagada');
+    }
+
+    if (reserva.estado === 'cancelada') {
+      throw new BadRequestException('La reserva está cancelada');
+    }
+
+    const totalAsientos = reserva.reservaAsientos.length;
+    const montoFinal = totalAsientos * dto.precio_por_asiento;
+
+    return await this.prisma.$transaction(async (tx) => {
+      const pago = await tx.pagos.create({
+        data: {
+          id_reserva: BigInt(dto.id_reserva),
+          id_cupon: null,
+          monto_original: montoFinal,
+          monto_descuento: 0,
+          monto_final: montoFinal,
+          metodo: 'efectivo',
+          estado: 'completado',
+          referencia_externa: dto.referencia_externa,
+        },
+        select: {
+          id: true,
+          monto_original: true,
+          monto_descuento: true,
+          monto_final: true,
+          metodo: true,
+          estado: true,
+          referencia_externa: true,
+          created_at: true,
+        },
+      });
+      await tx.reservas.update({
+        where: { id: BigInt(dto.id_reserva) },
+        data: { estado: 'pagada' },
+      });
 
       return {
         ...pago,
