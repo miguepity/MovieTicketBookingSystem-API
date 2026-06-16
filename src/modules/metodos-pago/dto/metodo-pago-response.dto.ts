@@ -1,14 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { MetodoPago } from '../../../common/enums/metodo-pago.enum';
+import { MarcaTarjeta } from '../../../common/enums/marca-tarjeta.enum';
 
 export class MetodoPagoResponseDto {
   @ApiProperty({ example: '42' })
   id!: string;
 
-  @ApiProperty({ enum: ['tarjeta', 'efectivo'] })
-  tipo!: 'tarjeta' | 'efectivo';
+  @ApiProperty({ enum: MetodoPago })
+  tipo!: MetodoPago;
 
-  @ApiProperty({ nullable: true, example: 'visa' })
-  marca!: string | null;
+  @ApiProperty({ enum: MarcaTarjeta, nullable: true, example: 'visa' })
+  marca!: MarcaTarjeta | null;
 
   @ApiProperty({ nullable: true, example: '1234' })
   ultimos4!: string | null;
