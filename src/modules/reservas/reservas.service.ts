@@ -11,6 +11,7 @@ import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
 import { ReembolsosService } from '../reembolsos/reembolsos.service';
 import { ReservaCanceladaEvent } from './events/reserva-cancelada.event';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotReserva } from '../audit-log/snapshots';
 
 @Injectable()
 export class ReservasService {
@@ -163,6 +164,18 @@ export class ReservasService {
 
     const calculo = await this.reembolsosService.calcularMonto(reserva.id);
 
+    const prevReserva = await this.prisma.reservas.findUniqueOrThrow({
+      where: { id: reserva.id },
+      include: {
+        usuarios: true,
+        funciones: { include: { peliculas: true, salas: true } },
+        reservaAsientos: {
+          include: { asientosfuncion: { include: { asientos: true } } },
+        },
+        pagos: true,
+      },
+    });
+
     const result = await this.prisma.$transaction(async (tx) => {
       const claim = await tx.reservas.updateMany({
         where: {
@@ -212,7 +225,10 @@ export class ReservasService {
       id_usuario: BigInt(idUsuarioActual),
       id_auditor: BigInt(idUsuarioActual),
       accion: 'RESERVA_CANCELAR',
+      entidad: 'Reserva',
+      entidad_id: BigInt(idReserva),
       detalle: `Reserva ${idReserva} cancelada`,
+      valor_anterior: snapshotReserva(prevReserva),
     });
 
     this.eventEmitter.emit(

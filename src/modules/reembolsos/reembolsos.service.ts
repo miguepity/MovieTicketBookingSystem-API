@@ -8,6 +8,7 @@ import { Prisma } from '../../../generated/prisma/client';
 import { EstadoReembolso } from '../../common/enums/estado-reembolso.enum';
 import { EstadoPago } from '../../common/enums/estado-pago.enum';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotReembolso } from '../audit-log/snapshots';
 
 @Injectable()
 export class ReembolsosService {
@@ -144,7 +145,11 @@ export class ReembolsosService {
       id_usuario: auditorId,
       id_auditor: auditorId,
       accion: 'REEMBOLSO_PROCESAR',
+      entidad: 'Reembolso',
+      entidad_id: reembolso.id,
       detalle: `Reembolso ${idReembolso} procesado en efectivo`,
+      valor_anterior: snapshotReembolso(reembolso),
+      valor_nuevo: snapshotReembolso(refreshed),
     });
     return {
       id_reembolso: refreshed.id.toString(),
