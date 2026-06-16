@@ -7,13 +7,18 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotUsuario } from '../audit-log/snapshots/usuario.snapshot';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async updatePassword(
     id: string,
@@ -50,6 +55,15 @@ export class UsersService {
       data: { password_hash },
     });
 
+    await this.auditLog.registrar({
+      id_usuario: usuario.id,
+      id_auditor: usuario.id,
+      accion: 'USUARIO_EDITAR_PASSWORD',
+      entidad: 'Usuario',
+      entidad_id: usuario.id,
+      detalle: `Password actualizado para usuario ${id}`,
+    });
+
     return { message: 'Contraseña actualizada exitosamente' };
   }
 
@@ -73,35 +87,41 @@ export class UsersService {
       throw new BadRequestException('No puedes cambiar tu propio estado');
     }
 
-    const usuario = await this.prisma.usuarios.findUnique({
+    const prev = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
-      select: { id: true, estado: true },
+      include: { roles: true },
     });
 
-    if (!usuario) {
+    if (!prev) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    if (usuario.estado === dto.estado) {
+    if (prev.estado === dto.estado) {
       throw new BadRequestException(
         `El usuario ya tiene el estado "${dto.estado}"`,
       );
     }
 
-    await this.prisma.$transaction([
-      this.prisma.usuarios.update({
-        where: { id: usuario.id },
-        data: { estado: dto.estado },
-      }),
-      this.prisma.auditLog.create({
-        data: {
-          id_usuario: usuario.id,
-          id_auditor: BigInt(auditorId),
-          accion: 'CAMBIO_ESTADO',
-          detalle: `Estado cambiado de "${usuario.estado}" a "${dto.estado}"`,
-        },
-      }),
-    ]);
+    await this.prisma.usuarios.update({
+      where: { id: prev.id },
+      data: { estado: dto.estado },
+    });
+
+    const updated = await this.prisma.usuarios.findUnique({
+      where: { id: prev.id },
+      include: { roles: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: prev.id,
+      id_auditor: BigInt(auditorId),
+      accion: 'USUARIO_TOGGLE_ESTADO',
+      entidad: 'Usuario',
+      entidad_id: prev.id,
+      detalle: `Estado cambiado de "${prev.estado}" a "${dto.estado}"`,
+      valor_anterior: snapshotUsuario(prev),
+      valor_nuevo: snapshotUsuario(updated!),
+    });
 
     return { message: `Estado del usuario actualizado a "${dto.estado}"` };
   }
@@ -116,22 +136,36 @@ export class UsersService {
       );
     }
 
-    const usuario = await this.prisma.usuarios.findUnique({
+    const prev = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
-      select: { id: true, notificaciones_activas: true },
+      include: { roles: true },
     });
 
-    if (!usuario) {
+    if (!prev) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const actualizado = await this.prisma.usuarios.update({
-      where: { id: usuario.id },
-      data: { notificaciones_activas: !usuario.notificaciones_activas },
-      select: { notificaciones_activas: true },
+    await this.prisma.usuarios.update({
+      where: { id: prev.id },
+      data: { notificaciones_activas: !prev.notificaciones_activas },
     });
 
-    return { notificaciones_activas: actualizado.notificaciones_activas };
+    const updated = await this.prisma.usuarios.findUnique({
+      where: { id: prev.id },
+      include: { roles: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: prev.id,
+      id_auditor: prev.id,
+      accion: 'USUARIO_TOGGLE_NOTIFICACIONES',
+      entidad: 'Usuario',
+      entidad_id: prev.id,
+      valor_anterior: snapshotUsuario(prev),
+      valor_nuevo: snapshotUsuario(updated!),
+    });
+
+    return { notificaciones_activas: updated!.notificaciones_activas };
   }
 
   async findAll(query: QueryUsersDto) {

@@ -6,10 +6,15 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
 import { UpdateCuponDto } from './dto/update-cupon.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotCupon } from '../audit-log/snapshots';
 
 @Injectable()
 export class CuponesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   private async validarCodigoUnico(codigo: string, excludeId?: bigint) {
     const existente = await this.prisma.cupones.findFirst({
@@ -25,10 +30,10 @@ export class CuponesService {
     }
   }
 
-  async create(dto: CreateCuponDto) {
+  async create(dto: CreateCuponDto, auditorId: bigint) {
     await this.validarCodigoUnico(dto.codigo);
 
-    return this.prisma.cupones.create({
+    const nuevo = await this.prisma.cupones.create({
       data: {
         codigo: dto.codigo,
         tipo: dto.tipo,
@@ -37,6 +42,18 @@ export class CuponesService {
         usos_maximos: dto.usos_maximos,
       },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CUPON_CREAR',
+      entidad: 'Cupon',
+      entidad_id: nuevo.id,
+      detalle: `Cupón ${nuevo.id.toString()} (${nuevo.codigo}) creado`,
+      valor_nuevo: snapshotCupon(nuevo),
+    });
+
+    return nuevo;
   }
 
   findAll() {
@@ -53,14 +70,14 @@ export class CuponesService {
     return cupon;
   }
 
-  async update(id: string, dto: UpdateCuponDto) {
+  async update(id: string, dto: UpdateCuponDto, auditorId: bigint) {
     const cuponId = BigInt(id);
 
-    const cupon = await this.prisma.cupones.findUnique({
+    const prev = await this.prisma.cupones.findUnique({
       where: { id: cuponId },
     });
 
-    if (!cupon) {
+    if (!prev) {
       throw new NotFoundException('Cupón no existe');
     }
 
@@ -68,7 +85,7 @@ export class CuponesService {
       await this.validarCodigoUnico(dto.codigo, cuponId);
     }
 
-    return this.prisma.cupones.update({
+    const updated = await this.prisma.cupones.update({
       where: { id: cuponId },
       data: {
         codigo: dto.codigo,
@@ -80,6 +97,19 @@ export class CuponesService {
         usos_maximos: dto.usos_maximos,
       },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CUPON_EDITAR',
+      entidad: 'Cupon',
+      entidad_id: updated.id,
+      detalle: `Cupón ${updated.id.toString()} (${updated.codigo}) actualizado`,
+      valor_anterior: snapshotCupon(prev),
+      valor_nuevo: snapshotCupon(updated),
+    });
+
+    return updated;
   }
 
   async validar(codigo: string) {
@@ -115,22 +145,33 @@ export class CuponesService {
     };
   }
 
-  async toggleStatus(id: string) {
+  async toggleStatus(id: string, auditorId: bigint) {
     const cuponId = BigInt(id);
 
-    const cupon = await this.prisma.cupones.findUnique({
+    const prev = await this.prisma.cupones.findUnique({
       where: { id: cuponId },
     });
 
-    if (!cupon) {
+    if (!prev) {
       throw new NotFoundException('Cupón no existe');
     }
 
     const updated = await this.prisma.cupones.update({
       where: { id: cuponId },
       data: {
-        activo: !cupon.activo,
+        activo: !prev.activo,
       },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CUPON_TOGGLE',
+      entidad: 'Cupon',
+      entidad_id: updated.id,
+      detalle: `Cupón ${updated.id.toString()} (${updated.codigo}) ${updated.activo ? 'activado' : 'desactivado'}`,
+      valor_anterior: snapshotCupon(prev),
+      valor_nuevo: snapshotCupon(updated),
     });
 
     return {
@@ -140,7 +181,7 @@ export class CuponesService {
     };
   }
 
-  async remove(id: string) {
+  async remove(id: string, auditorId: bigint) {
     const cuponId = BigInt(id);
 
     const cupon = await this.prisma.cupones.findUnique({
@@ -159,6 +200,16 @@ export class CuponesService {
     }
 
     await this.prisma.cupones.delete({ where: { id: cuponId } });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CUPON_ELIMINAR',
+      entidad: 'Cupon',
+      entidad_id: cuponId,
+      detalle: `Cupón ${cuponId.toString()} (${cupon.codigo}) eliminado`,
+      valor_anterior: snapshotCupon(cupon),
+    });
 
     return { id: cuponId.toString(), eliminado: true };
   }

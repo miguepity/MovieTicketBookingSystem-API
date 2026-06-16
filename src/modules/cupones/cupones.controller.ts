@@ -15,6 +15,8 @@ import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
 import { UpdateCuponDto } from './dto/update-cupon.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import {
   ApiBearerAuth,
   ApiTags,
@@ -59,8 +61,11 @@ export class CuponesController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'Ya existe un cupón con ese código' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(@Body() dto: CreateCuponDto) {
-    return this.cuponesService.create(dto);
+  create(
+    @Body() dto: CreateCuponDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cuponesService.create(dto, BigInt(user.userId));
   }
 
   @Put(':id')
@@ -74,8 +79,12 @@ export class CuponesController {
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiConflictResponse({ description: 'Ya existe un cupón con ese código' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(@Param('id') id: string, @Body() dto: UpdateCuponDto) {
-    return this.cuponesService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCuponDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cuponesService.update(id, dto, BigInt(user.userId));
   }
 
   @Post('validar')
@@ -92,14 +101,20 @@ export class CuponesController {
   }
 
   @Patch(':id/status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Alternar el estado activo/inactivo de un cupón' })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
   @ApiOkResponse({ description: 'Estado del cupón actualizado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
-  toggleStatus(@Param('id') id: string) {
-    return this.cuponesService.toggleStatus(id);
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  toggleStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cuponesService.toggleStatus(id, BigInt(user.userId));
   }
 
   @Delete(':id')
@@ -115,7 +130,10 @@ export class CuponesController {
     description: 'No se puede eliminar el cupón porque ya fue usado en pagos',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(@Param('id') id: string) {
-    return this.cuponesService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cuponesService.remove(id, BigInt(user.userId));
   }
 }
