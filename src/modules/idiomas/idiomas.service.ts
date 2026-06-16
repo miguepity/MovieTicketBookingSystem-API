@@ -8,10 +8,15 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Idioma } from './entities/idioma.entity';
 import { CreateIdiomaDto } from './dto/create-idioma.dto';
 import { UpdateIdiomaDto } from './dto/update-idioma.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotIdioma } from '../audit-log/snapshots';
 
 @Injectable()
 export class IdiomasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async findAll(nombre?: string): Promise<Idioma[]> {
     const trimmed = nombre?.trim();
@@ -34,30 +39,72 @@ export class IdiomasService {
     return idioma;
   }
 
-  async create(createIdiomaDto: CreateIdiomaDto): Promise<Idioma> {
+  async create(
+    createIdiomaDto: CreateIdiomaDto,
+    auditorId: bigint,
+  ): Promise<Idioma> {
     await this.assertNombreDisponible(createIdiomaDto.nombre);
-    return this.prisma.idiomas.create({
+    const nuevo = await this.prisma.idiomas.create({
       data: createIdiomaDto,
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'IDIOMA_CREAR',
+      entidad: 'Idioma',
+      entidad_id: nuevo.id,
+      detalle: `Idioma ${nuevo.id.toString()} (${nuevo.nombre}) creado`,
+      valor_nuevo: snapshotIdioma(nuevo),
+    });
+
+    return nuevo;
   }
 
-  async update(id: string, updateIdiomaDto: UpdateIdiomaDto): Promise<Idioma> {
+  async update(
+    id: string,
+    updateIdiomaDto: UpdateIdiomaDto,
+    auditorId: bigint,
+  ): Promise<Idioma> {
     const idiomaId = this.parseId(id);
-    await this.assertIdiomaExists(idiomaId);
+    const prev = await this.prisma.idiomas.findUnique({
+      where: { id: idiomaId },
+    });
+    if (!prev) {
+      throw new NotFoundException('Idioma no encontrado');
+    }
 
     if (updateIdiomaDto.nombre !== undefined) {
       await this.assertNombreDisponible(updateIdiomaDto.nombre, idiomaId);
     }
 
-    return this.prisma.idiomas.update({
+    const updated = await this.prisma.idiomas.update({
       where: { id: idiomaId },
       data: updateIdiomaDto,
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'IDIOMA_EDITAR',
+      entidad: 'Idioma',
+      entidad_id: updated.id,
+      detalle: `Idioma ${updated.id.toString()} (${updated.nombre}) actualizado`,
+      valor_anterior: snapshotIdioma(prev),
+      valor_nuevo: snapshotIdioma(updated),
+    });
+
+    return updated;
   }
 
-  async remove(id: string): Promise<{ id: bigint }> {
+  async remove(id: string, auditorId: bigint): Promise<{ id: bigint }> {
     const idiomaId = this.parseId(id);
-    await this.assertIdiomaExists(idiomaId);
+    const existing = await this.prisma.idiomas.findUnique({
+      where: { id: idiomaId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Idioma no encontrado');
+    }
 
     const peliculasCount = await this.prisma.peliculas.count({
       where: { id_idioma: idiomaId },
@@ -72,6 +119,17 @@ export class IdiomasService {
       where: { id: idiomaId },
       select: { id: true },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'IDIOMA_ELIMINAR',
+      entidad: 'Idioma',
+      entidad_id: deleted.id,
+      detalle: `Idioma ${deleted.id.toString()} (${existing.nombre}) eliminado`,
+      valor_anterior: snapshotIdioma(existing),
+    });
+
     return deleted;
   }
 
@@ -80,16 +138,6 @@ export class IdiomasService {
       return BigInt(id);
     } catch {
       throw new BadRequestException('ID inválido');
-    }
-  }
-
-  private async assertIdiomaExists(id: bigint): Promise<void> {
-    const idioma = await this.prisma.idiomas.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!idioma) {
-      throw new NotFoundException('Idioma no encontrado');
     }
   }
 

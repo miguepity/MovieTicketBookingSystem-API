@@ -27,6 +27,8 @@ import { GenerosService } from './generos.service';
 import { CreateGeneroDto } from './dto/create-genero.dto';
 import { UpdateGeneroDto } from './dto/update-genero.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Generos')
 @Controller('generos')
@@ -65,8 +67,11 @@ export class GenerosController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(@Body() createGeneroDto: CreateGeneroDto) {
-    return this.generosService.create(createGeneroDto);
+  create(
+    @Body() createGeneroDto: CreateGeneroDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.generosService.create(createGeneroDto, BigInt(user.userId));
   }
 
   @Put(':id')
@@ -78,8 +83,12 @@ export class GenerosController {
   @ApiNotFoundResponse({ description: 'Género no encontrado' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(@Param('id') id: string, @Body() updateGeneroDto: UpdateGeneroDto) {
-    return this.generosService.update(id, updateGeneroDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateGeneroDto: UpdateGeneroDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.generosService.update(id, updateGeneroDto, BigInt(user.userId));
   }
 
   @Delete(':id')
@@ -92,7 +101,10 @@ export class GenerosController {
     description: 'No se puede eliminar porque tiene películas asociadas',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(@Param('id') id: string) {
-    return this.generosService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.generosService.remove(id, BigInt(user.userId));
   }
 }

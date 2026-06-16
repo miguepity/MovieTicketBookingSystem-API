@@ -28,6 +28,8 @@ import { TiposAsientoService } from './tipos-asiento.service';
 import { CreateTipoAsientoDto } from './dto/create-tipo-asiento.dto';
 import { UpdateTipoAsientoDto } from './dto/update-tipo-asiento.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Tipos de asiento')
 @Controller('tipos-asiento')
@@ -66,8 +68,11 @@ export class TiposAsientoController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(@Body() dto: CreateTipoAsientoDto) {
-    return this.tiposAsientoService.create(dto);
+  create(
+    @Body() dto: CreateTipoAsientoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.tiposAsientoService.create(dto, BigInt(user.userId));
   }
 
   @Put(':id')
@@ -79,8 +84,12 @@ export class TiposAsientoController {
   @ApiNotFoundResponse({ description: 'Tipo de asiento no encontrado' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  replace(@Param('id') id: string, @Body() dto: CreateTipoAsientoDto) {
-    return this.tiposAsientoService.update(id, dto);
+  replace(
+    @Param('id') id: string,
+    @Body() dto: CreateTipoAsientoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.tiposAsientoService.update(id, dto, BigInt(user.userId));
   }
 
   @Patch(':id')
@@ -92,8 +101,12 @@ export class TiposAsientoController {
   @ApiNotFoundResponse({ description: 'Tipo de asiento no encontrado' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(@Param('id') id: string, @Body() dto: UpdateTipoAsientoDto) {
-    return this.tiposAsientoService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTipoAsientoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.tiposAsientoService.update(id, dto, BigInt(user.userId));
   }
 
   @Delete(':id')
@@ -107,7 +120,10 @@ export class TiposAsientoController {
       'No se puede eliminar porque tiene asientos o precios asociados',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(@Param('id') id: string) {
-    return this.tiposAsientoService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.tiposAsientoService.remove(id, BigInt(user.userId));
   }
 }

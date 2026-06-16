@@ -18,6 +18,8 @@ import { CiudadesService } from './ciudades.service';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
 import { UpdateCiudadesDto } from './dto/update-ciudades.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Ciudades')
 @Controller('Ciudades')
@@ -49,8 +51,11 @@ export class CiudadesController {
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
-  create(@Body() createCiudadesDto: CreateCiudadesDto) {
-    return this.ciudadesService.create(createCiudadesDto);
+  create(
+    @Body() createCiudadesDto: CreateCiudadesDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.ciudadesService.create(createCiudadesDto, BigInt(user.userId));
   }
 
   @Put(':id')
@@ -71,7 +76,12 @@ export class CiudadesController {
   update(
     @Param('id') id: string,
     @Body() updateCiudadesDto: UpdateCiudadesDto,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.ciudadesService.update(id, updateCiudadesDto);
+    return this.ciudadesService.update(
+      id,
+      updateCiudadesDto,
+      BigInt(user.userId),
+    );
   }
 }
