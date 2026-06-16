@@ -40,7 +40,7 @@ export class PagosService {
 
       if (!cupon) {
         throw new NotFoundException(
-          'Cupon con codigo ${dto.codigo_cupon} no encontrado',
+          `Cupon con codigo ${dto.codigo_cupon} no encontrado`,
         );
       }
 
