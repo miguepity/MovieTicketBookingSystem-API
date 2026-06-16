@@ -28,6 +28,8 @@ import {
 } from '@nestjs/swagger';
 import { SalaResponseDto } from './dto/sala.response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Salas')
 @Controller('salas')
@@ -46,8 +48,11 @@ export class SalasController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'Ya existe una sala con ese nombre' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(@Body() createSalaDto: CreateSalaDto): Promise<SalaResponseDto> {
-    return this.salasService.create(createSalaDto);
+  create(
+    @Body() createSalaDto: CreateSalaDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<SalaResponseDto> {
+    return this.salasService.create(createSalaDto, BigInt(user.userId));
   }
 
   @Get()
@@ -89,8 +94,9 @@ export class SalasController {
   update(
     @Param('id') id: string,
     @Body() updateSalaDto: UpdateSalaDto,
+    @CurrentUser() user: CurrentUserPayload,
   ): Promise<SalaResponseDto> {
-    return this.salasService.update(id, updateSalaDto);
+    return this.salasService.update(id, updateSalaDto, BigInt(user.userId));
   }
 
   @Delete(':id')
@@ -104,7 +110,10 @@ export class SalasController {
     description: 'No se puede eliminar porque tiene funciones asociadas',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(@Param('id') id: string): Promise<{ id: number }> {
-    return this.salasService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<{ id: number }> {
+    return this.salasService.remove(id, BigInt(user.userId));
   }
 }

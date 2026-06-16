@@ -29,6 +29,8 @@ import { CineCreatedResponseDto } from './dto/cine-created-response.dto';
 import { CinesPageResponseDto } from './dto/cines-page.response.dto';
 import { UpdateCineDto } from './dto/update-cine.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Cines')
 @Controller('cine')
@@ -48,8 +50,9 @@ export class CineController {
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   create(
     @Body() createCineDto: CreateCineDto,
+    @CurrentUser() user: CurrentUserPayload,
   ): Promise<CineCreatedResponseDto> {
-    return this.cineService.create(createCineDto);
+    return this.cineService.create(createCineDto, BigInt(user.userId));
   }
 
   @Get()
@@ -75,8 +78,12 @@ export class CineController {
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  update(@Param('id') id: string, @Body() updateCineDto: UpdateCineDto) {
-    return this.cineService.update(id, updateCineDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateCineDto: UpdateCineDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cineService.update(id, updateCineDto, BigInt(user.userId));
   }
 
   @Delete(':id')
@@ -85,7 +92,10 @@ export class CineController {
   @ApiOkResponse({ description: 'Cine eliminado exitosamente.' })
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(@Param('id') id: string) {
-    return this.cineService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cineService.remove(id, BigInt(user.userId));
   }
 }
