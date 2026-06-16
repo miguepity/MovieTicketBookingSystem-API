@@ -2,15 +2,48 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { UpdateReservaDto } from './dto/update-reserva.dto';
+import { MailService } from 'src/mail/mail.service';
 import { nanoid } from 'nanoid';
 
 @Injectable()
 export class ReservasService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(ReservasService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
+
+  readonly email_confirmation: string = `
+    <h1>Confirmación de Reserva - MovieSys</h1>
+    <p><strong>Reserva:</strong> {{numero_reserva}}</p>
+    <p><strong>Película:</strong> {{pelicula}}</p>
+    <p><strong>Cine:</strong> {{cine}}</p>
+    <p><strong>Asientos:</strong> {{asientos}}</p>
+    <p><strong>Total:</strong> Q{{monto}}</p>
+    <p>¡Gracias por tu compra!</p>
+  `;
+
+  // para usar llamar this.renderEmailConfirmation({ data }).
+  renderEmailConfirmation(data: {
+    numero_reserva: string;
+    pelicula: string;
+    cine: string;
+    asientos: string;
+    monto: string;
+  }): string {
+    return this.email_confirmation
+      .replace('{{numero_reserva}}', data.numero_reserva)
+      .replace('{{pelicula}}', data.pelicula)
+      .replace('{{cine}}', data.cine)
+      .replace('{{asientos}}', data.asientos)
+      .replace('{{monto}}', data.monto);
+  }
 
   private serialize<T>(data: T): T {
     return JSON.parse(
@@ -36,7 +69,7 @@ export class ReservasService {
       throw new BadRequestException('Uno o más asientos no están disponibles');
     }
 
-    return await this.prisma.$transaction(async (tx) => {
+    const reserva = await this.prisma.$transaction(async (tx) => {
       // 1. Crear la reserva
       const reserva = await tx.reservas.create({
         data: {
@@ -66,8 +99,56 @@ export class ReservasService {
         },
       });
 
-      return this.serialize(reserva);
+      return reserva;
     });
+
+    const result = this.serialize(reserva);
+
+    try {
+      const full = await this.prisma.reservas.findUnique({
+        where: { id: reserva.id },
+        include: {
+          usuarios: { select: { nombre: true, email: true } },
+          funciones: {
+            include: {
+              peliculas: { select: { titulo: true } },
+              salas: { include: { cines: { select: { nombre: true } } } },
+            },
+          },
+          reservaAsientos: {
+            include: {
+              asientosfuncion: {
+                include: { asientos: { select: { codigo: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (full) {
+        const asientosStr = full.reservaAsientos
+          .map((ra) => ra.asientosfuncion.asientos.codigo)
+          .join(', ');
+
+        const html = this.renderEmailConfirmation({
+          numero_reserva: full.numero_reserva,
+          pelicula: full.funciones.peliculas.titulo,
+          cine: full.funciones.salas.cines.nombre,
+          asientos: asientosStr,
+          monto: '0.00',
+        });
+
+        await this.mailService.sendEmail(
+          full.usuarios.email,
+          'Confirmación de Reserva - MovieSys',
+          html,
+        );
+      }
+    } catch (e) {
+      this.logger.error(`Error al enviar email de confirmación: ${e}`);
+    }
+
+    return result;
   }
 
   async findAll() {
