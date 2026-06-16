@@ -4,7 +4,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateReembolsoDto } from './dto/create-reembolso.dto';
 import { CreateReembolsoEfectivoDto } from './dto/create-reembolso-efectivo.dto';
-import { RecepcionistaGuard } from 'src/auth/recepcionista.guard';
+import { IsRecepcionistaGuard } from 'src/roles/recepcionista.guard';
 
 @ApiTags('Reembolsos')
 @Controller('reembolsos')
@@ -48,7 +48,7 @@ export class ReembolsosController {
   }
 
   @Post('efectivo')
-  @UseGuards(AuthGuard, RecepcionistaGuard)
+  @UseGuards(AuthGuard, IsRecepcionistaGuard)
   @ApiBearerAuth()
   @ApiOperation({
     description: 'Registrar reembolso en efectivo y notificar al recepcionista',
