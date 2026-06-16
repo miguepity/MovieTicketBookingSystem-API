@@ -81,6 +81,17 @@ export class PeliculasController {
     return this.peliculasService.uploadPoster(+id, file);
   }
 
+  @Get(':id/cines/:cineId/funciones')
+  @ApiOperation({ summary: 'Obtener funciones disponibles de una película por cine con disponibilidad de asientos' })
+  @ApiParam({ name: 'id', description: 'ID de la película' })
+  @ApiParam({ name: 'cineId', description: 'ID del cine' })
+  getFuncionesByCine(
+    @Param('id') id: string,
+    @Param('cineId') cineId: string,
+  ) {
+    return this.peliculasService.getFuncionesByCine(+id, +cineId);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar una película' })
   @ApiParam({ name: 'id', description: 'ID de la película' })

@@ -88,4 +88,39 @@ export class PeliculasService {
       data: { poster_url: `/uploads/posters/${file.filename}` },
     });
   }
+
+  async getFuncionesByCine(id_pelicula: number, id_cine: number) {
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: id_pelicula },
+    });
+    if (!pelicula) throw new NotFoundException('Película no encontrada');
+
+    const funciones = await this.prisma.funciones.findMany({
+      where: {
+        id_pelicula,
+        salas: { id_cine },
+        fecha_hora: { gte: new Date() },
+        estado: { not: 'cancelada' },
+      },
+      include: {
+        salas: {
+          select: { id: true, nombre: true, filas: true, columnas: true },
+        },
+        asientosFuncions: {
+          select: { estado: true },
+        },
+      },
+      orderBy: { fecha_hora: 'asc' },
+    });
+
+    return funciones.map(({ asientosFuncions, ...funcion }) => ({
+      ...funcion,
+      asientos: {
+        total: asientosFuncions.length,
+        disponibles: asientosFuncions.filter((a) => a.estado === 'disponible')
+          .length,
+        ocupados: asientosFuncions.filter((a) => a.estado === 'ocupado').length,
+      },
+    }));
+  }
 }
