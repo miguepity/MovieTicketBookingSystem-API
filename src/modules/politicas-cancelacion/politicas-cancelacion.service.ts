@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotPoliticaCancelacion } from '../audit-log/snapshots';
 import { CreatePoliticaCancelacionDto } from './dto/create-politica-cancelacion.dto';
 import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { ListPoliticasCancelacionQueryDto } from './dto/list-politicas-cancelacion-query.dto';
@@ -102,7 +103,10 @@ export class PoliticasCancelacionService {
       id_usuario: auditorId,
       id_auditor: auditorId,
       accion: 'POLITICA_CREAR',
+      entidad: 'PoliticaCancelacion',
+      entidad_id: created.id,
       detalle: `Política ${created.id.toString()} creada para cine ${idCine.toString()}`,
+      valor_nuevo: snapshotPoliticaCancelacion(created),
     });
 
     return this.findOne(created.id.toString());
@@ -111,13 +115,14 @@ export class PoliticasCancelacionService {
   async update(
     id: string,
     dto: UpdatePoliticasCancelacionDto,
+    auditorId: bigint,
   ): Promise<PoliticasCancelacionListItemResponseDto> {
     const politicaId = this.parseId(id);
-    const existing = await this.prisma.politicaCancelacion.findUnique({
+    const prev = await this.prisma.politicaCancelacion.findUnique({
       where: { id: politicaId },
-      select: { id: true },
+      select: { id: true, id_cine: true, nombre: true, activa: true },
     });
-    if (!existing) {
+    if (!prev) {
       throw new NotFoundException('Política de cancelación no encontrada');
     }
 
@@ -145,6 +150,22 @@ export class PoliticasCancelacionService {
           })),
         });
       }
+    });
+
+    const updated = await this.prisma.politicaCancelacion.findUnique({
+      where: { id: politicaId },
+      select: { id: true, id_cine: true, nombre: true, activa: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'POLITICA_EDITAR',
+      entidad: 'PoliticaCancelacion',
+      entidad_id: politicaId,
+      detalle: `Política ${id} editada`,
+      valor_anterior: snapshotPoliticaCancelacion(prev),
+      valor_nuevo: updated ? snapshotPoliticaCancelacion(updated) : undefined,
     });
 
     return this.findOne(id);

@@ -6,15 +6,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { PrismaService } from 'src/prisma/prisma.service';
-import { MailService } from 'src/modules/mail/mail.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { CloudinaryService } from './cloudinary.service';
-import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
-import { EstadoFuncion } from 'src/common/enums/estado-funcion.enum';
+import { EstadoAsiento } from '../../common/enums/estado-asiento.enum';
+import { EstadoFuncion } from '../../common/enums/estado-funcion.enum';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotPelicula } from '../audit-log/snapshots';
 import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
@@ -114,10 +115,14 @@ export class PeliculaService {
       select: {
         id: true,
         titulo: true,
+        sinopsis: true,
         poster_url: true,
         fecha_estreno: true,
+        id_idioma: true,
+        id_genero: true,
         activo: true,
         generos: { select: { nombre: true } },
+        idiomas: { select: { nombre: true } },
       },
     });
 
@@ -125,7 +130,10 @@ export class PeliculaService {
       id_usuario: userId,
       id_auditor: userId,
       accion: 'PELICULA_CREAR',
+      entidad: 'Pelicula',
+      entidad_id: pelicula.id,
       detalle: `Película ${pelicula.id.toString()} (${pelicula.titulo}) creada`,
+      valor_nuevo: snapshotPelicula(pelicula),
     });
 
     if (pelicula.activo) {
@@ -193,7 +201,18 @@ export class PeliculaService {
 
     const existing = await this.prisma.peliculas.findUnique({
       where: { id: peliculaId },
-      select: { id: true, id_usuario: true, titulo: true },
+      select: {
+        id: true,
+        id_usuario: true,
+        titulo: true,
+        sinopsis: true,
+        fecha_estreno: true,
+        id_idioma: true,
+        id_genero: true,
+        activo: true,
+        generos: { select: { nombre: true } },
+        idiomas: { select: { nombre: true } },
+      },
     });
     if (!existing) {
       throw new NotFoundException('Película no encontrada');
@@ -233,7 +252,11 @@ export class PeliculaService {
       id_usuario: existing.id_usuario,
       id_auditor: auditorId,
       accion: 'PELICULA_EDITAR',
+      entidad: 'Pelicula',
+      entidad_id: peliculaId,
       detalle: `Película ${peliculaId.toString()} (${existing.titulo}) editada`,
+      valor_anterior: snapshotPelicula(existing),
+      valor_nuevo: snapshotPelicula(updated),
     });
 
     return updated;
@@ -382,7 +405,18 @@ export class PeliculaService {
 
     const existing = await this.prisma.peliculas.findUnique({
       where: { id: peliculaId },
-      select: { activo: true, id_usuario: true, titulo: true },
+      select: {
+        id: true,
+        id_usuario: true,
+        titulo: true,
+        sinopsis: true,
+        fecha_estreno: true,
+        id_idioma: true,
+        id_genero: true,
+        activo: true,
+        generos: { select: { nombre: true } },
+        idiomas: { select: { nombre: true } },
+      },
     });
     if (!existing) {
       throw new NotFoundException('Película no encontrada');
@@ -391,14 +425,28 @@ export class PeliculaService {
     const updated = await this.prisma.peliculas.update({
       where: { id: peliculaId },
       data: { activo: !existing.activo },
-      select: { id: true, activo: true },
+      select: {
+        id: true,
+        titulo: true,
+        sinopsis: true,
+        fecha_estreno: true,
+        id_idioma: true,
+        id_genero: true,
+        activo: true,
+        generos: { select: { nombre: true } },
+        idiomas: { select: { nombre: true } },
+      },
     });
 
     await this.auditLog.registrar({
       id_usuario: existing.id_usuario,
       id_auditor: auditorId,
       accion: 'PELICULA_TOGGLE',
+      entidad: 'Pelicula',
+      entidad_id: peliculaId,
       detalle: `Película ${peliculaId.toString()} (${existing.titulo}) toggled a ${!existing.activo}`,
+      valor_anterior: snapshotPelicula(existing),
+      valor_nuevo: snapshotPelicula(updated),
     });
 
     return updated;
