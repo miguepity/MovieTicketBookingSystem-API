@@ -20,6 +20,7 @@ import { ReservasModule } from './reservas/reservas.module';
 import { AsientosModule } from './asientos/asientos.module';
 import { AsientosFuncionModule } from './asientos-funcion/asientos-funcion.module';
 import { PagosModule } from './pagos/pagos.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { PagosModule } from './pagos/pagos.module';
     AsientosModule,
     AsientosFuncionModule,
     PagosModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
