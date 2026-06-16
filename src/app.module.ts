@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
@@ -26,11 +27,15 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { FuncionesModule } from './modules/funciones/funciones.module';
 import { CuponesModule } from './modules/cupones/cupones.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { CryptoModule } from './common/crypto/crypto.module';
+import { MetodosPagoModule } from './modules/metodos-pago/metodos-pago.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
+    CryptoModule,
     PrismaModule,
     AuditLogModule,
     MailModule,
@@ -54,6 +59,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     ReportesModule,
     FuncionesModule,
     CuponesModule,
+    MetodosPagoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

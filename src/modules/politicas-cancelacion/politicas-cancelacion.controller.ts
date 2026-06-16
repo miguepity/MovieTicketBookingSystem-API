@@ -76,8 +76,12 @@ export class PoliticasCancelacionController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Política no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(@Param('id') id: string, @Body() dto: UpdatePoliticasCancelacionDto) {
-    return this.politicasCancelacionService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdatePoliticasCancelacionDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.politicasCancelacionService.update(id, dto, BigInt(user.userId));
   }
 
   @Patch(':id/desactivar')

@@ -9,6 +9,8 @@ import { Prisma } from '../../../generated/prisma/client';
 import { CreatePrecioCineDto } from './dto/create-precio-cine.dto';
 import { UpdatePrecioCineDto } from './dto/update-precio-cine.dto';
 import { ListPreciosCineQueryDto } from './dto/list-precios-cine-query.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotPrecioCine } from '../audit-log/snapshots';
 
 type PrecioCinePayload = Prisma.PreciosCineGetPayload<{
   include: {
@@ -19,7 +21,10 @@ type PrecioCinePayload = Prisma.PreciosCineGetPayload<{
 
 @Injectable()
 export class PreciosCineService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async findAll(query: ListPreciosCineQueryDto) {
     const where: Prisma.PreciosCineWhereInput = {};
@@ -57,7 +62,7 @@ export class PreciosCineService {
     return this.toResponse(precio);
   }
 
-  async create(dto: CreatePrecioCineDto) {
+  async create(dto: CreatePrecioCineDto, auditorId: bigint) {
     const idCine = BigInt(dto.id_cine);
     const idTipo = BigInt(dto.id_tipo_asiento);
 
@@ -103,12 +108,32 @@ export class PreciosCineService {
         tipoAsiento: { select: { id: true, nombre: true } },
       },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'PRECIO_CREAR',
+      entidad: 'PrecioCine',
+      entidad_id: precio.id,
+      detalle: `Precio ${precio.id.toString()} creado para ${precio.cines.nombre} / ${precio.tipoAsiento.nombre}`,
+      valor_nuevo: snapshotPrecioCine(precio),
+    });
+
     return this.toResponse(precio);
   }
 
-  async update(id: string, dto: UpdatePrecioCineDto) {
+  async update(id: string, dto: UpdatePrecioCineDto, auditorId: bigint) {
     const precioId = this.parseId(id);
-    await this.assertExists(precioId);
+    const prev = await this.prisma.preciosCine.findUnique({
+      where: { id: precioId },
+      include: {
+        cines: { select: { id: true, nombre: true } },
+        tipoAsiento: { select: { id: true, nombre: true } },
+      },
+    });
+    if (!prev) {
+      throw new NotFoundException('Precio no encontrado');
+    }
 
     const precio = await this.prisma.preciosCine.update({
       where: { id: precioId },
@@ -118,14 +143,46 @@ export class PreciosCineService {
         tipoAsiento: { select: { id: true, nombre: true } },
       },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'PRECIO_EDITAR',
+      entidad: 'PrecioCine',
+      entidad_id: precio.id,
+      detalle: `Precio ${precio.id.toString()} (${precio.cines.nombre} / ${precio.tipoAsiento.nombre}) actualizado`,
+      valor_anterior: snapshotPrecioCine(prev),
+      valor_nuevo: snapshotPrecioCine(precio),
+    });
+
     return this.toResponse(precio);
   }
 
-  async remove(id: string) {
+  async remove(id: string, auditorId: bigint) {
     const precioId = this.parseId(id);
-    await this.assertExists(precioId);
+    const existing = await this.prisma.preciosCine.findUnique({
+      where: { id: precioId },
+      include: {
+        cines: { select: { id: true, nombre: true } },
+        tipoAsiento: { select: { id: true, nombre: true } },
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException('Precio no encontrado');
+    }
 
     await this.prisma.preciosCine.delete({ where: { id: precioId } });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'PRECIO_ELIMINAR',
+      entidad: 'PrecioCine',
+      entidad_id: precioId,
+      detalle: `Precio ${precioId.toString()} (${existing.cines.nombre} / ${existing.tipoAsiento.nombre}) eliminado`,
+      valor_anterior: snapshotPrecioCine(existing),
+    });
+
     return { id: precioId.toString() };
   }
 
@@ -149,16 +206,6 @@ export class PreciosCineService {
       return BigInt(id);
     } catch {
       throw new BadRequestException('ID inválido');
-    }
-  }
-
-  private async assertExists(id: bigint): Promise<void> {
-    const existing = await this.prisma.preciosCine.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!existing) {
-      throw new NotFoundException('Precio no encontrado');
     }
   }
 }

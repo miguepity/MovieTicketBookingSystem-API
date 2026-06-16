@@ -8,12 +8,20 @@ import { CreateSalaDto } from './dto/create-sala.dto';
 import { UpdateSalaDto } from './dto/update-sala.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SalaResponseDto } from './dto/sala.response.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotSala } from '../audit-log/snapshots';
 
 @Injectable()
 export class SalasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
-  async create(createSalaDto: CreateSalaDto): Promise<SalaResponseDto> {
+  async create(
+    createSalaDto: CreateSalaDto,
+    auditorId: bigint,
+  ): Promise<SalaResponseDto> {
     await this.assertNombreDisponible(createSalaDto.nombre);
 
     const created = await this.prisma.salas.create({
@@ -23,6 +31,17 @@ export class SalasService {
         filas: createSalaDto.filas,
         columnas: createSalaDto.columnas,
       },
+      include: { cines: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'SALA_CREAR',
+      entidad: 'Sala',
+      entidad_id: created.id,
+      detalle: `Sala ${created.id.toString()} (${created.nombre}) creada`,
+      valor_nuevo: snapshotSala(created),
     });
 
     return this.toDto(created);
@@ -53,9 +72,16 @@ export class SalasService {
   async update(
     id: string,
     updateSalaDto: UpdateSalaDto,
+    auditorId: bigint,
   ): Promise<SalaResponseDto> {
     const salaId = this.parseId(id);
-    await this.assertSalaExists(salaId);
+    const prev = await this.prisma.salas.findUnique({
+      where: { id: salaId },
+      include: { cines: true },
+    });
+    if (!prev) {
+      throw new NotFoundException('Sala no encontrada');
+    }
 
     if (updateSalaDto.nombre !== undefined) {
       await this.assertNombreDisponible(updateSalaDto.nombre, salaId);
@@ -79,6 +105,18 @@ export class SalasService {
         filas: updateSalaDto.filas,
         columnas: updateSalaDto.columnas,
       },
+      include: { cines: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'SALA_EDITAR',
+      entidad: 'Sala',
+      entidad_id: updated.id,
+      detalle: `Sala ${updated.id.toString()} (${updated.nombre}) actualizada`,
+      valor_anterior: snapshotSala(prev),
+      valor_nuevo: snapshotSala(updated),
     });
 
     const result = this.toDto(updated);
@@ -89,9 +127,15 @@ export class SalasService {
     return result;
   }
 
-  async remove(id: string): Promise<{ id: number }> {
+  async remove(id: string, auditorId: bigint): Promise<{ id: number }> {
     const salaId = this.parseId(id);
-    await this.assertSalaExists(salaId);
+    const existing = await this.prisma.salas.findUnique({
+      where: { id: salaId },
+      include: { cines: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Sala no encontrada');
+    }
 
     const funcionesCount = await this.prisma.funciones.count({
       where: { id_sala: salaId },
@@ -106,6 +150,16 @@ export class SalasService {
     const deleted = await this.prisma.salas.delete({
       where: { id: salaId },
       select: { id: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'SALA_ELIMINAR',
+      entidad: 'Sala',
+      entidad_id: deleted.id,
+      detalle: `Sala ${deleted.id.toString()} (${existing.nombre}) eliminada`,
+      valor_anterior: snapshotSala(existing),
     });
 
     return { id: Number(deleted.id) };
@@ -132,16 +186,6 @@ export class SalasService {
       return BigInt(id);
     } catch {
       throw new BadRequestException('ID inválido');
-    }
-  }
-
-  private async assertSalaExists(id: bigint): Promise<void> {
-    const sala = await this.prisma.salas.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!sala) {
-      throw new NotFoundException('Sala no encontrada');
     }
   }
 

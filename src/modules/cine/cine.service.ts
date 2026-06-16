@@ -12,6 +12,8 @@ import { ListCinesQueryDto } from './dto/list-cines-query.dto';
 import { CinesPageResponseDto } from './dto/cines-page.response.dto';
 import { CineListItemResponseDto } from './dto/cine-list-item.response.dto';
 import { Prisma } from '../../../generated/prisma/client';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotCine } from '../audit-log/snapshots';
 
 type CineListPayload = Prisma.CinesGetPayload<{
   include: {
@@ -26,9 +28,15 @@ type CineListPayload = Prisma.CinesGetPayload<{
 
 @Injectable()
 export class CineService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
-  async create(createCineDto: CreateCineDto): Promise<CineCreatedResponseDto> {
+  async create(
+    createCineDto: CreateCineDto,
+    auditorId: bigint,
+  ): Promise<CineCreatedResponseDto> {
     const idCiudad = BigInt(createCineDto.id_ciudad);
     const city = await this.prisma.ciudades.findUnique({
       where: { id: idCiudad },
@@ -44,7 +52,17 @@ export class CineService {
         direccion: createCineDto.direccion,
         id_ciudad: idCiudad,
       },
-      select: { id: true },
+      include: { ciudades: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CINE_CREAR',
+      entidad: 'Cine',
+      entidad_id: cine.id,
+      detalle: `Cine ${cine.id.toString()} (${cine.nombre}) creado`,
+      valor_nuevo: snapshotCine(cine),
     });
 
     return { id: cine.id };
@@ -88,24 +106,38 @@ export class CineService {
     };
   }
 
-  async update(id: string, updateCineDto: UpdateCineDto) {
+  async update(id: string, updateCineDto: UpdateCineDto, auditorId: bigint) {
     const cineId = this.parseId(id);
 
-    const existing = await this.prisma.cines.findUnique({
+    const prev = await this.prisma.cines.findUnique({
       where: { id: cineId },
-      select: { id: true },
+      include: { ciudades: true },
     });
-    if (!existing) {
+    if (!prev) {
       throw new NotFoundException('Cine no encontrado');
     }
 
-    return this.prisma.cines.update({
+    const updated = await this.prisma.cines.update({
       where: { id: cineId },
       data: {
         nombre: updateCineDto.nombre,
         direccion: updateCineDto.direccion,
       },
+      include: { ciudades: true },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CINE_EDITAR',
+      entidad: 'Cine',
+      entidad_id: updated.id,
+      detalle: `Cine ${updated.id.toString()} (${updated.nombre}) actualizado`,
+      valor_anterior: snapshotCine(prev),
+      valor_nuevo: snapshotCine(updated),
+    });
+
+    return updated;
   }
 
   async findOne(id: string) {
@@ -117,17 +149,29 @@ export class CineService {
     return cine;
   }
 
-  async remove(id: string) {
+  async remove(id: string, auditorId: bigint) {
     const cineId = this.parseId(id);
     const existing = await this.prisma.cines.findUnique({
       where: { id: cineId },
-      select: { id: true },
+      include: { ciudades: true },
     });
     if (!existing) {
       throw new NotFoundException('Cine no encontrado');
     }
     try {
-      return await this.prisma.cines.delete({ where: { id: cineId } });
+      const deleted = await this.prisma.cines.delete({ where: { id: cineId } });
+
+      await this.auditLog.registrar({
+        id_usuario: auditorId,
+        id_auditor: auditorId,
+        accion: 'CINE_ELIMINAR',
+        entidad: 'Cine',
+        entidad_id: existing.id,
+        detalle: `Cine ${existing.id.toString()} (${existing.nombre}) eliminado`,
+        valor_anterior: snapshotCine(existing),
+      });
+
+      return deleted;
     } catch (e) {
       if (
         e instanceof Prisma.PrismaClientKnownRequestError &&

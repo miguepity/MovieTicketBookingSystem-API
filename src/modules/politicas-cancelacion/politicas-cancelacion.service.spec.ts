@@ -104,7 +104,48 @@ describe('PoliticasCancelacionService', () => {
     expect(prisma.politicaCancelacion.create).toHaveBeenCalled();
     expect(prisma.reglaPoliticaCancelacion.createMany).toHaveBeenCalled();
     expect(auditLog.registrar).toHaveBeenCalledWith(
-      expect.objectContaining({ accion: 'POLITICA_CREAR', id_auditor: 9n }),
+      expect.objectContaining({
+        accion: 'POLITICA_CREAR',
+        entidad: 'PoliticaCancelacion',
+        entidad_id: 5n,
+        id_auditor: 9n,
+        valor_nuevo: expect.objectContaining({
+          nombre: 'P1',
+          activa: true,
+          id_cine: '1',
+        }),
+      }),
+    );
+  });
+
+  it('editar: registra audit POLITICA_EDITAR con valor_anterior y valor_nuevo', async () => {
+    const prev = { id: 5n, id_cine: 1n, nombre: 'Antes', activa: true };
+    const after = { id: 5n, id_cine: 1n, nombre: 'Despues', activa: true };
+    // first findUnique in update() — prev snapshot lookup
+    prisma.politicaCancelacion.findUnique.mockResolvedValueOnce(prev);
+    // second findUnique in update() — after-snapshot lookup
+    prisma.politicaCancelacion.findUnique.mockResolvedValueOnce(after);
+    // third findUnique → findOne() at the end
+    prisma.politicaCancelacion.findUnique.mockResolvedValueOnce({
+      ...after,
+      reglas: [],
+    });
+
+    await service.update(
+      '5',
+      { nombre: 'Despues' },
+      9n,
+    );
+
+    expect(auditLog.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accion: 'POLITICA_EDITAR',
+        entidad: 'PoliticaCancelacion',
+        entidad_id: 5n,
+        id_auditor: 9n,
+        valor_anterior: expect.objectContaining({ nombre: 'Antes' }),
+        valor_nuevo: expect.objectContaining({ nombre: 'Despues' }),
+      }),
     );
   });
 });

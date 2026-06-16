@@ -14,6 +14,7 @@ import { MetodoPago } from 'src/common/enums/metodo-pago.enum';
 import { PagoExitosoEvent } from './events/pago-exitoso.event';
 import { Prisma } from '../../../generated/prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotPago } from '../audit-log/snapshots';
 
 interface ProcesarPagoInput {
   idReserva: string;
@@ -161,11 +162,19 @@ export class PagosService {
       ),
     );
 
+    const pagoConReserva = await this.prisma.pagos.findUniqueOrThrow({
+      where: { id: result.id },
+      include: { reservas: { select: { numero_reserva: true } } },
+    });
+
     await this.auditLog.registrar({
       id_usuario: reserva.id_usuario,
       id_auditor: BigInt(input.idUsuarioActual),
       accion: 'PAGO_APROBAR',
+      entidad: 'Pago',
+      entidad_id: result.id,
       detalle: `Pago ${result.id.toString()} aprobado para reserva ${reserva.id.toString()}`,
+      valor_nuevo: snapshotPago(pagoConReserva),
     });
 
     return {

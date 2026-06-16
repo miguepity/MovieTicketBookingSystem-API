@@ -10,6 +10,7 @@ import { CreateFuncionDto } from './dto/create-funcion.dto';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
 import { FuncionCanceladaEvent } from './events/funcion-cancelada.event';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { snapshotFuncion } from '../audit-log/snapshots';
 import { EstadoAsiento } from '../../common/enums/estado-asiento.enum';
 import { EstadoFuncion } from '../../common/enums/estado-funcion.enum';
 
@@ -71,11 +72,19 @@ export class FuncionesService {
 
     await this.generarAsientos(funcion.id);
 
+    const creada = await this.prisma.funciones.findUnique({
+      where: { id: funcion.id },
+      include: { peliculas: true, salas: true },
+    });
+
     await this.auditLog.registrar({
       id_usuario: auditorId,
       id_auditor: auditorId,
       accion: 'FUNCION_CREAR',
+      entidad: 'Funcion',
+      entidad_id: funcion.id,
       detalle: `Función ${funcion.id.toString()} creada (pelicula=${dto.id_pelicula}, sala=${dto.id_sala})`,
+      valor_nuevo: creada ? snapshotFuncion(creada) : undefined,
     });
 
     return funcion;
@@ -147,6 +156,8 @@ export class FuncionesService {
       where: { id: id_funcion },
       include: {
         asientosFuncions: true,
+        peliculas: true,
+        salas: true,
       },
     });
 
@@ -201,11 +212,20 @@ export class FuncionesService {
       data,
     });
 
+    const updatedFull = await this.prisma.funciones.findUnique({
+      where: { id: id_funcion },
+      include: { peliculas: true, salas: true },
+    });
+
     await this.auditLog.registrar({
       id_usuario: auditorId,
       id_auditor: auditorId,
       accion: 'FUNCION_EDITAR',
+      entidad: 'Funcion',
+      entidad_id: id_funcion,
       detalle: `Función ${id} editada`,
+      valor_anterior: snapshotFuncion(funcion),
+      valor_nuevo: updatedFull ? snapshotFuncion(updatedFull) : undefined,
     });
 
     return updated;
@@ -216,6 +236,7 @@ export class FuncionesService {
 
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: id_funcion },
+      include: { peliculas: true, salas: true },
     });
 
     if (!funcion) {
@@ -243,7 +264,10 @@ export class FuncionesService {
       id_usuario: auditorId,
       id_auditor: auditorId,
       accion: 'FUNCION_CANCELAR',
+      entidad: 'Funcion',
+      entidad_id: id_funcion,
       detalle: `Función ${id} cancelada`,
+      valor_anterior: snapshotFuncion(funcion),
     });
 
     this.eventEmitter.emit(

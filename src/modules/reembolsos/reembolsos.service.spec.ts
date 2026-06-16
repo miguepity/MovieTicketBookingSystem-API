@@ -54,3 +54,60 @@ describe('ReembolsosService.calcularMonto', () => {
     expect(res).toEqual({ pagoId: 10n, monto: 100, porcentaje: 50, politicaId: 7n });
   });
 });
+
+describe('ReembolsosService.procesarEfectivo', () => {
+  let service: ReembolsosService;
+  let prisma: any;
+  let auditLog: { registrar: jest.Mock };
+
+  beforeEach(async () => {
+    prisma = {
+      reembolsos: {
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        updateMany: jest.fn(),
+      },
+    };
+    auditLog = { registrar: jest.fn().mockResolvedValue(undefined) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReembolsosService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogService, useValue: auditLog },
+      ],
+    }).compile();
+    service = moduleRef.get(ReembolsosService);
+  });
+
+  it('registra audit REEMBOLSO_PROCESAR con snapshot pendiente → procesado', async () => {
+    const prev = {
+      id: 7n,
+      id_pago: 3n,
+      id_politica: 1n,
+      porcentaje_aplicado: '50.00',
+      monto: '100.00',
+      estado: 'pendiente',
+      fecha_procesado: null,
+    };
+    const after = {
+      ...prev,
+      estado: 'procesado',
+      fecha_procesado: new Date('2026-01-01T00:00:00.000Z'),
+    };
+    prisma.reembolsos.findUnique.mockResolvedValueOnce(prev);
+    prisma.reembolsos.updateMany.mockResolvedValueOnce({ count: 1 });
+    prisma.reembolsos.findUniqueOrThrow.mockResolvedValueOnce(after);
+
+    await service.procesarEfectivo('7', 9n);
+
+    expect(auditLog.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accion: 'REEMBOLSO_PROCESAR',
+        entidad: 'Reembolso',
+        entidad_id: 7n,
+        valor_anterior: expect.objectContaining({ estado: 'pendiente' }),
+        valor_nuevo: expect.objectContaining({ estado: 'procesado' }),
+      }),
+    );
+  });
+});
