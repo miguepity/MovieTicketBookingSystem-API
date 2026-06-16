@@ -5,7 +5,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 
 jest.mock('bcryptjs', () => ({
   compare: jest.fn().mockResolvedValue(true),
-  hash: jest.fn().mockResolvedValue('hashed_new'),
+  hash: jest.fn().mockResolvedValue('<mock-bcrypt-output>'),
 }));
 
 describe('UsersService (audit-log instrumentation)', () => {
@@ -21,7 +21,7 @@ describe('UsersService (audit-log instrumentation)', () => {
     estado: 'activo',
     notificaciones_activas: true,
     roles: { nombre: 'cliente' },
-    password_hash: 'hashed_current',
+    password_hash: '<mock-unused-in-bcrypt-mock>',
   };
 
   const adminAuditor = {
@@ -100,8 +100,8 @@ describe('UsersService (audit-log instrumentation)', () => {
     prisma.usuarios.update.mockResolvedValueOnce({});
 
     await service.updatePassword('5', '5', {
-      currentPassword: 'old',
-      newPassword: 'new',
+      currentPassword: '<mock-current>',
+      newPassword: '<mock-new>',
     } as any);
 
     expect(auditLog.registrar).toHaveBeenCalledWith(
