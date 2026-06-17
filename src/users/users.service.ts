@@ -113,10 +113,14 @@ export class UsersService {
     if (dto.email) {
       where.email = { contains: dto.email, mode: 'insensitive' };
     }
-    if (dto.estado) {
+    if (dto.estado !== undefined) {
       where.estado = dto.estado;
     }
-    where.roles = { nombre: 'Cliente' };
+    where.roles = {
+      is: {
+        nombre: 'client',
+      },
+    };
 
     return await this.prismaService.usuarios.findMany({
       where,

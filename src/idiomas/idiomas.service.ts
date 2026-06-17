@@ -24,8 +24,8 @@ export class IdiomasService {
     return await this.prisma.idiomas.create({
       data: {
         nombre: dto.nombre,
-        select: { id: true, nombre: true, activo: true },
       },
+      select: { id: true, nombre: true, activo: true },
     });
   }
 

@@ -20,6 +20,67 @@ export class FuncionesService {
     private readonly mailService: MailService,
   ) {}
 
+  readonly email_cancelacion: string = `
+    <!DOCTYPE html>
+
+    <html>
+    <head>
+      <meta charset="UTF-8">
+    </head>
+    <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden;">
+
+    <div style="background: #d32f2f; color: white; padding: 24px; text-align: center;">
+      <h1 style="margin: 0;">Función Cancelada</h1>
+    </div>
+
+    <div style="padding: 24px;">
+      <p>Hola <strong>{{nombre}}</strong>,</p>
+
+      <p>
+        Lamentamos informarte que la función de la película
+        <strong>{{pelicula}}</strong> programada para el
+        <strong>{{fecha}}</strong> ha sido cancelada.
+      </p>
+      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 20px 0;">
+        <strong>Importante:</strong><br>
+        Si realizaste un pago asociado a esta reserva, el reembolso será procesado según las políticas del cine.
+      </div>
+
+      <p>
+        Te invitamos a revisar nuestra cartelera para encontrar otras funciones disponibles.
+      </p>
+
+      <p>
+        Lamentamos los inconvenientes ocasionados y agradecemos tu comprensión.
+      </p>
+
+      <p>
+        Saludos,<br>
+        <strong>Equipo MovieSys</strong>
+      </p>
+    </div>
+
+    <div style="background: #f1f1f1; padding: 16px; text-align: center; font-size: 12px; color: #666;">
+      Este es un mensaje automático. Por favor, no respondas a este correo.
+    </div>
+
+      </div>
+    </body>
+    </html>
+`;
+
+  renderEmailCancelacion(data: {
+    nombre: string;
+    pelicula: string;
+    fecha: string;
+  }): string {
+    return this.email_cancelacion
+      .replace('{{nombre}}', data.nombre)
+      .replace('{{pelicula}}', data.pelicula)
+      .replace('{{fecha}}', data.fecha);
+  }
+
   async create(createFuncioneDto: CreateFuncioneDto) {
     return await this.prisma.$transaction(async (tx) => {
       // 1. Create the function
@@ -75,11 +136,17 @@ export class FuncionesService {
       if (!user.notificaciones_activas || sentEmails.has(user.email)) continue;
       sentEmails.add(user.email);
 
+      const html = this.renderEmailCancelacion({
+        nombre: user.nombre,
+        pelicula: funcion.peliculas.titulo,
+        fecha: new Date(funcion.fecha_hora).toLocaleString(),
+      });
+
       try {
         await this.mailService.sendEmail(
           user.email,
           'Función cancelada - MovieSys',
-          `<h1>Hola ${user.nombre}</h1><p>Lamentamos informarte que la función <strong>${funcion.peliculas.titulo}</strong> del ${new Date(funcion.fecha_hora).toLocaleString()} ha sido cancelada.</p><p>Si realizaste un pago, recibirás un reembolso pronto.</p>`,
+          html,
         );
       } catch (e) {
         this.logger.error(`Error al enviar email a ${user.email}: ${e}`);
