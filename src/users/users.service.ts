@@ -174,4 +174,17 @@ export class UsersService {
       },
     });
   }
+
+  async findUsersForNotifications() {
+    return await this.prismaService.usuarios.findMany({
+      where: {
+        notificaciones_activas: true,
+        estado: 'active',
+      },
+      select: {
+        nombre: true,
+        email: true,
+      },
+    });
+  }
 }

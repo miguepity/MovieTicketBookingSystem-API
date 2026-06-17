@@ -1,15 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UploadPosterDto } from './dto/upload-poster.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
+import { MailService } from 'src/mail/mail.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class PeliculasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+    private usersService: UsersService,
+  ) {}
 
   async createPelicula(dto: CreatePeliculaDto) {
-    return await this.prisma.peliculas.create({
+    if (!dto.fecha_estreno)
+      throw new BadRequestException('La fecha de estreno es obligatoria');
+
+    const pelicula = await this.prisma.peliculas.create({
       data: {
         titulo: dto.titulo,
         sinopsis: dto.sinopsis,
@@ -19,7 +32,47 @@ export class PeliculasService {
         fecha_estreno: dto.fecha_estreno,
         id_usuario: BigInt(dto.uploaded_by),
       },
+      include: {
+        generos: true,
+      },
     });
+
+    if (!pelicula.fecha_estreno)
+      throw new Error('Error al crear la película: fecha de estreno no válida');
+
+    // Notificar a los usuarios suscritos (sin esperar para no bloquear el API)
+    const movieNotificationData = {
+      id: pelicula.id.toString(),
+      titulo: pelicula.titulo,
+      genero: pelicula.generos?.nombre || 'General',
+      fecha_estreno: new Date(pelicula.fecha_estreno).toLocaleDateString(),
+    };
+
+    this.notifyUsersOfNewMovie(movieNotificationData).catch((error) => {
+      console.error(
+        'Error al enviar notificaciones para la nueva película:',
+        error,
+      );
+    });
+
+    return pelicula;
+  }
+
+  private async notifyUsersOfNewMovie(movie: {
+    id: string;
+    titulo: string;
+    genero: string;
+    fecha_estreno: string;
+  }) {
+    const users = await this.usersService.findUsersForNotifications();
+
+    for (const user of users) {
+      void this.mailService.sendNewMovieNotification(
+        user.email,
+        user.nombre,
+        movie,
+      );
+    }
   }
 
   async getTitulo(titulo?: string) {

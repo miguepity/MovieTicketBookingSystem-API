@@ -23,6 +23,10 @@ export class MailService {
   }
 
   async sendEmail(to: string, subject: string, html: string) {
+    console.log('Enviando correo a:', to);
+    console.log('Asunto:', subject);
+    console.log('...');
+
     try {
       const result = await this.client.transactionalEmails.sendTransacEmail({
         subject: subject,
@@ -36,5 +40,39 @@ export class MailService {
       console.error('Error al enviar el correo:', error);
       throw new Error('No se pudo enviar el correo');
     }
+  }
+
+  async sendNewMovieNotification(
+    to: string,
+    userName: string,
+    movie: {
+      titulo: string;
+      genero: string;
+      fecha_estreno: string;
+      id: string;
+    },
+  ) {
+    const movieUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/movies/${movie.id}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h1 style="color: #e50914; text-align: center;">¡Nueva Película en MovieSys!</h1>
+        <p>Hola <strong>${userName}</strong>,</p>
+        <p>Tenemos un nuevo estreno que no te puedes perder:</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-left: 5px solid #e50914; margin: 20px 0;">
+          <h2 style="margin-top: 0;">${movie.titulo}</h2>
+          <p><strong>Género:</strong> ${movie.genero}</p>
+          <p><strong>Fecha de Estreno:</strong> ${movie.fecha_estreno}</p>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="${movieUrl}" style="background-color: #e50914; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver Funciones</a>
+        </div>
+        <p style="font-size: 12px; color: #777; margin-top: 40px; text-align: center;">
+          Recibes este correo porque tienes activadas las notificaciones de estrenos. 
+          Si deseas dejar de recibirlas, puedes cambiar tu configuración en tu perfil.
+        </p>
+      </div>
+    `;
+
+    await this.sendEmail(to, `¡Estreno! - ${movie.titulo}`, html);
   }
 }
