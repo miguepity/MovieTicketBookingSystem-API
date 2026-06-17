@@ -8,6 +8,44 @@ import * as bcrypt from 'bcrypt';
 export class UsuariosService {
     constructor(private prisma: PrismaService) {}
 
+    async getMyProfile(userId: number) {
+      const usuario = await this.prisma.usuarios.findUnique({
+        where: { id: BigInt(userId) },
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          telefono: true,
+          estado: true,
+          notificaciones_activas: true,
+          created_at: true,
+          updated_at: true,
+          roles: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+        },
+      });
+
+      if (!usuario) {
+        throw new NotFoundException(`Usuario con ID ${userId} no encontrado.`);
+      }
+
+      return {
+        message: 'Perfil del usuario obtenido exitosamente.',
+        user: {
+          ...usuario,
+          id: Number(usuario.id),
+          roles: {
+            id: Number(usuario.roles.id),
+            nombre: usuario.roles.nombre,
+          },
+        },
+      };
+    }
+
     async notificationStatus(id: number) {
         const user = await this.prisma.usuarios.findUnique({
             where: { id },
