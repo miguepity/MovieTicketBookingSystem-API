@@ -20,6 +20,7 @@ import { ReservasModule } from './reservas/reservas.module';
 import { ReembolsosModule } from './reembolsos/reembolsos.module';
 import { GeneroModule } from './genero/genero.module';
 import { IdiomasModule } from './idiomas/idiomas.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { IdiomasModule } from './idiomas/idiomas.module';
     ReembolsosModule,
     GeneroModule,
     IdiomasModule,
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
