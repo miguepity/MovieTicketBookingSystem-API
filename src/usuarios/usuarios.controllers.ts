@@ -1,5 +1,5 @@
-import { Controller, Patch, Param, ParseIntPipe, Req, Put, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Patch, Param, ParseIntPipe, Req, Put, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiResponse, ApiBearerAuth, ApiParam, ApiOperation } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
@@ -9,6 +9,18 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 @Controller('users')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
+
+    @Get('me')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth('token')
+    @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
+    @ApiResponse({ status: 200, description: 'Perfil del usuario autenticado obtenido exitosamente' })
+    @ApiResponse({ status: 401, description: 'No autorizado' })
+    @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+    async getMyProfile(@Req() req: any) {
+        const userId = req.user?.id;
+        return await this.usuariosService.getMyProfile(userId);
+    }
 
     @Patch(':id/notificaciones')
     @ApiBearerAuth('token')

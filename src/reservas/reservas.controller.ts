@@ -25,7 +25,7 @@ export class ReservasController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'No se encontraron reservas para el usuario.' })
   findAll(@Req() req: any) {
-    return this.reservasService.findAll(req.user.id, req.user.rol);
+    return this.reservasService.findAll(req.user.id, req.user.role);
   }
 
   @Get(':id')
@@ -35,14 +35,14 @@ export class ReservasController {
   @ApiResponse({ status: 403, description: 'Prohibido: El cliente intenta ver una reserva que no es suya.' })
   @ApiResponse({ status: 404, description: 'La reserva especificada no existe.' })
   findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.reservasService.findOne(id, req.user.id, req.user.rol);
+    return this.reservasService.findOne(id, req.user.id, req.user.role);
   }
 
   @Patch(':id/cancelar')
   @ApiOperation({ summary: 'Cancelar una reserva por su ID' })
   @ApiResponse({ status: 200, description: 'Reserva dada de baja. Asientos reabiertos.' })
   @ApiResponse({ status: 400, description: 'Infracción de política horaria o reserva ya cancelada.' })
-  cancelarReserva(@Param('id', ParseIntPipe) id: number) {
-    return this.reservasService.cancelarReserva(id);
+  cancelarReserva(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.reservasService.cancelarReserva(id, req.user.id);
   }
 }

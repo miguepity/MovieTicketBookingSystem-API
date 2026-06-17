@@ -97,6 +97,73 @@ export class ReportesService {
     };
   }
 
+  async exportarReservasCSV(query: ReporteReservasQueryDto): Promise<string> {
+    const { id_pelicula, id_cine, fecha, estado } = query;
+
+    const where: Prisma.ReservasWhereInput = {};
+
+    if (estado) where.estado = estado;
+
+    if (id_pelicula || id_cine || fecha) {
+      where.funciones = {};
+
+      if (id_pelicula) where.funciones.id_pelicula = BigInt(id_pelicula);
+
+      if (id_cine) where.funciones.salas = { id_cine: BigInt(id_cine) };
+
+      if (fecha) {
+        where.funciones.fecha_hora = {
+          gte: new Date(`${fecha}T00:00:00.000Z`),
+          lte: new Date(`${fecha}T23:59:59.999Z`),
+        };
+      }
+    }
+
+    const reservas = await this.prisma.reservas.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      include: {
+        usuarios: { select: { nombre: true, email: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { titulo: true } },
+            salas: { include: { cines: { select: { nombre: true } } } },
+          },
+        },
+        pagos: { select: { monto_final: true, metodo: true, estado: true } },
+      },
+    });
+
+    const escape = (v: unknown) =>
+      `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+    const headers = [
+      'numero_reserva', 'estado_reserva', 'fecha_reserva',
+      'nombre_cliente', 'email_cliente',
+      'pelicula', 'cine', 'fecha_funcion',
+      'monto_total', 'metodo_pago', 'estado_pago',
+    ];
+
+    const rows = reservas.map((r) => {
+      const pago = r.pagos[0];
+      return [
+        r.numero_reserva,
+        r.estado,
+        r.created_at.toISOString(),
+        r.usuarios.nombre,
+        r.usuarios.email,
+        r.funciones.peliculas.titulo,
+        r.funciones.salas.cines.nombre,
+        r.funciones.fecha_hora.toISOString(),
+        pago ? pago.monto_final.toString() : '',
+        pago ? pago.metodo : '',
+        pago ? pago.estado : '',
+      ].map(escape).join(',');
+    });
+
+    return [headers.join(','), ...rows].join('\n');
+  }
+
   async obtenerReportePagos(query: ReportePagosQueryDto) {
     const { fecha_inicio, fecha_fin, estado } = query;
 

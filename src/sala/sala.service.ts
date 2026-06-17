@@ -8,12 +8,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
 import { UpdateSalaDto } from './dto/update-sala.dto';
 import { Prisma } from '@prisma/client';
+import { CambiarEstadoAsientoDto } from './dto/cambiar-estado-asiento.dto';
 
 @Injectable()
 export class SalaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createSalaDto: CreateSalaDto) {
+  async create(createSalaDto: CreateSalaDto, auditorId: number) {
     const { nombre, id_cine, filas, columnas } = createSalaDto;
 
     const salaExistente = await this.prisma.salas.findFirst({
@@ -58,13 +59,22 @@ export class SalaService {
             fila: filaLetra,
             columna: c,
             codigo: `${filaLetra}${c}`,
-            tipo: 'NORMAL',
+            tipo: 'ESTANDAR',
           });
         }
       }
 
       await tx.asientos.createMany({
         data: asientosData,
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'SALA_CREADA',
+          detalle: `Sala "${nombre}" creada en cine ${id_cine}`,
+        },
       });
 
       return nuevaSala;
@@ -97,7 +107,7 @@ export class SalaService {
     return this.serializeSala(sala);
   }
 
-  async update(id: number, updateSalaDto: UpdateSalaDto) {
+  async update(id: number, updateSalaDto: UpdateSalaDto, auditorId: number) {
     const { id_cine, filas, columnas, ...restoDatos } = updateSalaDto;
     const salaIdBigInt = BigInt(id);
 
@@ -183,10 +193,19 @@ export class SalaService {
       return sala;
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'SALA_ACTUALIZADA',
+        detalle: `Sala ${id} actualizada`,
+      },
+    });
+
     return this.serializeSala(salaActualizada);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
 
     try {
@@ -196,6 +215,14 @@ export class SalaService {
         });
         await tx.salas.delete({
           where: { id: BigInt(id) },
+        });
+        await tx.auditLog.create({
+          data: {
+            id_usuario: BigInt(auditorId),
+            id_auditor: BigInt(auditorId),
+            accion: 'SALA_ELIMINADA',
+            detalle: `Sala ${id} eliminada`,
+          },
         });
       });
 
@@ -225,5 +252,116 @@ export class SalaService {
     }
 
     return serialized;
+  }
+
+  //Logica de Asientos
+
+  async findAllAsientos() {
+    const asientos = await this.prisma.asientos.findMany({
+      include: {
+        salas: {
+          include: { cines: true } 
+        }
+      },
+      orderBy: [
+        { id_sala: 'asc' },
+        { fila: 'asc' },
+        { columna: 'asc' }
+      ]
+    });
+
+    return asientos.map(asiento => ({
+      id: Number(asiento.id),
+      id_sala: Number(asiento.id_sala),
+      nombreSala: asiento.salas.nombre,
+      nombreCine: asiento.salas.cines.nombre,
+      fila: asiento.fila.trim(),
+      columna: asiento.columna,
+      codigo: asiento.codigo,
+      estadoFisico: asiento.tipo 
+    }));
+  }
+
+  async getAsientosPorSala(idSala: number) {
+    await this.findOne(idSala); 
+
+    const asientos = await this.prisma.asientos.findMany({
+      where: { id_sala: BigInt(idSala) },
+      orderBy: [
+        { fila: 'asc' },
+        { columna: 'asc' }
+      ]
+    });
+
+    return asientos.map(asiento => ({
+      id: Number(asiento.id),
+      id_sala: Number(asiento.id_sala),
+      fila: asiento.fila.trim(),
+      columna: asiento.columna,
+      codigo: asiento.codigo,
+      estadoFisico: asiento.tipo 
+    }));
+  }
+
+  async cambiarEstadoFisicoAsiento(idSala: number, idAsiento: number, dto: CambiarEstadoAsientoDto) {
+    await this.findOne(idSala);
+
+    const asiento = await this.prisma.asientos.findUnique({
+      where: { id: BigInt(idAsiento) }
+    });
+
+    if (!asiento || Number(asiento.id_sala) !== idSala) {
+      throw new NotFoundException(`El asiento con ID ${idAsiento} no pertenece a la sala ${idSala}.`);
+    }
+
+    const comprasActivas = await this.prisma.asientosFuncion.findFirst({
+      where: {
+        id_asiento: BigInt(idAsiento),
+        estado: { in: ['OCUPADO', 'PENDIENTE_DE_PAGO'] }
+      }
+    });
+
+    if (comprasActivas && dto.tipo === 'MANTENIMIENTO') {
+      throw new ConflictException(
+        `No es posible poner el asiento en mantenimiento debido a que posee reservas ocupadas o transacciones en proceso.`
+      );
+    }
+
+    const asientoActualizado = await this.prisma.$transaction(async (tx) => {
+      
+      const actualizado = await tx.asientos.update({
+        where: { id: BigInt(idAsiento) },
+        data: { tipo: dto.tipo }
+      });
+
+      if (dto.tipo === 'MANTENIMIENTO') {
+        await tx.asientosFuncion.updateMany({
+          where: {
+            id_asiento: BigInt(idAsiento),
+            estado: { in: ['DISPONIBLE', 'BLOQUEADO'] } 
+          },
+          data: { 
+            estado: 'MANTENIMIENTO',
+            id_usuario: null 
+          }
+        });
+      } else {
+        await tx.asientosFuncion.updateMany({
+          where: {
+            id_asiento: BigInt(idAsiento),
+            estado: 'MANTENIMIENTO' 
+          },
+          data: { estado: 'DISPONIBLE' } 
+        });
+      }
+
+      return actualizado;
+    });
+
+    return {
+      message: `Cambio de estado procesado con éxito. Asiento físico ${asientoActualizado.codigo} quedó en: ${dto.tipo}`,
+      idAsiento: Number(asientoActualizado.id),
+      nuevoEstado: asientoActualizado.tipo
+    };
   }
 }

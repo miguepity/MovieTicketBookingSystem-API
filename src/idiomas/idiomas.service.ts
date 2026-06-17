@@ -11,7 +11,7 @@ export class IdiomasService {
     return { ...idioma, id: Number(idioma.id) };
   }
 
-  async create(createIdiomaDto: CreateIdiomaDto) {
+  async create(createIdiomaDto: CreateIdiomaDto, auditorId: number) {
     const nombreFormateado = createIdiomaDto.nombre.toUpperCase().trim();
 
     const existing = await this.prisma.idiomas.findUnique({
@@ -22,6 +22,16 @@ export class IdiomasService {
     const nuevo = await this.prisma.idiomas.create({
       data: { nombre: nombreFormateado },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'IDIOMA_CREADO',
+        detalle: `Idioma '${nombreFormateado}' creado`,
+      },
+    });
+
     return this.serializeIdioma(nuevo);
   }
 
@@ -36,7 +46,7 @@ export class IdiomasService {
     return this.serializeIdioma(idioma);
   }
 
-  async update(id: number, updateIdiomaDto: UpdateIdiomaDto) {
+  async update(id: number, updateIdiomaDto: UpdateIdiomaDto, auditorId: number) {
     await this.findOne(id);
 
     if (updateIdiomaDto.nombre) {
@@ -53,13 +63,33 @@ export class IdiomasService {
       where: { id: BigInt(id) },
       data: updateIdiomaDto,
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'IDIOMA_ACTUALIZADO',
+        detalle: `Idioma ${id} actualizado`,
+      },
+    });
+
     return this.serializeIdioma(actualizado);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
     try {
       await this.prisma.idiomas.delete({ where: { id: BigInt(id) } });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'IDIOMA_ELIMINADO',
+          detalle: `Idioma ${id} eliminado`,
+        },
+      });
+
       return { message: `Idioma con ID ${id} eliminado exitosamente.` };
     } catch {
       throw new ConflictException('No se puede eliminar porque existen películas configuradas en este idioma.');
