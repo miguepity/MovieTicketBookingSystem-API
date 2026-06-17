@@ -83,7 +83,7 @@ export class ReembolsosService {
     };
   }
 
-  async registrarReembolsoEfectivo(dto: RegistrarReembolsoEfectivoDto) {
+  async registrarReembolsoEfectivo(dto: RegistrarReembolsoEfectivoDto, processedByEmail: string) {
     const pago = await this.prisma.pagos.findUnique({
       where: { id: BigInt(dto.id_pago) },
       include: {
@@ -126,7 +126,7 @@ export class ReembolsosService {
       return { reembolso, pago: pagoActualizado };
     });
 
-    const notificacion_enviada = await this.notifyCashRefund(pago, dto);
+    const notificacion_enviada = await this.notifyCashRefund(pago, dto, processedByEmail);
 
     return {
       message: 'Reembolso en efectivo registrado exitosamente.',
@@ -136,9 +136,11 @@ export class ReembolsosService {
     };
   }
 
-  private async notifyCashRefund(pago: any, dto: RegistrarReembolsoEfectivoDto) {
-    const recipient = process.env.REFUND_RECEPTIONIST_EMAIL ?? process.env.MAIL_TEST_TO;
-
+  private async notifyCashRefund(
+    pago: any,
+    dto: RegistrarReembolsoEfectivoDto,
+    recipient: string,
+  ) {
     if (!recipient) {
       return false;
     }
