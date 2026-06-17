@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { IdiomasService } from './idiomas.service';
 import { CreateIdiomaDto } from './create-idiomas.dto';
@@ -21,8 +21,8 @@ export class IdiomasController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'El nombre del idioma ya existe.' })
-  create(@Body() createIdiomaDto: CreateIdiomaDto) {
-    return this.idiomasService.create(createIdiomaDto);
+  create(@Body() createIdiomaDto: CreateIdiomaDto, @Req() req: any) {
+    return this.idiomasService.create(createIdiomaDto, req.user.id);
   }
 
   @Get()
@@ -49,8 +49,8 @@ export class IdiomasController {
   @ApiResponse({ status: 200, description: 'Idioma actualizado con éxito.' })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 404, description: 'Idioma no encontrado.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateIdiomaDto: UpdateIdiomaDto) {
-    return this.idiomasService.update(id, updateIdiomaDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateIdiomaDto: UpdateIdiomaDto, @Req() req: any) {
+    return this.idiomasService.update(id, updateIdiomaDto, req.user.id);
   }
 
   @Delete(':id')
@@ -60,7 +60,7 @@ export class IdiomasController {
   @ApiOperation({ summary: 'Eliminar un idioma por ID ' })
   @ApiResponse({ status: 200, description: 'Idioma eliminado con éxito.' })
   @ApiResponse({ status: 404, description: 'Idioma no encontrado.' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.idiomasService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.idiomasService.remove(id, req.user.id);
   }
 }

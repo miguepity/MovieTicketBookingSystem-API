@@ -3,9 +3,10 @@ import { ReservasService } from './reservas.service';
 import { ReservasController } from './reservas.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, MailModule],
   controllers: [ReservasController],
   providers: [ReservasService],
 })

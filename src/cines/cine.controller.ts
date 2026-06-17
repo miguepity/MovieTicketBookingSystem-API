@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CinesService } from './cine.service';
 import { CreateCineDto } from './create-cine.dto';
@@ -22,8 +22,9 @@ export class CinesController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'La ciudad especificada no existe.' })
   @ApiResponse({ status: 409, description: 'Nombre duplicado en esta ciudad.' })
-  create(@Body() createCineDto: CreateCineDto) {
-    return this.cinesService.create(createCineDto);
+  create(@Body() createCineDto: CreateCineDto,
+    @Req() req: any) {
+    return this.cinesService.create(createCineDto, req.user.id);
   }
 
   @Get()
@@ -53,8 +54,9 @@ export class CinesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Cine no encontrado.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateCineDto: UpdateCineDto) {
-    return this.cinesService.update(id, updateCineDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateCineDto: UpdateCineDto,
+    @Req() req: any) {
+    return this.cinesService.update(id, updateCineDto, req.user.id);
   }
 
   @Delete(':id')
@@ -67,7 +69,8 @@ export class CinesController {
   @ApiResponse({ status: 404, description: 'Cine no encontrado.' })
   @ApiResponse({ status: 409, description: 'No se puede eliminar (Tiene funciones asignadas).' })
   @ApiParam({ name: 'id', description: 'ID del cine a remover' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.cinesService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number,
+    @Req() req: any) {
+    return this.cinesService.remove(id, req.user.id);
   }
 }

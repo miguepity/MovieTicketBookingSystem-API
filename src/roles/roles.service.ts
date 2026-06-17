@@ -14,7 +14,7 @@ export class RolesService {
     };
   }
 
-  async create(createRoleDto: CreateRoleDto) {
+  async create(createRoleDto: CreateRoleDto, auditorId: number) {
     const nombreFormateado = createRoleDto.nombre.toUpperCase().trim();
 
     const existingRole = await this.prisma.roles.findUnique({
@@ -27,6 +27,15 @@ export class RolesService {
 
     const nuevoRol = await this.prisma.roles.create({
       data: { nombre: nombreFormateado },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'ROL_CREADO',
+        detalle: `Rol '${nombreFormateado}' creado`,
+      },
     });
 
     return this.serializeRol(nuevoRol);
@@ -51,7 +60,7 @@ export class RolesService {
     return this.serializeRol(rol);
   }
 
-  async update(id: number, updateRoleDto: UpdateRoleDto) {
+  async update(id: number, updateRoleDto: UpdateRoleDto, auditorId: number) {
     await this.findOne(id);
 
     if (updateRoleDto.nombre) {
@@ -73,16 +82,35 @@ export class RolesService {
       data: updateRoleDto,
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'ROL_ACTUALIZADO',
+        detalle: `Rol ${id} actualizado`,
+      },
+    });
+
     return this.serializeRol(rolActualizado);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
 
     try {
       await this.prisma.roles.delete({
         where: { id: BigInt(id) },
       });
+
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'ROL_ELIMINADO',
+          detalle: `Rol ${id} eliminado`,
+        },
+      });
+
       return { message: `Rol con ID ${id} eliminado exitosamente` };
     } catch (error) {
       throw new ConflictException(

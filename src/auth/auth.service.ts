@@ -12,6 +12,7 @@ import { RegisterDto } from './register.dto';
 import { MailService } from '../mail/mail.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { buildRegistrationConfirmationTemplate } from '../mail/templates/registration-confirmation.template';
 
 @Injectable()
 export class AuthService {
@@ -60,7 +61,6 @@ export class AuthService {
     return this.serializeUser(userWithoutPassword);
   }
 
-
   async register(registerDto: RegisterDto) {
     const existingUser = await this.prisma.usuarios.findUnique({
       where: { email: registerDto.email },
@@ -69,19 +69,34 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('El email ya esta registrado');
     }
+
     const hashedPassword = await this.hashPassword(registerDto.password);
-    const newUser = await this.prisma.usuarios.create({
-     data: {
-        nombre: registerDto.name,
-        email: registerDto.email,
-        password_hash: hashedPassword,
-        telefono: registerDto.phone,
-        estado: 'ACTIVO', 
-        notificaciones_activas: false,
-        roles: {
-          connect: { id: BigInt(registerDto.roleId) }
-        }
-      },
+
+    const newUser = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.usuarios.create({
+        data: {
+          nombre: registerDto.name,
+          email: registerDto.email,
+          password_hash: hashedPassword,
+          telefono: registerDto.phone,
+          estado: 'ACTIVO',
+          notificaciones_activas: false,
+          roles: {
+            connect: { id: BigInt(registerDto.roleId) },
+          },
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id_usuario: user.id,
+          id_auditor: user.id,
+          accion: 'REGISTRO_USUARIO',
+          detalle: `Usuario registrado con email ${registerDto.email}`,
+        },
+      });
+
+      return user;
     });
 
     const { password_hash: _, ...userWithoutPassword } = newUser;
@@ -94,6 +109,14 @@ export class AuthService {
 
     const access_token = this.jwtService.sign(payload);
 
+    await this.mailService.sendEmail({
+      to: newUser.email,
+      subject: 'Registro confirmado',
+      html: buildRegistrationConfirmationTemplate({
+        name: newUser.nombre,
+        email: newUser.email,
+      }),
+    });
 
     return {
       access_token,
@@ -107,6 +130,15 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Credenciales invalidas');
     }
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(user.id),
+        id_auditor: BigInt(user.id),
+        accion: 'INICIO_SESION',
+        detalle: `Inicio de sesion desde email ${loginDto.email}`,
+      },
+    });
 
     const payload = {
       id: user.id,
@@ -122,11 +154,19 @@ export class AuthService {
     };
   }
 
-  async logout() {
-    // El logout sera manejado en el frontend eliminando el token del almacenamiento local del cliente.
-    return { 
+  async logout(userId: number) {
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(userId),
+        id_auditor: BigInt(userId),
+        accion: 'CIERRE_SESION',
+        detalle: `Cierre de sesión del usuario ${userId}`,
+      },
+    });
+
+    return {
       statusCode: 200,
-      message: 'Sesión cerrada exitosamente. ' 
+      message: 'Sesión cerrada exitosamente. ',
     };
   }
 
@@ -206,6 +246,14 @@ export class AuthService {
       this.prisma.passwordResetToken.update({
         where: { id: passwordResetToken.id },
         data: { usado: true },
+      }),
+      this.prisma.auditLog.create({
+        data: {
+          id_usuario: passwordResetToken.id_usuario,
+          id_auditor: passwordResetToken.id_usuario,
+          accion: 'RESET_PASSWORD',
+          detalle: `Contrasena restablecida para usuario ${passwordResetToken.id_usuario}`,
+        },
       }),
     ]);
 

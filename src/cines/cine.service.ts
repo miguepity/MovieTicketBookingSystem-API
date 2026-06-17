@@ -18,7 +18,7 @@ export class CinesService {
   };
 }
 
-  async create(createCineDto: CreateCineDto) {
+  async create(createCineDto: CreateCineDto, auditorId: number) {
     
     const ciudadExiste = await this.prisma.ciudades.findUnique({
       where: { id: BigInt(createCineDto.id_ciudad) },
@@ -45,6 +45,15 @@ export class CinesService {
       },
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'CINE_CREADO',
+        detalle: `Cine "${createCineDto.nombre}" creado en ciudad ${createCineDto.id_ciudad}`,
+      },
+    });
+
     return this.serializeCine(nuevoCine);
   }
 
@@ -66,7 +75,7 @@ export class CinesService {
     return this.serializeCine(cine);
   }
 
-  async update(id: number, updateCineDto: UpdateCineDto) {
+  async update(id: number, updateCineDto: UpdateCineDto, auditorId: number) {
     const cineActual = await this.prisma.cines.findUnique({
       where: { id: BigInt(id) },
     });
@@ -122,14 +131,31 @@ export class CinesService {
       },
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'CINE_ACTUALIZADO',
+        detalle: `Cine ${id} actualizado`,
+      },
+    });
+
     return this.serializeCine(cineActualizado);
   }
 
-  async remove(id: number) {
+  async remove(id: number, auditorId: number) {
     await this.findOne(id);
     try {
       await this.prisma.cines.delete({
         where: { id: BigInt(id) },
+      });
+      await this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(auditorId),
+          id_auditor: BigInt(auditorId),
+          accion: 'CINE_ELIMINADO',
+          detalle: `Cine ${id} eliminado`,
+        },
       });
       return { message: `Cine con ID ${id} eliminado exitosamente` };
     } catch (error) {

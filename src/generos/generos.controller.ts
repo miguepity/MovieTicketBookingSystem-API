@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { GenerosService } from './generos.service';
 import { CreateGeneroDto } from './create-generos.dto';
@@ -21,8 +21,8 @@ export class GenerosController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'El nombre del género ya existe.' })
-  create(@Body() createGeneroDto: CreateGeneroDto) {
-    return this.generosService.create(createGeneroDto);
+  create(@Body() createGeneroDto: CreateGeneroDto, @Req() req: any) {
+    return this.generosService.create(createGeneroDto, req.user.id);
   }
 
   @Get()
@@ -50,8 +50,8 @@ export class GenerosController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Género no encontrado.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateGeneroDto: UpdateGeneroDto) {
-    return this.generosService.update(id, updateGeneroDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateGeneroDto: UpdateGeneroDto, @Req() req: any) {
+    return this.generosService.update(id, updateGeneroDto, req.user.id);
   }
 
   @Delete(':id')
@@ -62,7 +62,7 @@ export class GenerosController {
   @ApiResponse({ status: 200, description: 'Género eliminado con éxito.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Género no encontrado.' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.generosService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.generosService.remove(id, req.user.id);
   }
 }

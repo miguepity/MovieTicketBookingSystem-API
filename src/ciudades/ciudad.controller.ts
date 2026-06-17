@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CiudadesService } from './ciudad.service';
 import { CreateCiudadDto } from './create-ciudad.dto';
@@ -22,8 +22,8 @@ export class CiudadesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 409, description: 'La ciudad ya existe.' })
-  create(@Body() createCiudadDto: CreateCiudadDto) {
-    return this.ciudadesService.create(createCiudadDto);
+  create(@Body() createCiudadDto: CreateCiudadDto, @Req() req: any) {
+    return this.ciudadesService.create(createCiudadDto, req.user.id);
   }
 
   @Get()
@@ -53,8 +53,8 @@ export class CiudadesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateCiudadDto: UpdateCiudadDto) {
-    return this.ciudadesService.update(id, updateCiudadDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateCiudadDto: UpdateCiudadDto, @Req() req: any) {
+    return this.ciudadesService.update(id, updateCiudadDto, req.user.id);
   }
 
   @Delete(':id')
@@ -67,7 +67,7 @@ export class CiudadesController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
   @ApiResponse({ status: 409, description: 'No se puede eliminar (tiene cines vinculados).' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.ciudadesService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.ciudadesService.remove(id, req.user.id);
   }
 }

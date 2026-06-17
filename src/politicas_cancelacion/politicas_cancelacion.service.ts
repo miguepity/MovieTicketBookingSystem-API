@@ -8,6 +8,11 @@ export class PoliticasCancelacionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createDto: CreatePoliticaCancelacionDto) {
+    const politicasActivas = await this.prisma.politicaCancelacion.findMany();
+
+    if (politicasActivas.length > 0) {
+      await this.prisma.politicaCancelacion.deleteMany({});
+    }
     const politica = await this.prisma.politicaCancelacion.create({
       data: {
         horas_antes_minimo: createDto.horas_antes_minimo,
