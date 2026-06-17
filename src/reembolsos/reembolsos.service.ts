@@ -184,6 +184,8 @@ export class ReembolsosService {
       console.error('No se pudo notificar el reembolso en efectivo.', error);
       return false;
     }
+  }
+
   async create(calcularReembolsoDto: CalcularReembolsoDto) {
     const calculo = await this.calcularReembolso(calcularReembolsoDto);
 
