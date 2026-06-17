@@ -1,10 +1,15 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { ReembolsosService } from './reembolsos.service';
 import { CalcularReembolsoDto } from './dto/calcular-reembolso.dto';
-import { ApiTags, ApiResponse, ApiOperation, ApiOkResponse, ApiNotFoundResponse } from '@nestjs/swagger';
+import { RegistrarReembolsoEfectivoDto } from './dto/registrar-reembolso-efectivo.dto';
+import { ApiTags, ApiResponse, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('reembolsos')
 @Controller('reembolsos')
+@ApiBearerAuth('token')
 export class ReembolsosController {
   constructor(private readonly reembolsosService: ReembolsosService) {}
 
@@ -31,6 +36,19 @@ export class ReembolsosController {
     return await this.reembolsosService.calcularReembolso(calcularReembolsoDto);
   }
 
+  @Post('efectivo')
+  @ApiResponse({ status: 201, description: 'Reembolso en efectivo registrado exitosamente.' })
+  @ApiResponse({ status: 400, description: 'El pago no puede ser reembolsado.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN o RECEPCIONISTA.' })
+  @ApiResponse({ status: 404, description: 'El pago con el ID proporcionado no existe.' })
+  @ApiOperation({ summary: 'Registrar reembolso manual en efectivo y notificar al usuario que lo procesa' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'RECEPCIONISTA')
+  async registrarReembolsoEfectivo(
+    @Body() dto: RegistrarReembolsoEfectivoDto,
+    @Req() req: any,
+  ) {
+    return await this.reembolsosService.registrarReembolsoEfectivo(dto, req.user.email);
   @Post()
   @ApiResponse({
     status: 201,
