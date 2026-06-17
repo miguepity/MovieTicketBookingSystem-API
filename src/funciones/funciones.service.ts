@@ -42,6 +42,7 @@ export class FuncionesService {
         <strong>{{pelicula}}</strong> programada para el
         <strong>{{fecha}}</strong> ha sido cancelada.
       </p>
+
       <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 20px 0;">
         <strong>Importante:</strong><br>
         Si realizaste un pago asociado a esta reserva, el reembolso será procesado según las políticas del cine.
