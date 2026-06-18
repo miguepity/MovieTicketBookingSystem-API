@@ -1,5 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateTipoAsientoDto {
   @ApiProperty({
@@ -10,4 +16,15 @@ export class CreateTipoAsientoDto {
   @IsNotEmpty()
   @MaxLength(30)
   nombre!: string;
+
+  @ApiPropertyOptional({
+    description: 'Color hexadecimal asociado al tipo de asiento (#RRGGBB)',
+    example: '#FF8800',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-Fa-f]{6}$/, {
+    message: 'color debe ser un hexadecimal con formato #RRGGBB',
+  })
+  color?: string;
 }

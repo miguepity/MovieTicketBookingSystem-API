@@ -1,6 +1,9 @@
 import { prisma } from './client';
 
-const TIPOS: ReadonlyArray<string> = ['general', 'preferencial'];
+const TIPOS: ReadonlyArray<{ nombre: string; color: string }> = [
+  { nombre: 'general', color: '#3B82F6' },
+  { nombre: 'preferencial', color: '#F59E0B' },
+];
 
 export interface TiposAsientoMap {
   byNombre: Record<string, { id: bigint }>;
@@ -11,11 +14,11 @@ export async function seedTiposAsiento(): Promise<TiposAsientoMap> {
   const byNombre: Record<string, { id: bigint }> = {};
   const all: { id: bigint; nombre: string }[] = [];
 
-  for (const nombre of TIPOS) {
+  for (const { nombre, color } of TIPOS) {
     const tipo = await prisma.tiposAsiento.upsert({
       where: { nombre },
-      update: {},
-      create: { nombre },
+      update: { color },
+      create: { nombre, color },
       select: { id: true, nombre: true },
     });
     byNombre[nombre] = { id: tipo.id };

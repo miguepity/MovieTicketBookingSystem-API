@@ -25,7 +25,11 @@ export class TiposAsientoService {
         : undefined,
       orderBy: { nombre: 'asc' },
     });
-    return tipos.map((t) => ({ id: t.id.toString(), nombre: t.nombre }));
+    return tipos.map((t) => ({
+      id: t.id.toString(),
+      nombre: t.nombre,
+      color: t.color,
+    }));
   }
 
   async findOne(id: string) {
@@ -36,13 +40,13 @@ export class TiposAsientoService {
     if (!tipo) {
       throw new NotFoundException('Tipo de asiento no encontrado');
     }
-    return { id: tipo.id.toString(), nombre: tipo.nombre };
+    return { id: tipo.id.toString(), nombre: tipo.nombre, color: tipo.color };
   }
 
   async create(dto: CreateTipoAsientoDto, auditorId: bigint) {
     await this.assertNombreDisponible(dto.nombre);
     const tipo = await this.prisma.tiposAsiento.create({
-      data: { nombre: dto.nombre },
+      data: { nombre: dto.nombre, color: dto.color ?? null },
     });
 
     await this.auditLog.registrar({
@@ -55,7 +59,7 @@ export class TiposAsientoService {
       valor_nuevo: snapshotTipoAsiento(tipo),
     });
 
-    return { id: tipo.id.toString(), nombre: tipo.nombre };
+    return { id: tipo.id.toString(), nombre: tipo.nombre, color: tipo.color };
   }
 
   async update(id: string, dto: UpdateTipoAsientoDto, auditorId: bigint) {
@@ -73,7 +77,10 @@ export class TiposAsientoService {
 
     const tipo = await this.prisma.tiposAsiento.update({
       where: { id: tipoId },
-      data: { nombre: dto.nombre },
+      data: {
+        ...(dto.nombre !== undefined ? { nombre: dto.nombre } : {}),
+        ...(dto.color !== undefined ? { color: dto.color } : {}),
+      },
     });
 
     await this.auditLog.registrar({
@@ -87,7 +94,7 @@ export class TiposAsientoService {
       valor_nuevo: snapshotTipoAsiento(tipo),
     });
 
-    return { id: tipo.id.toString(), nombre: tipo.nombre };
+    return { id: tipo.id.toString(), nombre: tipo.nombre, color: tipo.color };
   }
 
   async remove(id: string, auditorId: bigint) {
