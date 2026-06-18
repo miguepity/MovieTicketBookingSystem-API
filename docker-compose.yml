@@ -19,7 +19,7 @@ services:
     networks:
       - backend_network
   db-init:
-    image: node:20-alpine
+    image: node:22-alpine
     container_name: movieBookingTicketDbInit
     working_dir: /app
     environment:
