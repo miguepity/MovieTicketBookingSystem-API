@@ -165,6 +165,35 @@ export class UsuariosService {
     }));
   }
 
+  async searchClientes(q?: string) {
+    const clientes = await this.prisma.usuarios.findMany({
+      where: {
+        roles: { nombre: 'usuario' },
+        ...(q && {
+          OR: [
+            { nombre: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+            { telefono: { contains: q, mode: 'insensitive' } },
+          ],
+        }),
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        estado: true,
+        created_at: true,
+        roles: { select: { nombre: true } },
+      },
+    });
+
+    return clientes.map((cliente) => ({
+      ...cliente,
+      id: cliente.id.toString(),
+    }));
+  }
+
   async toggleNotifications(id: number) {
     const findUsuario = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
