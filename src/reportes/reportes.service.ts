@@ -3,6 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ReporteReservasDto } from './dto/reporte-reservas.dto';
 import { ReportePagosDto } from './dto/reporte-pagos.dto';
 
+function escapeCsv(val: unknown): string {
+  const str = val == null ? '' : String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 @Injectable()
 export class ReportesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -112,6 +120,115 @@ export class ReportesService {
         },
       })),
     };
+  }
+
+  async exportarReservas(dto: ReporteReservasDto): Promise<string> {
+    const where: Record<string, unknown> = {};
+
+    if (dto.estado) {
+      where.estado = dto.estado;
+    }
+
+    if (dto.fecha_inicio || dto.fecha_fin) {
+      where.created_at = {
+        ...(dto.fecha_inicio && { gte: new Date(dto.fecha_inicio) }),
+        ...(dto.fecha_fin && { lte: new Date(dto.fecha_fin + 'T23:59:59Z') }),
+      };
+    }
+
+    if (dto.id_pelicula) {
+      where.funciones = {
+        id_pelicula: BigInt(dto.id_pelicula),
+      };
+    }
+
+    if (dto.id_cine) {
+      where.funciones = {
+        ...(where.funciones as object),
+        salas: {
+          id_cine: BigInt(dto.id_cine),
+        },
+      };
+    }
+
+    const reservas = await this.prisma.reservas.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        numero_reserva: true,
+        estado: true,
+        created_at: true,
+        updated_at: true,
+        usuarios: {
+          select: { id: true, nombre: true, email: true },
+        },
+        funciones: {
+          select: {
+            id: true,
+            fecha_hora: true,
+            estado: true,
+            peliculas: { select: { id: true, titulo: true } },
+            salas: {
+              select: {
+                id: true,
+                nombre: true,
+                cines: { select: { id: true, nombre: true } },
+              },
+            },
+          },
+        },
+        reservaAsientos: { select: { id: true } },
+      },
+    });
+
+    const headers = [
+      'ID Reserva',
+      'Número Reserva',
+      'Estado',
+      'Fecha Creación',
+      'Fecha Actualización',
+      'Total Asientos',
+      'Usuario ID',
+      'Usuario Nombre',
+      'Usuario Email',
+      'Función ID',
+      'Función Fecha',
+      'Función Estado',
+      'Película ID',
+      'Película Título',
+      'Sala ID',
+      'Sala Nombre',
+      'Cine ID',
+      'Cine Nombre',
+    ];
+
+    const rows = reservas.map((r) =>
+      [
+        r.id.toString(),
+        r.numero_reserva,
+        r.estado,
+        r.created_at.toISOString(),
+        r.updated_at.toISOString(),
+        r.reservaAsientos.length,
+        r.usuarios.id.toString(),
+        r.usuarios.nombre,
+        r.usuarios.email,
+        r.funciones.id.toString(),
+        r.funciones.fecha_hora.toISOString(),
+        r.funciones.estado,
+        r.funciones.peliculas.id.toString(),
+        r.funciones.peliculas.titulo,
+        r.funciones.salas.id.toString(),
+        r.funciones.salas.nombre,
+        r.funciones.salas.cines.id.toString(),
+        r.funciones.salas.cines.nombre,
+      ]
+        .map(escapeCsv)
+        .join(','),
+    );
+
+    return '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
   }
 
   async reportePagos(dto: ReportePagosDto) {

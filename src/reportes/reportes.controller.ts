@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Header } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReportesService } from './reportes.service';
 import { ReporteReservasDto } from './dto/reporte-reservas.dto';
@@ -63,6 +63,26 @@ export class ReportesController {
   })
   async reporteReservas(@Query() dto: ReporteReservasDto) {
     return this.reportesService.reporteReservas(dto);
+  }
+
+  @Get('reservas/export')
+  @UseGuards(AuthGuard, IsAdminGuard)
+  @ApiBearerAuth()
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="reporte-reservas.csv"')
+  @ApiOperation({
+    description: 'Exportar reporte de reservas a CSV - Solo admin',
+    responses: {
+      200: {
+        description: 'Archivo CSV',
+        content: { 'text/csv': {} },
+      },
+      401: { description: 'No autorizado' },
+      403: { description: 'Acceso denegado: Solo administradores' },
+    },
+  })
+  async exportarReporte(@Query() dto: ReporteReservasDto) {
+    return this.reportesService.exportarReservas(dto);
   }
 
   @Get('pagos')
