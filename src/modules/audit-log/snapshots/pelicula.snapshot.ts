@@ -24,7 +24,9 @@ export function snapshotPelicula(p: PeliculaInput): PeliculaSnapshot {
   return {
     titulo: p.titulo,
     sinopsis: p.sinopsis ?? null,
-    fecha_estreno: p.fecha_estreno ? p.fecha_estreno.toISOString().slice(0, 10) : null,
+    fecha_estreno: p.fecha_estreno
+      ? p.fecha_estreno.toISOString().slice(0, 10)
+      : null,
     id_idioma: p.id_idioma != null ? p.id_idioma.toString() : null,
     id_genero: p.id_genero != null ? p.id_genero.toString() : null,
     genero_nombre: p.generos?.nombre ?? null,

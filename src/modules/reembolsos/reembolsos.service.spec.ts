@@ -24,26 +24,45 @@ describe('ReembolsosService.calcularMonto', () => {
 
   it('retorna 0 cuando no hay pago aprobado', async () => {
     prisma.reservas.findUnique.mockResolvedValueOnce({
-      funciones: { fecha_hora: new Date(Date.now() + 48 * 3600000), salas: { id_cine: 1n } },
+      funciones: {
+        fecha_hora: new Date(Date.now() + 48 * 3600000),
+        salas: { id_cine: 1n },
+      },
       pagos: [],
     });
     const res = await service.calcularMonto(1n);
-    expect(res).toEqual({ pagoId: null, monto: 0, porcentaje: 0, politicaId: null });
+    expect(res).toEqual({
+      pagoId: null,
+      monto: 0,
+      porcentaje: 0,
+      politicaId: null,
+    });
   });
 
   it('retorna 0 cuando no hay política activa para el cine', async () => {
     prisma.reservas.findUnique.mockResolvedValueOnce({
-      funciones: { fecha_hora: new Date(Date.now() + 48 * 3600000), salas: { id_cine: 1n } },
+      funciones: {
+        fecha_hora: new Date(Date.now() + 48 * 3600000),
+        salas: { id_cine: 1n },
+      },
       pagos: [{ id: 10n, monto_final: { toString: () => '100' } }],
     });
     prisma.politicaCancelacion.findFirst.mockResolvedValueOnce(null);
     const res = await service.calcularMonto(1n);
-    expect(res).toEqual({ pagoId: 10n, monto: 0, porcentaje: 0, politicaId: null });
+    expect(res).toEqual({
+      pagoId: 10n,
+      monto: 0,
+      porcentaje: 0,
+      politicaId: null,
+    });
   });
 
   it('calcula porcentaje según la regla activa', async () => {
     prisma.reservas.findUnique.mockResolvedValueOnce({
-      funciones: { fecha_hora: new Date(Date.now() + 48 * 3600000), salas: { id_cine: 1n } },
+      funciones: {
+        fecha_hora: new Date(Date.now() + 48 * 3600000),
+        salas: { id_cine: 1n },
+      },
       pagos: [{ id: 10n, monto_final: { toString: () => '200' } }],
     });
     prisma.politicaCancelacion.findFirst.mockResolvedValueOnce({
@@ -51,7 +70,12 @@ describe('ReembolsosService.calcularMonto', () => {
       reglas: [{ porcentaje_reembolso: { toString: () => '50' } }],
     });
     const res = await service.calcularMonto(1n);
-    expect(res).toEqual({ pagoId: 10n, monto: 100, porcentaje: 50, politicaId: 7n });
+    expect(res).toEqual({
+      pagoId: 10n,
+      monto: 100,
+      porcentaje: 50,
+      politicaId: 7n,
+    });
   });
 });
 

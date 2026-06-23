@@ -10,6 +10,9 @@ describe('SalasService (audit-log instrumentation)', () => {
 
   beforeEach(async () => {
     prisma = {
+      $transaction: jest.fn(async (cb: (tx: any) => Promise<any>) =>
+        cb(prisma),
+      ),
       salas: {
         findFirst: jest.fn().mockResolvedValue(null),
         findUnique: jest.fn(),
@@ -17,6 +20,12 @@ describe('SalasService (audit-log instrumentation)', () => {
         update: jest.fn(),
         delete: jest.fn(),
         findMany: jest.fn(),
+      },
+      tiposAsiento: {
+        findFirst: jest.fn().mockResolvedValue({ id: 1n }),
+      },
+      asientos: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       funciones: { count: jest.fn().mockResolvedValue(0) },
     };
@@ -41,9 +50,10 @@ describe('SalasService (audit-log instrumentation)', () => {
       cines: { nombre: 'CineStar' },
     });
     await service.create(
-      { nombre: 'Sala 1', id_cine: '1', filas: 10, columnas: 12 } as any,
+      { nombre: 'Sala 1', id_cine: '1', filas: 10, columnas: 12 },
       9n,
     );
+    expect(prisma.$transaction).toHaveBeenCalled();
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'SALA_CREAR',
@@ -75,7 +85,7 @@ describe('SalasService (audit-log instrumentation)', () => {
       columnas: 10,
       cines: { nombre: 'CineStar' },
     });
-    await service.update('7', { nombre: 'New' } as any, 9n);
+    await service.update('7', { nombre: 'New' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'SALA_EDITAR',
@@ -106,5 +116,37 @@ describe('SalasService (audit-log instrumentation)', () => {
         valor_anterior: expect.objectContaining({ nombre: 'Old' }),
       }),
     );
+  });
+
+  it('genera filas*columnas asientos al crear la sala', async () => {
+    prisma.salas.create.mockResolvedValueOnce({
+      id: 10n,
+      filas: 2,
+      columnas: 3,
+      id_cine: 1n,
+      nombre: 'S',
+      cines: { nombre: 'TestCine' },
+    });
+
+    await service.create(
+      { nombre: 'S', id_cine: '1', filas: 2, columnas: 3 },
+      9n,
+    );
+
+    expect(prisma.asientos.createMany).toHaveBeenCalled();
+    const arg = (prisma.asientos.createMany as jest.Mock).mock.calls[0][0];
+    expect(arg.data).toHaveLength(6);
+    expect(arg.data[0]).toMatchObject({
+      id_sala: 10n,
+      fila: 'A',
+      columna: 1,
+      codigo: 'A1',
+    });
+    expect(arg.data[5]).toMatchObject({
+      id_sala: 10n,
+      fila: 'B',
+      columna: 3,
+      codigo: 'B3',
+    });
   });
 });

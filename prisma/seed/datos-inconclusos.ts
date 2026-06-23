@@ -1,14 +1,13 @@
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma, PagoEstado } from '../../generated/prisma/client';
 import { prisma } from './client';
 import { EstadoReserva } from '../../src/common/enums/estado-reserva.enum';
 import { EstadoAsiento } from '../../src/common/enums/estado-asiento.enum';
-import { EstadoPago } from '../../src/common/enums/estado-pago.enum';
 import { EstadoReembolso } from '../../src/common/enums/estado-reembolso.enum';
 import { MetodoPago } from '../../src/common/enums/metodo-pago.enum';
 import type { UsuariosMap } from './usuarios';
 import type { FuncionesMap } from './funciones';
 
-const ESTADO_PAGO_PENDIENTE = 'pendiente';
+const ESTADO_PAGO_PENDIENTE = PagoEstado.procesando;
 
 function suffix(prefix: string, n: number): string {
   return `${prefix}-${n.toString().padStart(4, '0')}`;
@@ -144,7 +143,7 @@ export async function seedDatosInconclusos(
   if (r4) await pagoPendiente(r4);
 
   const pagosAprobados = await prisma.pagos.findMany({
-    where: { estado: EstadoPago.APROBADO },
+    where: { estado: PagoEstado.exitoso },
     take: 2,
     include: {
       reservas: {

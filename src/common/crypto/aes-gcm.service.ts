@@ -45,6 +45,8 @@ export class AesGcmService {
     const [iv, tag, ct] = parts.map(fromB64url);
     const decipher = createDecipheriv(ALGO, this.key, iv);
     decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+    return Buffer.concat([decipher.update(ct), decipher.final()]).toString(
+      'utf8',
+    );
   }
 }

@@ -24,14 +24,48 @@ export class SalasService {
   ): Promise<SalaResponseDto> {
     await this.assertNombreDisponible(createSalaDto.nombre);
 
-    const created = await this.prisma.salas.create({
-      data: {
-        nombre: createSalaDto.nombre,
-        id_cine: BigInt(createSalaDto.id_cine),
-        filas: createSalaDto.filas,
-        columnas: createSalaDto.columnas,
-      },
-      include: { cines: true },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const sala = await tx.salas.create({
+        data: {
+          nombre: createSalaDto.nombre,
+          id_cine: BigInt(createSalaDto.id_cine),
+          filas: createSalaDto.filas,
+          columnas: createSalaDto.columnas,
+        },
+        include: { cines: true },
+      });
+
+      const tipoDefault = await tx.tiposAsiento.findFirst({
+        orderBy: { id: 'asc' },
+      });
+      if (!tipoDefault) {
+        throw new Error('No hay TiposAsiento configurados');
+      }
+
+      const asientosData: Array<{
+        id_sala: bigint;
+        fila: string;
+        columna: number;
+        codigo: string;
+        id_tipo_asiento: bigint;
+      }> = [];
+
+      for (let f = 0; f < sala.filas; f++) {
+        const filaLetra = String.fromCharCode(65 + f);
+        for (let c = 1; c <= sala.columnas; c++) {
+          asientosData.push({
+            id_sala: sala.id,
+            fila: filaLetra,
+            columna: c,
+            codigo: `${filaLetra}${c}`,
+            id_tipo_asiento: tipoDefault.id,
+          });
+        }
+      }
+
+      await tx.asientos.createMany({ data: asientosData });
+
+      return sala;
     });
 
     await this.auditLog.registrar({

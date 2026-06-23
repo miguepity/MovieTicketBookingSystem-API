@@ -9,10 +9,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
-import { EstadoPago } from 'src/common/enums/estado-pago.enum';
 import { MetodoPago } from 'src/common/enums/metodo-pago.enum';
 import { PagoExitosoEvent } from './events/pago-exitoso.event';
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma, PagoEstado } from '../../../generated/prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotPago } from '../audit-log/snapshots';
 
@@ -133,7 +132,7 @@ export class PagosService {
           monto_descuento: new Prisma.Decimal(cupon.descuento.toFixed(2)),
           monto_final: new Prisma.Decimal(montoFinal.toFixed(2)),
           metodo: input.metodo,
-          estado: EstadoPago.APROBADO,
+          estado: PagoEstado.exitoso,
           referencia_externa: input.referenciaExterna ?? null,
         },
       });

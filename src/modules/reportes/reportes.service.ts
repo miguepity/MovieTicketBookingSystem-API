@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client';
+import {
+  Prisma,
+  ReservaEstado,
+  PagoEstado,
+} from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
 import { ReportesPagosPageResponseDto } from './dto/reportes-pagos-page.response.dto';
@@ -137,7 +141,7 @@ export class ReportesService {
     const where: Prisma.ReservasWhereInput = {};
     const funcionesFilter: Prisma.FuncionesWhereInput = {};
 
-    if (estado) where.estado = estado;
+    if (estado) where.estado = estado as ReservaEstado;
 
     if (pelicula) {
       funcionesFilter.peliculas = {
@@ -168,7 +172,7 @@ export class ReportesService {
   ): Prisma.PagosWhereInput {
     const where: Prisma.PagosWhereInput = {};
 
-    if (query.estado) where.estado = query.estado;
+    if (query.estado) where.estado = query.estado as PagoEstado;
 
     const rango = this.dayRange(query.fecha);
     if (rango) where.created_at = rango;
@@ -176,9 +180,7 @@ export class ReportesService {
     return where;
   }
 
-  private dayRange(
-    fecha?: string,
-  ): { gte: Date; lt: Date } | undefined {
+  private dayRange(fecha?: string): { gte: Date; lt: Date } | undefined {
     if (!fecha) return undefined;
 
     const parsed = new Date(fecha);

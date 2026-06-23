@@ -18,6 +18,7 @@ import { UsersService } from './users.service';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
+import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { UserListResponse } from './entities/user-list.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -113,6 +114,37 @@ export class UsersController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.usersService.toggleNotificaciones(id, user.userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Actualizar perfil',
+    description:
+      'Actualiza el perfil del usuario autenticado (nombre, teléfono, notificaciones_activas).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil actualizado exitosamente.',
+    schema: {
+      example: {
+        id: 1,
+        nombre: 'Juan Pérez',
+        email: 'juan@example.com',
+        telefono: '+502 1234 5678',
+        notificaciones_activas: true,
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  updatePerfil(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdatePerfilDto,
+  ) {
+    return this.usersService.updatePerfil(BigInt(user.userId), dto);
   }
 
   @Get()

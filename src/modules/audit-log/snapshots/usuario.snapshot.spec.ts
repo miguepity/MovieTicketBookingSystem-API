@@ -11,7 +11,7 @@ describe('snapshotUsuario', () => {
       notificaciones_activas: true,
       roles: { nombre: 'ADMIN' },
     };
-    const snap = snapshotUsuario(u as any);
+    const snap = snapshotUsuario(u);
     expect(snap).toEqual({
       nombre: 'Ada Lovelace',
       email: 'ada@example.com',

@@ -113,10 +113,7 @@ export class PreciosCineController {
   @ApiOkResponse({ description: 'Precio eliminado exitosamente' })
   @ApiNotFoundResponse({ description: 'Precio no encontrado' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.preciosCineService.remove(id, BigInt(user.userId));
   }
 }

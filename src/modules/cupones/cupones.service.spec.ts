@@ -50,7 +50,7 @@ describe('CuponesService (audit-log instrumentation)', () => {
         valor: 10,
         fecha_expiracion: '2030-12-31',
         usos_maximos: 100,
-      } as any,
+      },
       9n,
     );
     expect(auditLog.registrar).toHaveBeenCalledWith(
@@ -68,7 +68,7 @@ describe('CuponesService (audit-log instrumentation)', () => {
     prisma.cupones.update.mockResolvedValueOnce(
       cuponBase({ codigo: 'PROMO20' }),
     );
-    await service.update('7', { codigo: 'PROMO20' } as any, 9n);
+    await service.update('7', { codigo: 'PROMO20' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'CUPON_EDITAR',
@@ -81,7 +81,9 @@ describe('CuponesService (audit-log instrumentation)', () => {
   });
 
   it('toggleStatus: registra CUPON_TOGGLE', async () => {
-    prisma.cupones.findUnique.mockResolvedValueOnce(cuponBase({ activo: true }));
+    prisma.cupones.findUnique.mockResolvedValueOnce(
+      cuponBase({ activo: true }),
+    );
     prisma.cupones.update.mockResolvedValueOnce(cuponBase({ activo: false }));
     await service.toggleStatus('7', 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
@@ -96,9 +98,7 @@ describe('CuponesService (audit-log instrumentation)', () => {
   });
 
   it('remove: registra CUPON_ELIMINAR', async () => {
-    prisma.cupones.findUnique.mockResolvedValueOnce(
-      cuponBase({ pagos: [] }),
-    );
+    prisma.cupones.findUnique.mockResolvedValueOnce(cuponBase({ pagos: [] }));
     prisma.cupones.delete.mockResolvedValueOnce({ id: 7n });
     await service.remove('7', 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(

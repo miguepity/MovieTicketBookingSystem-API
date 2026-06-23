@@ -30,7 +30,7 @@ describe('CiudadesService (audit-log instrumentation)', () => {
 
   it('create: registra CIUDAD_CREAR', async () => {
     prisma.ciudades.create.mockResolvedValueOnce({ id: 7n, nombre: 'Lima' });
-    await service.create({ nombre: 'Lima' } as any, 9n);
+    await service.create({ nombre: 'Lima' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'CIUDAD_CREAR',
@@ -44,7 +44,7 @@ describe('CiudadesService (audit-log instrumentation)', () => {
   it('update: registra CIUDAD_EDITAR', async () => {
     prisma.ciudades.findUnique.mockResolvedValueOnce({ id: 7n, nombre: 'Old' });
     prisma.ciudades.update.mockResolvedValueOnce({ id: 7n, nombre: 'New' });
-    await service.update('7', { nombre: 'New' } as any, 9n);
+    await service.update('7', { nombre: 'New' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'CIUDAD_EDITAR',

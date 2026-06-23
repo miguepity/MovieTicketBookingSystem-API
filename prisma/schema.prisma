@@ -88,12 +88,12 @@ model PreciosCine {
 }
 
 model AsientosFuncion {
-  id              BigInt            @id @default(autoincrement())
+  id              BigInt                @id @default(autoincrement())
   id_asiento      BigInt
-  asientos        Asientos          @relation(fields: [id_asiento], references: [id])
+  asientos        Asientos              @relation(fields: [id_asiento], references: [id])
   id_funcion      BigInt
-  funciones       Funciones         @relation(fields: [id_funcion], references: [id])
-  estado          String            @db.VarChar(20)
+  funciones       Funciones             @relation(fields: [id_funcion], references: [id])
+  estado          AsientoFuncionEstado
   id_usuario      BigInt?
   usuarios        Usuarios?         @relation(fields: [id_usuario], references: [id])
   bloqueado_hasta DateTime          @default(now()) @db.Timestamptz
@@ -110,7 +110,9 @@ model Reservas {
   usuarios        Usuarios          @relation(fields: [id_usuario], references: [id])
   id_funcion      BigInt
   funciones       Funciones         @relation(fields: [id_funcion], references: [id])
-  estado          String            @db.VarChar(30)
+  estado          ReservaEstado
+  notas_internas  String?           @db.Text
+  expira_en       DateTime?         @db.Timestamptz
   created_at      DateTime          @default(now()) @db.Timestamptz
   updated_at      DateTime          @updatedAt @db.Timestamptz
   reservaAsientos ReservaAsientos[]
@@ -139,7 +141,7 @@ model Pagos {
   monto_descuento    Decimal      @db.Decimal(10, 2)
   monto_final        Decimal      @db.Decimal(10, 2)
   metodo             String       @db.VarChar(20)
-  estado             String       @db.VarChar(20)
+  estado             PagoEstado
   referencia_externa String?      @db.VarChar(255)
   created_at         DateTime     @default(now()) @db.Timestamptz
   reembolsos         Reembolsos[]
@@ -180,6 +182,8 @@ model Cupones {
   fecha_expiracion DateTime @db.Date
   usos_maximos     Int?
   usos_actuales    Int      @default(0)
+  titulo           String?  @db.VarChar(100)
+  descripcion      String?  @db.Text
   activo           Boolean  @default(true)
   created_at       DateTime @default(now()) @db.Timestamptz
   pagos            Pagos[]
@@ -221,7 +225,7 @@ model Reembolsos {
   politica            PoliticaCancelacion? @relation(fields: [id_politica], references: [id])
   porcentaje_aplicado Decimal              @default(0) @db.Decimal(5, 2)
   monto               Decimal              @db.Decimal(10, 2)
-  estado              String               @db.VarChar(20)
+  estado              ReembolsoEstado
   fecha_procesado     DateTime?            @db.Timestamptz
   created_at          DateTime             @default(now()) @db.Timestamptz
 
@@ -236,7 +240,7 @@ model Funciones {
   id_sala          BigInt
   salas            Salas             @relation(fields: [id_sala], references: [id])
   fecha_hora       DateTime          @db.Timestamptz
-  estado           String            @db.VarChar(20)
+  estado           FuncionEstado
   created_at       DateTime          @default(now()) @db.Timestamptz
   asientosFuncions AsientosFuncion[]
   reservas         Reservas[]
@@ -254,12 +258,18 @@ model Peliculas {
   id_genero     BigInt?
   generos       Generos?    @relation(fields: [id_genero], references: [id])
   fecha_estreno DateTime?   @db.Date
+  duracion_min  Int?
+  ficha_tecnica Json?
+  tagline       String?     @db.VarChar(200)
+  rating_promedio Decimal?  @db.Decimal(3, 2)
+  rating_count  Int         @default(0)
   activo        Boolean     @default(true)
   created_at    DateTime    @default(now()) @db.Timestamptz
   updated_at    DateTime    @updatedAt @db.Timestamptz
   id_usuario    BigInt
   usuarios      Usuarios    @relation(fields: [id_usuario], references: [id])
   funciones     Funciones[]
+  calificaciones CalificacionPelicula[]
 
   @@map("peliculas")
 }
@@ -291,6 +301,7 @@ model Usuarios {
   peliculas              Peliculas[]
   passwordResetTokens    PasswordResetToken[]
   metodos_pago           MetodosPago[]
+  calificaciones         CalificacionPelicula[]
 
   @@map("usuarios")
 }
@@ -353,4 +364,54 @@ model JwtBlacklist {
 
   @@index([expires_at])
   @@map("jwt_blacklist")
+}
+
+model CalificacionPelicula {
+  id          BigInt    @id @default(autoincrement())
+  id_pelicula BigInt
+  pelicula    Peliculas @relation(fields: [id_pelicula], references: [id], onDelete: Cascade)
+  id_usuario  BigInt
+  usuario     Usuarios  @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
+  puntuacion  Int
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  updated_at  DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([id_pelicula, id_usuario])
+  @@index([id_pelicula])
+  @@map("calificacion_pelicula")
+}
+
+enum ReservaEstado {
+  pendiente_pago
+  pagada
+  cancelada
+  reembolsada
+  expirada
+}
+
+enum PagoEstado {
+  procesando
+  exitoso
+  rechazado
+  reembolsado
+}
+
+enum FuncionEstado {
+  programada
+  en_curso
+  finalizada
+  cancelada
+}
+
+enum AsientoFuncionEstado {
+  disponible
+  bloqueado
+  reservado
+  ocupado
+}
+
+enum ReembolsoEstado {
+  pendiente
+  procesado
+  rechazado
 }

@@ -61,10 +61,7 @@ export class CuponesController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'Ya existe un cupón con ese código' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(
-    @Body() dto: CreateCuponDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  create(@Body() dto: CreateCuponDto, @CurrentUser() user: CurrentUserPayload) {
     return this.cuponesService.create(dto, BigInt(user.userId));
   }
 
@@ -94,7 +91,8 @@ export class CuponesController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiConflictResponse({
-    description: 'El cupón no está activo, expiró o ya alcanzó su límite de uso',
+    description:
+      'El cupón no está activo, expiró o ya alcanzó su límite de uso',
   })
   validar(@Body() body: { codigo: string }) {
     return this.cuponesService.validar(body.codigo);
@@ -130,10 +128,7 @@ export class CuponesController {
     description: 'No se puede eliminar el cupón porque ya fue usado en pagos',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.cuponesService.remove(id, BigInt(user.userId));
   }
 }

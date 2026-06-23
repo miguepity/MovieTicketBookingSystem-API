@@ -55,6 +55,24 @@ export class PeliculaService {
     });
   }
 
+  async findOne(id: bigint, idUsuario?: bigint) {
+    const peli = await this.prisma.peliculas.findUnique({ where: { id } });
+    if (!peli) throw new NotFoundException('Película no encontrada');
+
+    let mi_calificacion: number | null = null;
+    if (idUsuario) {
+      const c = await this.prisma.calificacionPelicula.findUnique({
+        where: {
+          id_pelicula_id_usuario: { id_pelicula: id, id_usuario: idUsuario },
+        },
+        select: { puntuacion: true },
+      });
+      mi_calificacion = c?.puntuacion ?? null;
+    }
+
+    return { ...peli, mi_calificacion };
+  }
+
   findAll(query: QueryPeliculaDto = {}) {
     const { titulo, genero, idioma, fecha_inicio, fecha_fin, ciudad_id } =
       query;

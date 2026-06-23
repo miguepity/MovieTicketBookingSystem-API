@@ -19,6 +19,9 @@ describe('PeliculaService (audit-log instrumentation)', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      calificacionPelicula: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
       usuarios: {
         findUnique: jest.fn().mockResolvedValue({ id: 1n }),
         findMany: jest.fn().mockResolvedValue([]),
@@ -39,6 +42,59 @@ describe('PeliculaService (audit-log instrumentation)', () => {
       ],
     }).compile();
     service = moduleRef.get(PeliculaService);
+  });
+
+  describe('findOne', () => {
+    it('incluye mi_calificacion cuando se pasa idUsuario y hay voto', async () => {
+      prisma.peliculas.findUnique.mockResolvedValueOnce({
+        id: 1n,
+        rating_promedio: 4.3,
+        rating_count: 10,
+      });
+      prisma.calificacionPelicula.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce({ puntuacion: 5 });
+
+      const r = await service.findOne(1n, 99n);
+
+      expect(r.mi_calificacion).toBe(5);
+    });
+
+    it('mi_calificacion es null cuando el usuario no votó', async () => {
+      prisma.peliculas.findUnique.mockResolvedValueOnce({
+        id: 1n,
+        rating_promedio: 4.3,
+        rating_count: 10,
+      });
+      prisma.calificacionPelicula.findUnique = jest
+        .fn()
+        .mockResolvedValueOnce(null);
+
+      const r = await service.findOne(1n, 99n);
+
+      expect(r.mi_calificacion).toBeNull();
+    });
+
+    it('mi_calificacion es null cuando no se pasa idUsuario', async () => {
+      prisma.peliculas.findUnique.mockResolvedValueOnce({
+        id: 1n,
+        rating_promedio: 4.3,
+        rating_count: 10,
+      });
+
+      const r = await service.findOne(1n);
+
+      expect(r.mi_calificacion).toBeNull();
+      expect(prisma.calificacionPelicula.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('lanza NotFoundException si la película no existe', async () => {
+      prisma.peliculas.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.findOne(999n)).rejects.toThrow(
+        'Película no encontrada',
+      );
+    });
   });
 
   it('createPelicula: registra auditoría con entidad/entidad_id/valor_nuevo', async () => {
@@ -63,7 +119,7 @@ describe('PeliculaService (audit-log instrumentation)', () => {
         id_genero: 2n,
         fecha_estreno: '2023-07-16',
         activo: false,
-      } as any,
+      },
       9n,
     );
 
@@ -108,15 +164,21 @@ describe('PeliculaService (audit-log instrumentation)', () => {
       idiomas: { id: 1n, nombre: 'Español' },
     });
 
-    await service.updatePelicula('7', { titulo: 'New' } as any, 9n);
+    await service.updatePelicula('7', { titulo: 'New' }, 9n);
 
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'PELICULA_EDITAR',
         entidad: 'Pelicula',
         entidad_id: 7n,
-        valor_anterior: expect.objectContaining({ titulo: 'Old', genero_nombre: 'Drama' }),
-        valor_nuevo: expect.objectContaining({ titulo: 'New', genero_nombre: 'Acción' }),
+        valor_anterior: expect.objectContaining({
+          titulo: 'Old',
+          genero_nombre: 'Drama',
+        }),
+        valor_nuevo: expect.objectContaining({
+          titulo: 'New',
+          genero_nombre: 'Acción',
+        }),
       }),
     );
   });

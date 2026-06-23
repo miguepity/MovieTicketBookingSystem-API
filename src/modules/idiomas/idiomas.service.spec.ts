@@ -33,7 +33,7 @@ describe('IdiomasService (audit-log instrumentation)', () => {
   it('create: registra IDIOMA_CREAR', async () => {
     prisma.idiomas.findUnique.mockResolvedValueOnce(null);
     prisma.idiomas.create.mockResolvedValueOnce({ id: 7n, nombre: 'Español' });
-    await service.create({ nombre: 'Español' } as any, 9n);
+    await service.create({ nombre: 'Español' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'IDIOMA_CREAR',
@@ -49,7 +49,7 @@ describe('IdiomasService (audit-log instrumentation)', () => {
       .mockResolvedValueOnce({ id: 7n, nombre: 'Old' })
       .mockResolvedValueOnce(null);
     prisma.idiomas.update.mockResolvedValueOnce({ id: 7n, nombre: 'New' });
-    await service.update('7', { nombre: 'New' } as any, 9n);
+    await service.update('7', { nombre: 'New' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'IDIOMA_EDITAR',

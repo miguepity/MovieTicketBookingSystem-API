@@ -12,6 +12,7 @@ import { snapshotUsuario } from '../audit-log/snapshots/usuario.snapshot';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
+import { UpdatePerfilDto } from './dto/update-perfil.dto';
 
 @Injectable()
 export class UsersService {
@@ -218,5 +219,19 @@ export class UsersService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async updatePerfil(idUsuario: bigint, dto: UpdatePerfilDto) {
+    return this.prisma.usuarios.update({
+      where: { id: idUsuario },
+      data: dto,
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        notificaciones_activas: true,
+      },
+    });
   }
 }

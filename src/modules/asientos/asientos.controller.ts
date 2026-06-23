@@ -47,11 +47,14 @@ export class AsientosController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Bloquear asientos de una función para el usuario actual' })
+  @ApiOperation({
+    summary: 'Bloquear asientos de una función para el usuario actual',
+  })
   @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
   @ApiOkResponse({ description: 'Asientos bloqueados exitosamente' })
   @ApiBadRequestResponse({
-    description: 'Datos inválidos o uno o más asientos no pertenecen a la función',
+    description:
+      'Datos inválidos o uno o más asientos no pertenecen a la función',
   })
   @ApiNotFoundResponse({ description: 'La función no existe' })
   @ApiConflictResponse({

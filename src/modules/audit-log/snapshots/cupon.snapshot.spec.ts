@@ -11,7 +11,7 @@ describe('snapshotCupon', () => {
       usos_actuales: 42,
       activo: true,
     };
-    const snap = snapshotCupon(c as any);
+    const snap = snapshotCupon(c);
     expect(snap).toEqual({
       codigo: 'PROMO10',
       tipo: 'PORCENTAJE',

@@ -29,7 +29,7 @@ describe('snapshotReembolso', () => {
       id_politica: null,
       fecha_procesado: null,
     };
-    const snap = snapshotReembolso(r as any);
+    const snap = snapshotReembolso(r);
     expect(snap.id_politica).toBeNull();
     expect(snap.fecha_procesado).toBeNull();
   });
