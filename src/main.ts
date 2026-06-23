@@ -14,6 +14,11 @@ async function bootstrap() {
   // Habilitar validaciones globales (elimina campos que no estén en el DTO automáticamente)
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
+  // Habilitar CORS para permitir peticiones desde el frontend
+  app.enableCors({
+    origin: 'http://localhost:5173',
+  });
+
   // Configuración de Swagger para la documentación de la API
   const config = new DocumentBuilder()
     .setTitle('API de Movie Ticket Booking System')

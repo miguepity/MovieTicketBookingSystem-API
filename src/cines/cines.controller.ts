@@ -24,6 +24,12 @@ export class CineController {
     return this.cineService.createCine(dto);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Listar todos los cines' })
+  findAll() {
+    return this.cineService.findAll();
+  }
+
   @Get(':id/funciones')
   @ApiOperation({ summary: 'Obtener funciones disponibles de un cine' })
   @ApiParam({ name: 'id', description: 'ID del cine' })

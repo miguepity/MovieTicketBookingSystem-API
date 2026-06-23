@@ -55,12 +55,21 @@ export class PeliculasService {
   }
 
   findAll() {
-    return this.prisma.peliculas.findMany();
+    return this.prisma.peliculas.findMany({
+      include: {
+        generos: true,
+        idiomas: true,
+      },
+    });
   }
 
   findOne(id: number) {
     return this.prisma.peliculas.findUnique({
       where: { id },
+      include: {
+        generos: true,
+        idiomas: true,
+      },
     });
   }
 
