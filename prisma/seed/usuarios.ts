@@ -10,11 +10,13 @@ const USUARIOS = [
 export interface UsuariosMap {
   admin: { id: bigint };
   cliente: { id: bigint };
+  clientes: { id: bigint; email: string }[];
   all: { id: bigint; email: string }[];
 }
 
 export async function seedUsuarios(roles: RolesMap): Promise<UsuariosMap> {
   const passwordHash = await bcrypt.hash('password123', 10);
+  const votanteHash = await bcrypt.hash('votante123', 10);
   const result: { id: bigint; email: string }[] = [];
   let admin!: { id: bigint };
   let cliente!: { id: bigint };
@@ -39,5 +41,29 @@ export async function seedUsuarios(roles: RolesMap): Promise<UsuariosMap> {
     if (u.rol === 'cliente') cliente = usuario;
   }
 
-  return { admin, cliente, all: result };
+  // Add 10 votante users
+  for (let i = 1; i <= 10; i++) {
+    const email = `votante${i}@gmail.com`;
+    const usuario = await prisma.usuarios.upsert({
+      where: { email },
+      update: {},
+      create: {
+        nombre: `Votante ${i}`,
+        email,
+        password_hash: votanteHash,
+        telefono: `5555-000${i}`,
+        id_rol: roles['cliente'].id,
+        estado: 'activo',
+        notificaciones_activas: i % 2 === 0,
+      },
+      select: { id: true, email: true },
+    });
+    result.push(usuario);
+  }
+
+  const clientes = result.filter(
+    (u) => u.email === 'cliente@cinema.com' || u.email.startsWith('votante'),
+  );
+
+  return { admin, cliente, clientes, all: result };
 }

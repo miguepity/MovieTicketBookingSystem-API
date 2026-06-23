@@ -22,6 +22,7 @@ import { seedReembolsos } from './seed/reembolsos';
 import { seedAuditLog } from './seed/audit-log';
 import { seedPasswordResetTokens } from './seed/password-reset-token';
 import { seedDatosInconclusos } from './seed/datos-inconclusos';
+import { seedCalificaciones } from './seed/calificacion-pelicula';
 
 async function main() {
   const roles = await seedRoles();
@@ -37,6 +38,7 @@ async function main() {
   const asientos = await seedAsientos(salas, tiposAsiento);
   const preciosCineCount = await seedPreciosCine(cines, tiposAsiento);
   const peliculas = await seedPeliculas(idiomas, generos, usuarios.admin);
+  const calificacionesCount = await seedCalificaciones();
   const funciones = await seedFunciones(peliculas, salas);
   const asientosFuncion = await seedAsientosFuncion(asientos, funciones);
   const reservas = await seedReservas(usuarios, funciones);
@@ -65,6 +67,7 @@ async function main() {
   );
   console.log(`  Precios por cine:       ${preciosCineCount}`);
   console.log(`  Películas:              ${peliculas.all.length}`);
+  console.log(`  Calificaciones:         ${calificacionesCount}`);
   console.log(`  Funciones:              ${funciones.all.length}`);
   console.log(`  Asientos por función:   ${asientosFuncion.all.length}`);
   console.log(`  Reservas:               ${reservas.all.length}`);
