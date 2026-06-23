@@ -104,10 +104,7 @@ export class FuncionesController {
     description: 'La función ya está cancelada o ya inició',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  cancelar(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  cancelar(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.funcionesService.cancelar(id, BigInt(user.userId));
   }
 }

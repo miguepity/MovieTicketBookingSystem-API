@@ -40,7 +40,7 @@ describe('CineService (audit-log instrumentation)', () => {
       ciudades: { nombre: 'Lima' },
     });
     await service.create(
-      { nombre: 'CineStar', direccion: 'Av 1', id_ciudad: '1' } as any,
+      { nombre: 'CineStar', direccion: 'Av 1', id_ciudad: '1' },
       9n,
     );
     expect(auditLog.registrar).toHaveBeenCalledWith(
@@ -71,7 +71,7 @@ describe('CineService (audit-log instrumentation)', () => {
       id_ciudad: 1n,
       ciudades: { nombre: 'Lima' },
     });
-    await service.update('7', { nombre: 'New', direccion: 'Av 2' } as any, 9n);
+    await service.update('7', { nombre: 'New', direccion: 'Av 2' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'CINE_EDITAR',

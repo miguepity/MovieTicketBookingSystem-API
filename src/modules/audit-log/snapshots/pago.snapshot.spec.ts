@@ -44,7 +44,7 @@ describe('snapshotPago', () => {
       id_cupon: null,
       reservas: { numero_reserva: 'RSV-000101' },
     };
-    const snap = snapshotPago(p as any);
+    const snap = snapshotPago(p);
     expect(snap.id_cupon).toBeNull();
     expect(snap.referencia_externa).toBeNull();
     expect(snap.marca_snapshot).toBeNull();

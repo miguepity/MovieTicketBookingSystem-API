@@ -81,7 +81,11 @@ export class PoliticasCancelacionController {
     @Body() dto: UpdatePoliticasCancelacionDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.politicasCancelacionService.update(id, dto, BigInt(user.userId));
+    return this.politicasCancelacionService.update(
+      id,
+      dto,
+      BigInt(user.userId),
+    );
   }
 
   @Patch(':id/desactivar')
@@ -91,10 +95,7 @@ export class PoliticasCancelacionController {
   @ApiOperation({ summary: 'Desactivar política' })
   @ApiOkResponse({ description: 'Política desactivada' })
   @ApiNotFoundResponse({ description: 'Política no encontrada o ya inactiva' })
-  desactivar(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  desactivar(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.politicasCancelacionService.desactivar(id, BigInt(user.userId));
   }
 }

@@ -1,10 +1,4 @@
-import {
-  IsEnum,
-  IsString,
-  Length,
-  Matches,
-  ValidateIf,
-} from 'class-validator';
+import { IsEnum, IsString, Length, Matches, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { LuhnValid } from '../../../common/validators/luhn-valid.validator';
 import { NotExpired } from '../../../common/validators/not-expired.validator';

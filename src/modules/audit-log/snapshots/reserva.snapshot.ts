@@ -28,7 +28,8 @@ type ReservaInput = {
 
 export function snapshotReserva(r: ReservaInput): ReservaSnapshot {
   const asientos = r.reservaAsientos.map(
-    (ra) => `${ra.asientosfuncion.asientos.fila}${ra.asientosfuncion.asientos.columna}`,
+    (ra) =>
+      `${ra.asientosfuncion.asientos.fila}${ra.asientosfuncion.asientos.columna}`,
   );
   const total = r.pagos
     .reduce((sum, p) => sum + Number(p.monto_final.toString()), 0)

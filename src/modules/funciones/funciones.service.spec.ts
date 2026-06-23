@@ -165,11 +165,7 @@ describe('FuncionesService.update / cancelar', () => {
       .mockResolvedValueOnce(updated);
     prisma.funciones.update.mockResolvedValueOnce(updated);
 
-    await service.update(
-      '10',
-      { fecha_hora: '2027-02-01T20:00:00Z' },
-      7n,
-    );
+    await service.update('10', { fecha_hora: '2027-02-01T20:00:00Z' }, 7n);
 
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -68,9 +68,7 @@ export class MetodosPagoService {
         return toResponse(m);
       } catch (e) {
         if (isUniqueViolation(e)) {
-          throw new ConflictException(
-            'Ya tenés efectivo como método guardado',
-          );
+          throw new ConflictException('Ya tenés efectivo como método guardado');
         }
         throw e;
       }
@@ -104,10 +102,7 @@ export class MetodosPagoService {
     }
   }
 
-  async setDefault(
-    userId: bigint,
-    id: bigint,
-  ): Promise<MetodoPagoResponseDto> {
+  async setDefault(userId: bigint, id: bigint): Promise<MetodoPagoResponseDto> {
     return this.prisma.$transaction(async (tx) => {
       const target = await tx.metodosPago.findFirst({
         where: { id, id_usuario: userId },

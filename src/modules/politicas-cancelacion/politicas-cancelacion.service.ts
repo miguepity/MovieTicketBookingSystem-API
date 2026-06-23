@@ -30,7 +30,8 @@ export class PoliticasCancelacionService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.PoliticaCancelacionWhereInput = {};
-    if (query.id_cine !== undefined) where.id_cine = this.parseId(query.id_cine);
+    if (query.id_cine !== undefined)
+      where.id_cine = this.parseId(query.id_cine);
     if (query.activa !== undefined) where.activa = query.activa;
 
     const [total, politicas] = await this.prisma.$transaction([
@@ -220,9 +221,7 @@ export class PoliticasCancelacionService {
         );
       }
       if (next.horas_antes_minimo < curMax) {
-        throw new BadRequestException(
-          'Las reglas se traslapan entre sí',
-        );
+        throw new BadRequestException('Las reglas se traslapan entre sí');
       }
     }
   }

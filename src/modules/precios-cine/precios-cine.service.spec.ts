@@ -42,7 +42,7 @@ describe('PreciosCineService (audit-log instrumentation)', () => {
       tipoAsiento: { id: 2n, nombre: 'VIP' },
     });
     await service.create(
-      { id_cine: '1', id_tipo_asiento: '2', precio: '25.00' } as any,
+      { id_cine: '1', id_tipo_asiento: '2', precio: '25.00' },
       9n,
     );
     expect(auditLog.registrar).toHaveBeenCalledWith(
@@ -72,7 +72,7 @@ describe('PreciosCineService (audit-log instrumentation)', () => {
       cines: { id: 1n, nombre: 'CineStar' },
       tipoAsiento: { id: 2n, nombre: 'VIP' },
     });
-    await service.update('7', { precio: '25.00' } as any, 9n);
+    await service.update('7', { precio: '25.00' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'PRECIO_EDITAR',

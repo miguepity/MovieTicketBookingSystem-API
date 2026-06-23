@@ -34,7 +34,9 @@ export class AuditLogController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Detalle de una entrada del audit log con snapshots' })
+  @ApiOperation({
+    summary: 'Detalle de una entrada del audit log con snapshots',
+  })
   @ApiOkResponse({ type: AuditLogDetailResponseDto })
   @ApiNotFoundResponse({ description: 'Entrada no encontrada' })
   getById(@Param('id') id: string): Promise<AuditLogDetailResponseDto> {

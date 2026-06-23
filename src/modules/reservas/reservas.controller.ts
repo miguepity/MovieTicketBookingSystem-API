@@ -33,11 +33,14 @@ export class ReservasController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Crear una reserva a partir de asientos bloqueados' })
+  @ApiOperation({
+    summary: 'Crear una reserva a partir de asientos bloqueados',
+  })
   @ApiCreatedResponse({ description: 'Reserva creada exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({
-    description: 'La función no existe o algún asiento no pertenece a la función',
+    description:
+      'La función no existe o algún asiento no pertenece a la función',
   })
   @ApiConflictResponse({
     description:

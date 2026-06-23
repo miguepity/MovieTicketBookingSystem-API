@@ -101,10 +101,7 @@ export class GenerosController {
     description: 'No se puede eliminar porque tiene películas asociadas',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.generosService.remove(id, BigInt(user.userId));
   }
 }

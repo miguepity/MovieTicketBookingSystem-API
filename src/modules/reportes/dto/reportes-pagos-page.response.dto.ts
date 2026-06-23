@@ -8,5 +8,6 @@ export class ReportesPagosPageResponseDto {
   @ApiProperty() total!: number;
   @ApiProperty() page!: number;
   @ApiProperty() limit!: number;
-  @ApiProperty({ type: ReportesPagosResumenDto }) resumen!: ReportesPagosResumenDto;
+  @ApiProperty({ type: ReportesPagosResumenDto })
+  resumen!: ReportesPagosResumenDto;
 }

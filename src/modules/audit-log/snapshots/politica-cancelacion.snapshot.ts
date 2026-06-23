@@ -10,7 +10,9 @@ type PoliticaInput = {
   id_cine: bigint;
 };
 
-export function snapshotPoliticaCancelacion(p: PoliticaInput): PoliticaCancelacionSnapshot {
+export function snapshotPoliticaCancelacion(
+  p: PoliticaInput,
+): PoliticaCancelacionSnapshot {
   return {
     nombre: p.nombre,
     activa: p.activa,

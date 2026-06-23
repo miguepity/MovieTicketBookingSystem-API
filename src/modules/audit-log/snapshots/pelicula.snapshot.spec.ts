@@ -35,7 +35,7 @@ describe('snapshotPelicula', () => {
       id_genero: null,
       generos: null,
       idiomas: null,
-    } as any);
+    });
     expect(snap).toEqual({
       titulo: 'Inception',
       sinopsis: null,

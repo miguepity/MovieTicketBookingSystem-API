@@ -92,10 +92,7 @@ export class CineController {
   @ApiOkResponse({ description: 'Cine eliminado exitosamente.' })
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.cineService.remove(id, BigInt(user.userId));
   }
 }

@@ -53,10 +53,7 @@ export class ReportesController {
       .replace(/[:.]/g, '-')}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     return csv;
   }

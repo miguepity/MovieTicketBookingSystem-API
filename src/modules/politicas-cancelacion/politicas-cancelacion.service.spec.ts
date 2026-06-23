@@ -45,7 +45,11 @@ describe('PoliticasCancelacionService', () => {
           id_cine: '99',
           nombre: 'P1',
           reglas: [
-            { horas_antes_minimo: 0, horas_antes_maximo: 24, porcentaje_reembolso: 50 },
+            {
+              horas_antes_minimo: 0,
+              horas_antes_maximo: 24,
+              porcentaje_reembolso: 50,
+            },
           ],
         },
         1n,
@@ -61,8 +65,16 @@ describe('PoliticasCancelacionService', () => {
           id_cine: '1',
           nombre: 'P1',
           reglas: [
-            { horas_antes_minimo: 0, horas_antes_maximo: 24, porcentaje_reembolso: 50 },
-            { horas_antes_minimo: 12, horas_antes_maximo: 36, porcentaje_reembolso: 80 },
+            {
+              horas_antes_minimo: 0,
+              horas_antes_maximo: 24,
+              porcentaje_reembolso: 50,
+            },
+            {
+              horas_antes_minimo: 12,
+              horas_antes_maximo: 36,
+              porcentaje_reembolso: 80,
+            },
           ],
         },
         1n,
@@ -91,7 +103,11 @@ describe('PoliticasCancelacionService', () => {
         id_cine: '1',
         nombre: 'P1',
         reglas: [
-          { horas_antes_minimo: 0, horas_antes_maximo: 24, porcentaje_reembolso: 50 },
+          {
+            horas_antes_minimo: 0,
+            horas_antes_maximo: 24,
+            porcentaje_reembolso: 50,
+          },
         ],
       },
       9n,
@@ -131,11 +147,7 @@ describe('PoliticasCancelacionService', () => {
       reglas: [],
     });
 
-    await service.update(
-      '5',
-      { nombre: 'Despues' },
-      9n,
-    );
+    await service.update('5', { nombre: 'Despues' }, 9n);
 
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({

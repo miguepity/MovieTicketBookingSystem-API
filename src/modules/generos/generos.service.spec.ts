@@ -33,7 +33,7 @@ describe('GenerosService (audit-log instrumentation)', () => {
   it('create: registra GENERO_CREAR', async () => {
     prisma.generos.findUnique.mockResolvedValueOnce(null);
     prisma.generos.create.mockResolvedValueOnce({ id: 7n, nombre: 'Acción' });
-    await service.create({ nombre: 'Acción' } as any, 9n);
+    await service.create({ nombre: 'Acción' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'GENERO_CREAR',
@@ -49,7 +49,7 @@ describe('GenerosService (audit-log instrumentation)', () => {
       .mockResolvedValueOnce({ id: 7n, nombre: 'Old' })
       .mockResolvedValueOnce(null);
     prisma.generos.update.mockResolvedValueOnce({ id: 7n, nombre: 'New' });
-    await service.update('7', { nombre: 'New' } as any, 9n);
+    await service.update('7', { nombre: 'New' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
         accion: 'GENERO_EDITAR',

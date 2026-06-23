@@ -39,7 +39,9 @@ export class MetodosPagoController {
   @ApiOperation({ summary: 'Listar métodos de pago guardados del usuario' })
   @ApiOkResponse({ type: MetodoPagoResponseDto, isArray: true })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  list(@CurrentUser() user: CurrentUserPayload): Promise<MetodoPagoResponseDto[]> {
+  list(
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<MetodoPagoResponseDto[]> {
     return this.svc.list(BigInt(user.userId));
   }
 
