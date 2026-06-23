@@ -35,6 +35,7 @@ import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
@@ -51,6 +52,19 @@ export class PeliculaController {
   @ApiOkResponse({ description: 'Listado de películas' })
   findAll(@Query() query: QueryPeliculaDto) {
     return this.peliculaService.findAll(query);
+  }
+
+  @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'Obtener detalle de una película; incluye mi_calificacion si el usuario está autenticado',
+  })
+  @ApiOkResponse({ description: 'Detalle de la película' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  findOne(@Param('id') id: string, @CurrentUser() user?: CurrentUserPayload) {
+    const idUsuario = user?.userId ? BigInt(user.userId) : undefined;
+    return this.peliculaService.findOne(BigInt(id), idUsuario);
   }
 
   @Post()

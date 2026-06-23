@@ -29,6 +29,7 @@ import { CuponesModule } from './modules/cupones/cupones.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { MetodosPagoModule } from './modules/metodos-pago/metodos-pago.module';
+import { CalificacionesModule } from './modules/calificaciones/calificaciones.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { MetodosPagoModule } from './modules/metodos-pago/metodos-pago.module';
     FuncionesModule,
     CuponesModule,
     MetodosPagoModule,
+    CalificacionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
