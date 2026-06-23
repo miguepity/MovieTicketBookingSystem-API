@@ -55,7 +55,7 @@ describe('UsersService (audit-log instrumentation)', () => {
       .mockResolvedValueOnce({ ...baseUsuario, estado: 'inactivo' }); // updated
     prisma.usuarios.update.mockResolvedValueOnce({});
 
-    await service.updateStatus('5', '9', { estado: 'inactivo' } as any);
+    await service.updateStatus('5', '9', { estado: 'inactivo' });
 
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -102,7 +102,7 @@ describe('UsersService (audit-log instrumentation)', () => {
     await service.updatePassword('5', '5', {
       currentPassword: '<mock-current>',
       newPassword: '<mock-new>',
-    } as any);
+    });
 
     expect(auditLog.registrar).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -114,5 +114,41 @@ describe('UsersService (audit-log instrumentation)', () => {
     const call = auditLog.registrar.mock.calls[0][0];
     expect(call.valor_anterior).toBeUndefined();
     expect(call.valor_nuevo).toBeUndefined();
+  });
+
+  it('updatePerfil: actualiza nombre, telefono y notificaciones_activas', async () => {
+    prisma.usuarios.update.mockResolvedValueOnce({
+      id: 5n,
+      nombre: 'Ada Lovelace',
+      email: 'ada@example.com',
+      telefono: '+502 1234 5678',
+      notificaciones_activas: false,
+    });
+
+    const result = await service.updatePerfil(5n, {
+      nombre: 'Ada Lovelace',
+      telefono: '+502 1234 5678',
+      notificaciones_activas: false,
+    });
+
+    expect(prisma.usuarios.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 5n },
+        data: {
+          nombre: 'Ada Lovelace',
+          telefono: '+502 1234 5678',
+          notificaciones_activas: false,
+        },
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          telefono: true,
+          notificaciones_activas: true,
+        },
+      }),
+    );
+    expect(result.notificaciones_activas).toBe(false);
+    expect(result.nombre).toBe('Ada Lovelace');
   });
 });
