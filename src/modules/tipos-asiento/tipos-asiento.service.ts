@@ -19,17 +19,41 @@ export class TiposAsientoService {
 
   async findAll(nombre?: string) {
     const trimmed = nombre?.trim();
-    const tipos = await this.prisma.tiposAsiento.findMany({
-      where: trimmed
-        ? { nombre: { contains: trimmed, mode: 'insensitive' } }
-        : undefined,
-      orderBy: { nombre: 'asc' },
-    });
-    return tipos.map((t) => ({
-      id: t.id.toString(),
-      nombre: t.nombre,
-      color: t.color,
+
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        id: bigint;
+        nombre: string;
+        color: string | null;
+        salas_usando: bigint;
+        asientos_total: bigint;
+      }>
+    >`
+      SELECT
+        ta.id, ta.nombre, ta.color,
+        COUNT(DISTINCT a.id_sala) AS salas_usando,
+        COUNT(a.id) AS asientos_total
+      FROM tipos_asiento ta
+      LEFT JOIN asientos a ON a.id_tipo_asiento = ta.id
+      GROUP BY ta.id, ta.nombre, ta.color
+      ORDER BY ta.nombre
+    `;
+
+    const mapped = rows.map((r) => ({
+      id: r.id.toString(),
+      nombre: r.nombre,
+      color: r.color,
+      salas_usando: Number(r.salas_usando),
+      asientos_total: Number(r.asientos_total),
     }));
+
+    if (trimmed) {
+      return mapped.filter((t) =>
+        t.nombre.toLowerCase().includes(trimmed.toLowerCase()),
+      );
+    }
+
+    return mapped;
   }
 
   async findOne(id: string) {
