@@ -1,7 +1,7 @@
 import { Controller, ValidationPipe, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
-import { Body, Put, Param, Patch, Post, Get } from '@nestjs/common';
+import { Body, Put, Param, Patch, Post, Get, Query } from '@nestjs/common';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -55,6 +55,15 @@ export class UsuariosController {
   @ApiOperation({ summary: 'Listar todos los clientes' })
   async findAllClientes() {
     return this.usuariosService.findAllClientes();
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Buscar clientes por nombre, correo o teléfono',
+  })
+  @ApiQuery({ name: 'q', required: false, description: 'Texto a buscar' })
+  searchClientes(@Query('q') q?: string) {
+    return this.usuariosService.searchClientes(q);
   }
 
   @Patch(':id/notifications')

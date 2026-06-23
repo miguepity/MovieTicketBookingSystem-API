@@ -71,6 +71,51 @@ export class PeliculasService {
     });
   }
 
+  async updateEstado(id: number, activo: boolean) {
+    const pelicula = await this.prisma.peliculas.findUnique({ where: { id } });
+    if (!pelicula) throw new NotFoundException('Película no encontrada');
+
+    return this.prisma.peliculas.update({
+      where: { id },
+      data: { activo },
+    });
+  }
+
+  search(filtros: {
+    titulo?: string;
+    genero?: string;
+    ciudad?: string;
+    fecha?: string;
+  }) {
+    const { titulo, genero, ciudad, fecha } = filtros;
+
+    return this.prisma.peliculas.findMany({
+      where: {
+        ...(titulo && {
+          titulo: { contains: titulo, mode: 'insensitive' },
+        }),
+        ...(genero && {
+          generos: { nombre: { equals: genero, mode: 'insensitive' } },
+        }),
+        ...(ciudad && {
+          funciones: {
+            some: {
+              salas: {
+                cines: { ciudades: { nombre: { equals: ciudad, mode: 'insensitive' } } },
+              },
+            },
+          },
+        }),
+        ...(fecha && { fecha_estreno: new Date(fecha) }),
+      },
+      include: {
+        generos: { select: { nombre: true } },
+        idiomas: { select: { nombre: true } },
+      },
+      orderBy: { titulo: 'asc' },
+    });
+  }
+
   remove(id: number) {
     return this.prisma.peliculas.delete({
       where: { id },
