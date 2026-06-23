@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { EstadoReembolso } from '../../common/enums/estado-reembolso.enum';
-import { EstadoPago } from '../../common/enums/estado-pago.enum';
+import { PagoEstado } from '../../../generated/prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotReembolso } from '../audit-log/snapshots';
 
@@ -33,7 +33,7 @@ export class ReembolsosService {
           },
         },
         pagos: {
-          where: { estado: EstadoPago.APROBADO },
+          where: { estado: PagoEstado.exitoso },
           orderBy: { id: 'desc' },
           take: 1,
         },

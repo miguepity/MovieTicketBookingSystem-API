@@ -1,15 +1,16 @@
 import { prisma } from './client';
+import { PagoEstado } from '../../generated/prisma/client';
 import type { ReservasMap } from './reservas';
 import type { CuponesMap } from './cupones';
 
 const METODOS = ['tarjeta', 'paypal', 'efectivo', 'transferencia'];
-const ESTADOS = ['aprobado', 'rechazado', 'pendiente'];
+const ESTADOS: PagoEstado[] = [PagoEstado.exitoso, PagoEstado.rechazado, PagoEstado.procesando];
 
 export interface PagoSeed {
   id: bigint;
   id_reserva: bigint;
   monto_final: number;
-  estado: string;
+  estado: PagoEstado;
 }
 
 export interface PagosMap {

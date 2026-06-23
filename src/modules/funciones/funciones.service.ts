@@ -13,6 +13,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotFuncion } from '../audit-log/snapshots';
 import { EstadoAsiento } from '../../common/enums/estado-asiento.enum';
 import { EstadoFuncion } from '../../common/enums/estado-funcion.enum';
+import { FuncionEstado } from '../../../generated/prisma/client';
 
 @Injectable()
 export class FuncionesService {
@@ -199,7 +200,7 @@ export class FuncionesService {
       id_pelicula?: bigint;
       id_sala?: bigint;
       fecha_hora?: Date;
-      estado?: string;
+      estado?: FuncionEstado;
     } = {};
 
     if (dto.id_pelicula) data.id_pelicula = BigInt(dto.id_pelicula);
