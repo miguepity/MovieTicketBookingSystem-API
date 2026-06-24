@@ -2,83 +2,97 @@ import { test, expect } from '@playwright/test';
 import type { APIRequestContext } from '@playwright/test';
 import { loginAs, authHeaders } from '../helpers/auth';
 import {
-  getFuncionConAsientosLibres,
+  seedFuncionConReserva,
+  cleanupReservaSeed,
   resetAsientoFuncion,
+  getFuncionConAsientosLibres,
 } from '../helpers/seed-funcion';
 import type {
   ReservaResponse,
   CancelarReservaResponse,
-  ReembolsoResponse,
   ErrorResponse,
 } from '../helpers/response-types';
 import { errorCode } from '../helpers/response-types';
+import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+function prisma() {
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
+}
+
+// ─── Helper: seed a reembolso pendiente via Prisma (reliable, bypass policy) ──
 
 async function crearYCancelarPagada(
   request: APIRequestContext,
   token: string,
+  userId: string,
 ): Promise<{ idReembolso: string; idsAsiento: string[] }> {
-  const { funcionId, asientosDisponibles } =
-    await getFuncionConAsientosLibres(1);
-  const ids = asientosDisponibles.map((a) => a.id);
-  await request.post(`/funciones/${funcionId}/asientos/bloquear`, {
-    headers: authHeaders(token),
-    data: { ids_asiento_funcion: ids },
-  });
-  const reservaRes = await request.post('/reservas', {
-    headers: authHeaders(token),
-    data: { id_funcion: funcionId, ids_asiento_funcion: ids },
-  });
-  const reserva = (await reservaRes.json()) as ReservaResponse;
-  await request.post('/pagos', {
-    headers: authHeaders(token),
-    data: { id_reserva: reserva.id_reserva, metodo: 'tarjeta' },
-  });
-  const cancelRes = await request.patch(
-    `/reservas/${reserva.id_reserva}/cancelar`,
-    { headers: authHeaders(token) },
-  );
-  const cancel = (await cancelRes.json()) as CancelarReservaResponse;
-  if (!cancel.id_reembolso) {
-    throw new Error('Esperaba un reembolso creado al cancelar reserva pagada');
+  const seed = await seedFuncionConReserva(userId, { pagada: true });
+
+  const p = prisma();
+  try {
+    const pago = await p.pagos.findFirst({
+      where: { id_reserva: BigInt(seed.idReserva) },
+    });
+    if (!pago) throw new Error('No pago found for seeded reserva');
+
+    const reembolso = await p.reembolsos.create({
+      data: {
+        id_pago: pago.id,
+        porcentaje_aplicado: 100,
+        monto: pago.monto_final,
+        estado: 'pendiente',
+      },
+    });
+
+    return {
+      idReembolso: reembolso.id.toString(),
+      idsAsiento: seed.idsAsiento,
+    };
+  } finally {
+    await p.$disconnect();
   }
-  return { idReembolso: cancel.id_reembolso, idsAsiento: ids };
 }
 
-test.describe('POST /reembolsos/:id/procesar-efectivo', () => {
-  test('happy path: taquillero marca reembolso como procesado', async ({
+test.describe('PATCH /admin/reembolsos/:id/procesar', () => {
+  test('happy path: admin marca reembolso como procesado', async ({
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
-    const taquillero = await loginAs(request, 'taquillero');
+    const admin = await loginAs(request, 'admin');
     const { idReembolso, idsAsiento } = await crearYCancelarPagada(
       request,
       cliente.token,
+      cliente.userId,
     );
 
-    const res = await request.post(
-      `/reembolsos/${idReembolso}/procesar-efectivo`,
-      { headers: authHeaders(taquillero.token) },
+    const res = await request.patch(
+      `/admin/reembolsos/${idReembolso}/procesar`,
+      { headers: authHeaders(admin.token) },
     );
 
-    expect(res.status()).toBe(201);
-    const body = (await res.json()) as ReembolsoResponse;
+    expect(res.status()).toBe(200);
+    const body = await res.json();
     expect(body.estado).toBe('procesado');
     expect(body.fecha_procesado).not.toBeNull();
 
     for (const id of idsAsiento) await resetAsientoFuncion(id);
   });
 
-  test('rechaza con 403 si el usuario no es taquillero', async ({
+  test('rechaza con 403 si el usuario no es admin', async ({
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
     const { idReembolso, idsAsiento } = await crearYCancelarPagada(
       request,
       cliente.token,
+      cliente.userId,
     );
 
-    const res = await request.post(
-      `/reembolsos/${idReembolso}/procesar-efectivo`,
+    const res = await request.patch(
+      `/admin/reembolsos/${idReembolso}/procesar`,
       { headers: authHeaders(cliente.token) },
     );
 

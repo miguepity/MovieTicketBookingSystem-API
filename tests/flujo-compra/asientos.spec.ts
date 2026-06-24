@@ -97,7 +97,7 @@ test.describe('POST /funciones/:id/asientos/bloquear', () => {
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
-    const taquillero = await loginAs(request, 'taquillero');
+    const admin = await loginAs(request, 'admin');
     const { funcionId, asientosDisponibles } =
       await getFuncionConAsientosLibres(1);
     const ids = [asientosDisponibles[0].id];
@@ -111,7 +111,7 @@ test.describe('POST /funciones/:id/asientos/bloquear', () => {
     const conflict = await request.post(
       `/funciones/${funcionId}/asientos/bloquear`,
       {
-        headers: authHeaders(taquillero.token),
+        headers: authHeaders(admin.token),
         data: { ids_asiento_funcion: ids },
       },
     );
@@ -126,7 +126,7 @@ test.describe('POST /funciones/:id/asientos/bloquear', () => {
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
-    const taquillero = await loginAs(request, 'taquillero');
+    const admin = await loginAs(request, 'admin');
     const { funcionId, asientosDisponibles } =
       await getFuncionConAsientosLibres(1);
     const ids = [asientosDisponibles[0].id];
@@ -137,7 +137,7 @@ test.describe('POST /funciones/:id/asientos/bloquear', () => {
         data: { ids_asiento_funcion: ids },
       }),
       request.post(`/funciones/${funcionId}/asientos/bloquear`, {
-        headers: authHeaders(taquillero.token),
+        headers: authHeaders(admin.token),
         data: { ids_asiento_funcion: ids },
       }),
     ]);

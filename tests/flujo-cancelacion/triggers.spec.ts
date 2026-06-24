@@ -36,7 +36,7 @@ test.describe('triggers de email', () => {
 
     expect(pagoRes.status()).toBe(201);
     const pago = (await pagoRes.json()) as PagoResponse;
-    expect(pago.estado).toBe('aprobado');
+    expect(pago.estado).toBe('exitoso');
 
     for (const id of ids) await resetAsientoFuncion(id);
   });

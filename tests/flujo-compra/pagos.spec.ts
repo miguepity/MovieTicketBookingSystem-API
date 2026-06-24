@@ -38,7 +38,7 @@ async function crearReservaCompleta(
 }
 
 test.describe('POST /pagos', () => {
-  test('happy path: pago tarjeta aprobado, reserva queda pagada y asientos ocupados', async ({
+  test('happy path: pago tarjeta exitoso, reserva queda pagada y asientos ocupados', async ({
     request,
   }) => {
     const { token } = await loginAs(request, 'cliente');
@@ -59,7 +59,7 @@ test.describe('POST /pagos', () => {
 
     expect(res.status()).toBe(201);
     const body = (await res.json()) as PagoResponse;
-    expect(body.estado).toBe('aprobado');
+    expect(body.estado).toBe('exitoso');
     expect(body.id_pago).toBeDefined();
     expect(Number(body.monto_final)).toBeGreaterThan(0);
 
@@ -97,7 +97,7 @@ test.describe('POST /pagos', () => {
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
-    const taquillero = await loginAs(request, 'taquillero');
+    const admin = await loginAs(request, 'admin');
     const { idReserva, idsAsiento } = await crearReservaCompleta(
       request,
       cliente.token,
@@ -105,7 +105,7 @@ test.describe('POST /pagos', () => {
     );
 
     const res = await request.post('/pagos', {
-      headers: authHeaders(taquillero.token),
+      headers: authHeaders(admin.token),
       data: { id_reserva: idReserva, metodo: 'tarjeta' },
     });
 
@@ -149,7 +149,7 @@ test.describe('POST /pagos', () => {
 });
 
 test.describe('POST /pagos/efectivo', () => {
-  test('rechaza con 403 si el usuario no es taquillero', async ({
+  test('rechaza con 403 si el usuario no es admin', async ({
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
@@ -171,11 +171,11 @@ test.describe('POST /pagos/efectivo', () => {
     for (const id of idsAsiento) await resetAsientoFuncion(id);
   });
 
-  test('happy path: taquillero confirma pago en efectivo', async ({
+  test('happy path: admin confirma pago en efectivo', async ({
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
-    const taquillero = await loginAs(request, 'taquillero');
+    const admin = await loginAs(request, 'admin');
     const { idReserva, idsAsiento } = await crearReservaCompleta(
       request,
       cliente.token,
@@ -183,13 +183,13 @@ test.describe('POST /pagos/efectivo', () => {
     );
 
     const res = await request.post('/pagos/efectivo', {
-      headers: authHeaders(taquillero.token),
+      headers: authHeaders(admin.token),
       data: { id_reserva: idReserva },
     });
 
     expect(res.status()).toBe(201);
     const body = (await res.json()) as PagoResponse;
-    expect(body.estado).toBe('aprobado');
+    expect(body.estado).toBe('exitoso');
 
     for (const id of idsAsiento) await resetAsientoFuncion(id);
   });

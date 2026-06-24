@@ -9,13 +9,12 @@ export interface AuthResult {
 
 const ROLE_TO_USER: Record<string, { email: string }> = {
   cliente: { email: 'cliente@cinema.com' },
-  taquillero: { email: 'taquillero@cinema.com' },
   admin: { email: 'admin@cinema.com' },
 };
 
 export async function loginAs(
   request: APIRequestContext,
-  rol: 'cliente' | 'taquillero' | 'admin',
+  rol: 'cliente' | 'admin',
 ): Promise<AuthResult> {
   const { email } = ROLE_TO_USER[rol];
   const res = await request.post('/auth/login', {

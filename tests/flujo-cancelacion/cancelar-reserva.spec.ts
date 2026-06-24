@@ -103,14 +103,14 @@ test.describe('PATCH /reservas/:id/cancelar', () => {
     request,
   }) => {
     const cliente = await loginAs(request, 'cliente');
-    const taquillero = await loginAs(request, 'taquillero');
+    const admin = await loginAs(request, 'admin');
     const { idReserva, idsAsiento } = await crearReservaPendiente(
       request,
       cliente.token,
     );
 
     const res = await request.patch(`/reservas/${idReserva}/cancelar`, {
-      headers: authHeaders(taquillero.token),
+      headers: authHeaders(admin.token),
     });
 
     expect(res.status()).toBe(403);
