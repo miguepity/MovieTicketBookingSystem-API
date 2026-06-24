@@ -1,4 +1,12 @@
-import { Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -16,35 +24,68 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-user.decorator';
+import { ListReembolsosQueryDto } from './dto/list-reembolsos-query.dto';
+import { ProcesarReembolsoDto } from './dto/procesar-reembolso.dto';
+import { RechazarReembolsoDto } from './dto/rechazar-reembolso.dto';
 
-@ApiTags('Reembolsos')
-@Controller('reembolsos')
+@ApiTags('admin/reembolsos')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
+@ApiUnauthorizedResponse({ description: 'No autorizado' })
+@ApiForbiddenResponse({ description: 'Rol no autorizado' })
+@Controller('admin/reembolsos')
 export class ReembolsosController {
   constructor(private readonly reembolsosService: ReembolsosService) {}
 
-  @Post(':id/procesar-efectivo')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Procesar reembolso en efectivo',
-    description:
-      'Marca un reembolso pendiente como procesado. Solo el rol admin está autorizado.',
-  })
-  @ApiParam({ name: 'id', description: 'ID del reembolso', example: '1' })
-  @ApiOkResponse({ description: 'Reembolso procesado exitosamente' })
-  @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  @ApiForbiddenResponse({
-    description: 'Solo el rol admin puede procesar reembolsos en efectivo',
-  })
+  @Get()
+  @ApiOperation({ summary: 'Listado paginado de reembolsos (admin)' })
+  @ApiOkResponse({ description: 'Página de reembolsos con datos enriquecidos' })
+  list(@Query() q: ListReembolsosQueryDto) {
+    return this.reembolsosService.findAdminPaginated(q);
+  }
+
+  @Get('kpis')
+  @ApiOperation({ summary: 'KPIs de reembolsos (admin)' })
+  @ApiOkResponse({ description: 'Métricas: pendientes, en_procesamiento, monto_pendiente, completados_30d' })
+  kpis() {
+    return this.reembolsosService.kpis();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Detalle de un reembolso por ID (admin)' })
+  @ApiParam({ name: 'id', description: 'ID numérico del reembolso' })
+  @ApiOkResponse({ description: 'Detalle del reembolso' })
   @ApiNotFoundResponse({ description: 'Reembolso no encontrado' })
-  @ApiConflictResponse({
-    description: 'El reembolso no está en estado pendiente',
-  })
-  procesarEfectivo(
+  one(@Param('id') id: string) {
+    return this.reembolsosService.findOneAdmin(BigInt(id));
+  }
+
+  @Patch(':id/procesar')
+  @ApiOperation({ summary: 'Procesar reembolso pendiente (admin)' })
+  @ApiParam({ name: 'id', description: 'ID numérico del reembolso' })
+  @ApiOkResponse({ description: 'Reembolso procesado' })
+  @ApiNotFoundResponse({ description: 'Reembolso no encontrado' })
+  @ApiConflictResponse({ description: 'El reembolso no está en estado pendiente' })
+  procesar(
     @Param('id') id: string,
+    @Body() dto: ProcesarReembolsoDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.reembolsosService.procesarEfectivo(id, BigInt(user.userId));
+    return this.reembolsosService.procesar(BigInt(id), dto, BigInt(user.userId));
+  }
+
+  @Patch(':id/rechazar')
+  @ApiOperation({ summary: 'Rechazar reembolso pendiente (admin)' })
+  @ApiParam({ name: 'id', description: 'ID numérico del reembolso' })
+  @ApiOkResponse({ description: 'Reembolso rechazado' })
+  @ApiNotFoundResponse({ description: 'Reembolso no encontrado' })
+  @ApiConflictResponse({ description: 'El reembolso no está en estado pendiente' })
+  rechazar(
+    @Param('id') id: string,
+    @Body() dto: RechazarReembolsoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reembolsosService.rechazar(BigInt(id), dto, BigInt(user.userId));
   }
 }

@@ -5,7 +5,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -67,7 +66,7 @@ export class PoliticasCancelacionController {
     return this.politicasCancelacionService.create(dto, BigInt(user.userId));
   }
 
-  @Put(':id')
+  @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @ApiBearerAuth()

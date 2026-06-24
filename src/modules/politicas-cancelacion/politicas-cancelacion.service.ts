@@ -10,7 +10,7 @@ import { snapshotPoliticaCancelacion } from '../audit-log/snapshots';
 import { CreatePoliticaCancelacionDto } from './dto/create-politica-cancelacion.dto';
 import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { ListPoliticasCancelacionQueryDto } from './dto/list-politicas-cancelacion-query.dto';
-import { ReglaPoliticaDto } from './dto/regla-politica.dto';
+import { ReglaPoliticaDto, ReglaPoliticaInputDto, ReplaceReglasDto } from './dto/regla-politica.dto';
 import {
   PoliticasCancelacionListItemResponseDto,
   ReglaPoliticaResponseDto,
@@ -190,6 +190,96 @@ export class PoliticasCancelacionService {
       detalle: `Política ${id} desactivada`,
     });
     return { id, activa: false };
+  }
+
+  async listByCine(idCine: bigint) {
+    return this.prisma.politicaCancelacion.findMany({
+      where: { id_cine: idCine },
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
+  async listReglas(idPolitica: bigint) {
+    return this.prisma.reglaPoliticaCancelacion.findMany({
+      where: { id_politica: idPolitica },
+      orderBy: { horas_antes_minimo: 'asc' },
+    });
+  }
+
+  async replaceReglas(idPolitica: bigint, dto: ReplaceReglasDto, auditorId: bigint) {
+    const ordered = [...dto.reglas].sort(
+      (a: ReglaPoliticaInputDto, b: ReglaPoliticaInputDto) =>
+        a.horas_antes_minimo - b.horas_antes_minimo,
+    );
+
+    for (let i = 0; i < ordered.length; i++) {
+      const r = ordered[i];
+      if (r.horas_antes_minimo >= r.horas_antes_maximo) {
+        throw new BadRequestException(
+          'horas_antes_minimo debe ser menor que horas_antes_maximo',
+        );
+      }
+      if (i > 0 && ordered[i - 1].horas_antes_maximo > r.horas_antes_minimo) {
+        throw new BadRequestException('reglas se solapan');
+      }
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.reglaPoliticaCancelacion.deleteMany({
+        where: { id_politica: idPolitica },
+      });
+      if (ordered.length === 0) return [];
+      await tx.reglaPoliticaCancelacion.createMany({
+        data: ordered.map((r: ReglaPoliticaInputDto) => ({
+          id_politica: idPolitica,
+          horas_antes_minimo: r.horas_antes_minimo,
+          horas_antes_maximo: r.horas_antes_maximo,
+          porcentaje_reembolso: new Prisma.Decimal(r.porcentaje_reembolso),
+        })),
+      });
+      return tx.reglaPoliticaCancelacion.findMany({
+        where: { id_politica: idPolitica },
+        orderBy: { horas_antes_minimo: 'asc' },
+      });
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'POLITICA_REGLAS_REEMPLAZAR',
+      entidad: 'ReglaPoliticaCancelacion',
+      entidad_id: idPolitica,
+      detalle: `Reglas de política ${idPolitica.toString()} reemplazadas`,
+    });
+
+    return result;
+  }
+
+  async setActiva(id: bigint, activa: boolean, auditorId: bigint) {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.politicaCancelacion.findUnique({ where: { id } });
+      if (!p) throw new NotFoundException('Política de cancelación no encontrada');
+
+      if (activa) {
+        await tx.politicaCancelacion.updateMany({
+          where: { id_cine: p.id_cine, NOT: { id } },
+          data: { activa: false },
+        });
+      }
+      return tx.politicaCancelacion.update({ where: { id }, data: { activa } });
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: activa ? 'POLITICA_ACTIVAR' : 'POLITICA_DESACTIVAR',
+      entidad: 'PoliticaCancelacion',
+      entidad_id: id,
+      detalle: `Política ${id.toString()} ${activa ? 'activada' : 'desactivada'}`,
+      valor_nuevo: snapshotPoliticaCancelacion(updated),
+    });
+
+    return updated;
   }
 
   private validarReglas(reglas: ReglaPoliticaDto[]): void {
