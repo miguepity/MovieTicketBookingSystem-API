@@ -1,11 +1,10 @@
-import { Controller, ValidationPipe, ParseIntPipe } from '@nestjs/common';
+import { Controller, ValidationPipe, ParseIntPipe, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
 import { Body, Put, Param, Patch, Post, Get, Query } from '@nestjs/common';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
-import { ConfirmarRegistroDto } from './dto/confirmar-registro.dto';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -45,12 +44,6 @@ export class UsuariosController {
     return this.usuariosService.updateStatus(id, updateStatusDto);
   }
 
-  @Post('confirmar-registro')
-  @ApiOperation({ summary: 'Confirmar el registro de un usuario por token' })
-  confirmarRegistro(@Body() confirmarRegistroDto: ConfirmarRegistroDto) {
-    return this.usuariosService.confirmarRegistro(confirmarRegistroDto);
-  }
-
   @Get()
   @ApiOperation({ summary: 'Listar todos los clientes' })
   async findAllClientes() {
@@ -88,5 +81,18 @@ export class UsuariosController {
   })
   getClientesSuscritos() {
     return this.usuariosService.findClientesSuscritos();
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  deleteUser(@Param('id', ParseIntPipe) id: number) {
+    return this.usuariosService.deleteUser(id);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: 'Eliminar todos los usuarios' })
+  deleteAllUsers() {
+    return this.usuariosService.deleteAllUsers();
   }
 }

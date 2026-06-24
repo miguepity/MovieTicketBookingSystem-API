@@ -23,6 +23,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@emailjs/nodejs": "^5.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",

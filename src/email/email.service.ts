@@ -1,5 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import emailjs from '@emailjs/nodejs';
 
 @Injectable()
 export class EmailService {
@@ -7,6 +12,7 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
+    // 1. Configuración existente de Nodemailer
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
@@ -16,6 +22,32 @@ export class EmailService {
         pass: process.env.SMTP_PASS,
       },
     });
+
+    // 2. Nueva configuración de EmailJS
+    emailjs.init({
+      publicKey: process.env.EMAILJS_PUBLIC_KEY,
+      privateKey: process.env.EMAILJS_PRIVATE_KEY,
+    });
+  }
+
+  // --- NUEVO MÉTODO: Envío de código con EmailJS ---
+  async sendActivationCode(toEmail: string, token: string): Promise<void> {
+    try {
+      await emailjs.send(
+        process.env.EMAILJS_SERVICE_ID,
+        process.env.EMAILJS_TEMPLATE_ID,
+        {
+          to_email: toEmail,
+          message: `Tu codigo de activacion es: ${token}`,
+        },
+      );
+      this.logger.log(`Código de activación enviado a ${toEmail} vía EmailJS`);
+    } catch (error) {
+      this.logger.error('Error al enviar correo con EmailJS:', error);
+      throw new InternalServerErrorException(
+        'Error al enviar el correo de activación',
+      );
+    }
   }
 
   async sendCancelacionFuncion(
@@ -48,6 +80,7 @@ export class EmailService {
       `,
     });
   }
+
   async sendPagoExitoso(
     to: string,
     nombre: string,
