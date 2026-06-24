@@ -1,7 +1,7 @@
 import {
   Controller,
   Post,
-  Put,
+  Patch,
   Body,
   UseGuards,
   UnauthorizedException,
@@ -119,7 +119,7 @@ export class AuthController {
     return this.authService.logout(user.jti, user.userId, user.exp);
   }
 
-  @Put('change-email')
+  @Patch('change-email')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({

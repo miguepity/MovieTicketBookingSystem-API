@@ -4,7 +4,6 @@ import {
   Get,
   Param,
   Patch,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -31,7 +30,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Put(':id/password')
+  @Patch(':id/password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -120,9 +119,10 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Actualizar perfil',
+    summary: '[DEPRECATED] Actualizar perfil — use PATCH /me/perfil',
     description:
-      'Actualiza el perfil del usuario autenticado (nombre, teléfono, notificaciones_activas).',
+      'Actualiza el perfil del usuario autenticado. **Deprecated**: use `PATCH /me/perfil` instead.',
+    deprecated: true,
   })
   @ApiResponse({
     status: 200,
