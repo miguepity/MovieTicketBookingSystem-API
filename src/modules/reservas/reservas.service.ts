@@ -12,6 +12,39 @@ import { ReembolsosService } from '../reembolsos/reembolsos.service';
 import { ReservaCanceladaEvent } from './events/reserva-cancelada.event';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotReserva } from '../audit-log/snapshots';
+import { ListReservasQueryDto } from './dto/list-reservas-query.dto';
+
+// ──── Boleto view shape ───────────────────────────────────────────────────────
+export interface BoletoAsiento {
+  id: string;
+  codigo: string;
+  fila: string;
+  columna: number;
+  tipo_asiento: string | null;
+  precio: string | null;
+}
+
+export interface BoletoView {
+  id: string;
+  numero_reserva: string;
+  estado: string;
+  created_at: Date;
+  id_funcion: string;
+  fecha_hora: Date;
+  pelicula: {
+    id: string;
+    titulo: string;
+    poster_url: string | null;
+    rating_promedio: string | null;
+    rating_count: number;
+  };
+  sala: { id: string; nombre: string };
+  cine: { id: string; nombre: string };
+  asientos: BoletoAsiento[];
+  monto_total: string | null;
+  ultimos4_snapshot: string | null;
+  marca_snapshot: string | null;
+}
 
 @Injectable()
 export class ReservasService {
@@ -248,6 +281,581 @@ export class ReservasService {
       fecha_cancelacion: result.reserva.updated_at.toISOString(),
     };
   }
+
+  // ──── /me/reservas helpers ─────────────────────────────────────────────────
+
+  private readonly incluirBoleto = {
+    funciones: {
+      include: {
+        peliculas: {
+          select: {
+            id: true,
+            titulo: true,
+            poster_url: true,
+            rating_promedio: true,
+            rating_count: true,
+          },
+        },
+        salas: {
+          include: { cines: { select: { id: true, nombre: true } } },
+        },
+      },
+    },
+    reservaAsientos: {
+      include: {
+        asientosfuncion: {
+          include: {
+            asientos: {
+              include: {
+                tipoAsiento: { select: { nombre: true } },
+              },
+            },
+          },
+        },
+      },
+    },
+    pagos: {
+      orderBy: { created_at: 'desc' as const },
+      take: 1,
+    },
+  };
+
+  private toBoletoView(
+    r: any,
+    preciosPorTipo: Map<bigint, string>,
+  ): BoletoView {
+    const pago = r.pagos?.[0] ?? null;
+    return {
+      id: r.id.toString(),
+      numero_reserva: r.numero_reserva,
+      estado: r.estado,
+      created_at: r.created_at,
+      id_funcion: r.id_funcion.toString(),
+      fecha_hora: r.funciones.fecha_hora,
+      pelicula: {
+        id: r.funciones.peliculas.id.toString(),
+        titulo: r.funciones.peliculas.titulo,
+        poster_url: r.funciones.peliculas.poster_url ?? null,
+        rating_promedio: r.funciones.peliculas.rating_promedio?.toString() ?? null,
+        rating_count: r.funciones.peliculas.rating_count,
+      },
+      sala: {
+        id: r.funciones.salas.id.toString(),
+        nombre: r.funciones.salas.nombre,
+      },
+      cine: {
+        id: r.funciones.salas.cines.id.toString(),
+        nombre: r.funciones.salas.cines.nombre,
+      },
+      asientos: r.reservaAsientos.map((ra: any) => ({
+        id: ra.asientosfuncion.id.toString(),
+        codigo: ra.asientosfuncion.asientos.codigo,
+        fila: ra.asientosfuncion.asientos.fila,
+        columna: ra.asientosfuncion.asientos.columna,
+        tipo_asiento: ra.asientosfuncion.asientos.tipoAsiento?.nombre ?? null,
+        precio:
+          preciosPorTipo.get(ra.asientosfuncion.asientos.id_tipo_asiento) ??
+          null,
+      })),
+      monto_total: pago ? pago.monto_final.toString() : null,
+      ultimos4_snapshot: pago?.ultimos4_snapshot ?? null,
+      marca_snapshot: pago?.marca_snapshot ?? null,
+    };
+  }
+
+  private async buildPreciosPorTipo(
+    reservas: any[],
+  ): Promise<Map<bigint, string>> {
+    if (reservas.length === 0) return new Map();
+
+    // Collect all (idCine, idTipoAsiento) pairs across all reservas
+    const pairs = new Set<string>();
+    const idCineSet = new Set<bigint>();
+    const idTipoSet = new Set<bigint>();
+
+    for (const r of reservas) {
+      const idCine: bigint = r.funciones.salas.id_cine;
+      for (const ra of r.reservaAsientos) {
+        const idTipo: bigint = ra.asientosfuncion.asientos.id_tipo_asiento;
+        const key = `${idCine}:${idTipo}`;
+        if (!pairs.has(key)) {
+          pairs.add(key);
+          idCineSet.add(idCine);
+          idTipoSet.add(idTipo);
+        }
+      }
+    }
+
+    const precios = await this.prisma.preciosCine.findMany({
+      where: {
+        id_cine: { in: Array.from(idCineSet) },
+        id_tipo_asiento: { in: Array.from(idTipoSet) },
+      },
+      select: { id_tipo_asiento: true, precio: true },
+    });
+
+    // Key by id_tipo_asiento (sufficient when cinema shares type pricing)
+    return new Map(
+      precios.map((p) => [p.id_tipo_asiento, p.precio.toString()]),
+    );
+  }
+
+  async findMisReservas(userId: string, estado?: string): Promise<BoletoView[]> {
+    const where: Record<string, unknown> = { id_usuario: BigInt(userId) };
+    if (estado) where['estado'] = estado;
+
+    const reservas = await this.prisma.reservas.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      include: this.incluirBoleto,
+    });
+
+    const preciosPorTipo = await this.buildPreciosPorTipo(reservas);
+    return reservas.map((r) => this.toBoletoView(r, preciosPorTipo));
+  }
+
+  async findOneByNumero(numero: string, userId: string): Promise<BoletoView> {
+    const reserva = await this.prisma.reservas.findFirst({
+      where: { numero_reserva: numero, id_usuario: BigInt(userId) },
+      include: this.incluirBoleto,
+    });
+
+    if (!reserva) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'Reserva no encontrada',
+      });
+    }
+
+    const preciosPorTipo = await this.buildPreciosPorTipo([reserva]);
+    return this.toBoletoView(reserva, preciosPorTipo);
+  }
+
+  async cancelarPorCliente(numero: string, userId: string) {
+    const reserva = await this.prisma.reservas.findFirst({
+      where: { numero_reserva: numero, id_usuario: BigInt(userId) },
+      include: { reservaAsientos: { select: { id_asiento_funcion: true } } },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'Reserva no encontrada',
+      });
+    }
+
+    const calculo = await this.reembolsosService.calcularMonto(reserva.id);
+
+    const prevReserva = await this.prisma.reservas.findUniqueOrThrow({
+      where: { id: reserva.id },
+      include: {
+        usuarios: true,
+        funciones: { include: { peliculas: true, salas: true } },
+        reservaAsientos: {
+          include: { asientosfuncion: { include: { asientos: true } } },
+        },
+        pagos: true,
+      },
+    });
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.reservas.updateMany({
+        where: {
+          id: reserva.id,
+          estado: {
+            in: [EstadoReserva.PENDIENTE_PAGO, EstadoReserva.PAGADA],
+          },
+        },
+        data: { estado: EstadoReserva.CANCELADA },
+      });
+      if (claim.count !== 1) {
+        throw new ConflictException({
+          code: 'RESERVA_NO_CANCELABLE',
+          message: 'La reserva ya fue cancelada o cambió de estado',
+        });
+      }
+
+      const idsAsientoFuncion = reserva.reservaAsientos.map(
+        (ra) => ra.id_asiento_funcion,
+      );
+      if (idsAsientoFuncion.length > 0) {
+        await tx.asientosFuncion.updateMany({
+          where: { id: { in: idsAsientoFuncion } },
+          data: { estado: EstadoAsiento.DISPONIBLE, id_usuario: null },
+        });
+      }
+
+      let reembolso: { id: bigint; estado: string } | null = null;
+      if (calculo.pagoId !== null) {
+        reembolso = await this.reembolsosService.crearReembolso(
+          tx,
+          calculo.pagoId,
+          calculo.monto,
+          calculo.porcentaje,
+          calculo.politicaId,
+        );
+      }
+
+      const refreshed = await tx.reservas.findUniqueOrThrow({
+        where: { id: reserva.id },
+      });
+
+      return { reserva: refreshed, reembolso };
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: BigInt(userId),
+      id_auditor: BigInt(userId),
+      accion: 'RESERVA_CANCELAR',
+      entidad: 'Reserva',
+      entidad_id: reserva.id,
+      detalle: `Reserva ${numero} cancelada por cliente`,
+      valor_anterior: snapshotReserva(prevReserva),
+    });
+
+    this.eventEmitter.emit(
+      ReservaCanceladaEvent.NAME,
+      new ReservaCanceladaEvent(
+        result.reserva.id.toString(),
+        result.reserva.id_usuario.toString(),
+        result.reembolso?.id.toString() ?? null,
+      ),
+    );
+
+    return {
+      reserva: {
+        id_reserva: result.reserva.id.toString(),
+        numero_reserva: result.reserva.numero_reserva,
+        estado: result.reserva.estado,
+        fecha_cancelacion: result.reserva.updated_at.toISOString(),
+      },
+      reembolso: result.reembolso
+        ? {
+            id_reembolso: result.reembolso.id.toString(),
+            estado: result.reembolso.estado,
+            monto: calculo.monto.toFixed(2),
+          }
+        : null,
+    };
+  }
+
+  // ──── Admin helpers ─────────────────────────────────────────────────────────
+
+  async findAdminPaginated(q: ListReservasQueryDto) {
+    const where: Record<string, any> = {};
+
+    if (q.estado) where['estado'] = q.estado;
+
+    if (q.id_funcion) where['id_funcion'] = BigInt(q.id_funcion);
+
+    if (q.q) {
+      where['OR'] = [
+        { numero_reserva: { contains: q.q, mode: 'insensitive' } },
+        { usuarios: { nombre: { contains: q.q, mode: 'insensitive' } } },
+        { usuarios: { email: { contains: q.q, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (q.fecha_desde || q.fecha_hasta) {
+      where['created_at'] = {};
+      if (q.fecha_desde) where['created_at']['gte'] = new Date(q.fecha_desde);
+      if (q.fecha_hasta) where['created_at']['lte'] = new Date(q.fecha_hasta);
+    }
+
+    if (q.id_cine || q.id_pelicula) {
+      where['funciones'] = {
+        ...(q.id_pelicula ? { id_pelicula: BigInt(q.id_pelicula) } : {}),
+        ...(q.id_cine
+          ? { salas: { id_cine: BigInt(q.id_cine) } }
+          : {}),
+      };
+    }
+
+    const skip = (q.page - 1) * q.limit;
+    const take = q.limit;
+
+    const [rows, total] = await Promise.all([
+      this.prisma.reservas.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { created_at: 'desc' },
+        include: {
+          usuarios: { select: { id: true, nombre: true, email: true } },
+          funciones: {
+            include: {
+              peliculas: { select: { id: true, titulo: true } },
+              salas: {
+                include: { cines: { select: { id: true, nombre: true } } },
+              },
+            },
+          },
+          reservaAsientos: {
+            include: {
+              asientosfuncion: {
+                include: {
+                  asientos: {
+                    include: { tipoAsiento: { select: { nombre: true } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.reservas.count({ where }),
+    ]);
+
+    return {
+      data: rows.map((r) => this.toAdminReservaRow(r)),
+      total,
+      page: q.page,
+      limit: q.limit,
+    };
+  }
+
+  private toAdminReservaRow(r: any) {
+    return {
+      id: r.id.toString(),
+      numero_reserva: r.numero_reserva,
+      estado: r.estado,
+      created_at: r.created_at,
+      cliente: {
+        id: r.usuarios.id.toString(),
+        nombre: r.usuarios.nombre,
+        email: r.usuarios.email,
+      },
+      funcion: {
+        id: r.funciones.id.toString(),
+        fecha_hora: r.funciones.fecha_hora,
+      },
+      pelicula: {
+        id: r.funciones.peliculas.id.toString(),
+        titulo: r.funciones.peliculas.titulo,
+      },
+      cine: {
+        id: r.funciones.salas.cines.id.toString(),
+        nombre: r.funciones.salas.cines.nombre,
+      },
+      sala: {
+        id: r.funciones.salas.id.toString(),
+        nombre: r.funciones.salas.nombre,
+      },
+      num_asientos: r.reservaAsientos.length,
+      asientos: r.reservaAsientos.map((ra: any) => ({
+        codigo: ra.asientosfuncion.asientos.codigo,
+        tipo: ra.asientosfuncion.asientos.tipoAsiento?.nombre ?? null,
+      })),
+    };
+  }
+
+  async findOneAdmin(id: bigint) {
+    const r = await this.prisma.reservas.findUnique({
+      where: { id },
+      include: {
+        usuarios: { select: { id: true, nombre: true, email: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { id: true, titulo: true, poster_url: true } },
+            salas: {
+              include: { cines: { select: { id: true, nombre: true } } },
+            },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: {
+                asientos: {
+                  include: { tipoAsiento: { select: { nombre: true } } },
+                },
+              },
+            },
+          },
+        },
+        pagos: {
+          orderBy: { created_at: 'desc' as const },
+          take: 1,
+        },
+      },
+    });
+
+    if (!r) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'Reserva no encontrada',
+      });
+    }
+
+    const pago = r.pagos?.[0] ?? null;
+
+    return {
+      id: r.id.toString(),
+      numero_reserva: r.numero_reserva,
+      estado: r.estado,
+      monto_total: pago ? pago.monto_final.toString() : null,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      cliente: {
+        id: r.usuarios.id.toString(),
+        nombre: r.usuarios.nombre,
+        email: r.usuarios.email,
+      },
+      funcion: {
+        id: r.funciones.id.toString(),
+        fecha_hora: r.funciones.fecha_hora,
+        pelicula: {
+          id: r.funciones.peliculas.id.toString(),
+          titulo: r.funciones.peliculas.titulo,
+          poster_url: r.funciones.peliculas.poster_url ?? null,
+        },
+        sala: {
+          id: r.funciones.salas.id.toString(),
+          nombre: r.funciones.salas.nombre,
+        },
+        cine: {
+          id: r.funciones.salas.cines.id.toString(),
+          nombre: r.funciones.salas.cines.nombre,
+        },
+      },
+      asientos: r.reservaAsientos.map((ra: any) => ({
+        id: ra.asientosfuncion.id.toString(),
+        codigo: ra.asientosfuncion.asientos.codigo,
+        fila: ra.asientosfuncion.asientos.fila,
+        columna: ra.asientosfuncion.asientos.columna,
+        tipo: ra.asientosfuncion.asientos.tipoAsiento?.nombre ?? null,
+      })),
+      pago: pago
+        ? {
+            id: pago.id.toString(),
+            monto_final: pago.monto_final.toString(),
+            metodo: pago.metodo,
+            estado: pago.estado,
+            created_at: pago.created_at,
+          }
+        : null,
+    };
+  }
+
+  async cancelarAdminReserva(
+    id: bigint,
+    actorId: string,
+  ) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id },
+      include: {
+        usuarios: true,
+        funciones: { include: { peliculas: true, salas: true } },
+        reservaAsientos: {
+          select: { id_asiento_funcion: true },
+        },
+        pagos: true,
+      },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'Reserva no encontrada',
+      });
+    }
+
+    const calculo = await this.reembolsosService.calcularMonto(id);
+
+    const prevReserva = await this.prisma.reservas.findUniqueOrThrow({
+      where: { id },
+      include: {
+        usuarios: true,
+        funciones: { include: { peliculas: true, salas: true } },
+        reservaAsientos: {
+          include: { asientosfuncion: { include: { asientos: true } } },
+        },
+        pagos: true,
+      },
+    });
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.reservas.updateMany({
+        where: {
+          id,
+          estado: {
+            in: [EstadoReserva.PENDIENTE_PAGO, EstadoReserva.PAGADA],
+          },
+        },
+        data: { estado: EstadoReserva.CANCELADA },
+      });
+      if (claim.count !== 1) {
+        throw new ConflictException({
+          code: 'RESERVA_NO_CANCELABLE',
+          message: 'La reserva ya fue cancelada o cambió de estado',
+        });
+      }
+
+      const idsAsientoFuncion = reserva.reservaAsientos.map(
+        (ra) => ra.id_asiento_funcion,
+      );
+      if (idsAsientoFuncion.length > 0) {
+        await tx.asientosFuncion.updateMany({
+          where: { id: { in: idsAsientoFuncion } },
+          data: { estado: EstadoAsiento.DISPONIBLE, id_usuario: null },
+        });
+      }
+
+      let reembolso: { id: bigint; estado: string } | null = null;
+      if (calculo.pagoId !== null) {
+        reembolso = await this.reembolsosService.crearReembolso(
+          tx,
+          calculo.pagoId,
+          calculo.monto,
+          calculo.porcentaje,
+          calculo.politicaId,
+        );
+      }
+
+      const refreshed = await tx.reservas.findUniqueOrThrow({
+        where: { id },
+      });
+
+      return { reserva: refreshed, reembolso };
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: BigInt(actorId),
+      id_auditor: BigInt(actorId),
+      accion: 'ADMIN_RESERVA_CANCELAR',
+      entidad: 'Reserva',
+      entidad_id: id,
+      detalle: `Reserva ${id} cancelada por admin`,
+      valor_anterior: snapshotReserva(prevReserva),
+    });
+
+    this.eventEmitter.emit(
+      ReservaCanceladaEvent.NAME,
+      new ReservaCanceladaEvent(
+        result.reserva.id.toString(),
+        result.reserva.id_usuario.toString(),
+        result.reembolso?.id.toString() ?? null,
+      ),
+    );
+
+    return {
+      reserva: {
+        id: result.reserva.id.toString(),
+        numero_reserva: result.reserva.numero_reserva,
+        estado: result.reserva.estado,
+        fecha_cancelacion: result.reserva.updated_at.toISOString(),
+      },
+      reembolso: result.reembolso
+        ? {
+            id: result.reembolso.id.toString(),
+            estado: result.reembolso.estado,
+            monto: calculo.monto.toFixed(2),
+          }
+        : null,
+    };
+  }
+
+  // ──── Private helpers ───────────────────────────────────────────────────────
 
   private async generarNumeroUnico(tx: {
     reservas: PrismaService['reservas'];

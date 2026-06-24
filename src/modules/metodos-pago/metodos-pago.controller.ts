@@ -28,10 +28,10 @@ import { MetodosPagoService } from './metodos-pago.service';
 import { CrearMetodoPagoDto } from './dto/crear-metodo-pago.dto';
 import { MetodoPagoResponseDto } from './dto/metodo-pago-response.dto';
 
-@ApiTags('MetodosPago')
+@ApiTags('me')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('usuarios/me/metodos-pago')
+@Controller('me/metodos-pago')
 export class MetodosPagoController {
   constructor(private readonly svc: MetodosPagoService) {}
 
@@ -77,6 +77,63 @@ export class MetodosPagoController {
   @ApiOkResponse({ type: MetodoPagoResponseDto })
   @ApiNotFoundResponse({ description: 'No existe o no es tuyo' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  setDefault(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ): Promise<MetodoPagoResponseDto> {
+    return this.svc.setDefault(BigInt(user.userId), BigInt(id));
+  }
+}
+
+// ─── Deprecated alias (kept for one release) ─────────────────────────────────
+
+@ApiTags('deprecated')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('usuarios/me/metodos-pago')
+export class MetodosPagoDeprecatedController {
+  constructor(private readonly svc: MetodosPagoService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: '[DEPRECATED] Listar métodos de pago — use /me/metodos-pago',
+    deprecated: true,
+  })
+  list(@CurrentUser() user: CurrentUserPayload): Promise<MetodoPagoResponseDto[]> {
+    return this.svc.list(BigInt(user.userId));
+  }
+
+  @Post()
+  @HttpCode(201)
+  @ApiOperation({
+    summary: '[DEPRECATED] Crear método de pago — use /me/metodos-pago',
+    deprecated: true,
+  })
+  create(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CrearMetodoPagoDto,
+  ): Promise<MetodoPagoResponseDto> {
+    return this.svc.create(BigInt(user.userId), dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: '[DEPRECATED] Eliminar método de pago — use /me/metodos-pago',
+    deprecated: true,
+  })
+  remove(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.svc.remove(BigInt(user.userId), BigInt(id));
+  }
+
+  @Patch(':id/predeterminada')
+  @ApiOperation({
+    summary: '[DEPRECATED] Marcar predeterminado — use /me/metodos-pago',
+    deprecated: true,
+  })
   setDefault(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,

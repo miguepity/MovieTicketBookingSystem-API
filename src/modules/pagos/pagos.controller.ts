@@ -50,7 +50,7 @@ export class PagosController {
   @Post('efectivo')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Registrar un pago en efectivo (solo taquillero)' })
+  @ApiOperation({ summary: 'Registrar un pago en efectivo (solo admin (caja))' })
   @ApiCreatedResponse({
     description: 'Pago en efectivo registrado exitosamente',
   })
@@ -63,7 +63,7 @@ export class PagosController {
       'La reserva no es pagable o el cine no tiene precio configurado',
   })
   @ApiForbiddenResponse({
-    description: 'Solo el rol taquillero puede confirmar pagos en efectivo',
+    description: 'Solo el rol admin (caja) puede confirmar pagos en efectivo',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   crearEfectivo(

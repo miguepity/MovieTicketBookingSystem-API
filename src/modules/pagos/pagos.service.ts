@@ -14,6 +14,7 @@ import { PagoExitosoEvent } from './events/pago-exitoso.event';
 import { Prisma, PagoEstado } from '../../../generated/prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotPago } from '../audit-log/snapshots';
+import { ListPagosQueryDto } from './dto/list-pagos-query.dto';
 
 interface ProcesarPagoInput {
   idReserva: string;
@@ -219,6 +220,166 @@ export class PagosService {
       metodo: MetodoPago.EFECTIVO,
       codigoCupon: input.codigoCupon,
     });
+  }
+
+  // ──── Admin helpers ─────────────────────────────────────────────────────────
+
+  private readonly adminPagoInclude = {
+    reservas: {
+      include: {
+        usuarios: { select: { id: true, nombre: true, email: true } },
+        funciones: {
+          include: {
+            salas: {
+              include: {
+                cines: {
+                  select: {
+                    id: true,
+                    nombre: true,
+                    id_ciudad: true,
+                    ciudades: { select: { id: true, nombre: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    cupones: { select: { id: true, codigo: true, tipo: true, valor: true } },
+  } as const;
+
+  private toAdminPagoRow(p: any) {
+    const r = p.reservas;
+    const funcion = r.funciones;
+    const sala = funcion.salas;
+    const cine = sala.cines;
+    return {
+      id: p.id.toString(),
+      referencia_externa: p.referencia_externa ?? null,
+      numero_reserva: r.numero_reserva,
+      cliente: {
+        id: r.usuarios.id.toString(),
+        nombre: r.usuarios.nombre,
+        email: r.usuarios.email,
+      },
+      cine: {
+        id: cine.id.toString(),
+        nombre: cine.nombre,
+      },
+      ciudad: cine.ciudades
+        ? { id: cine.ciudades.id.toString(), nombre: cine.ciudades.nombre }
+        : null,
+      metodo: p.metodo,
+      monto_original: p.monto_original.toString(),
+      monto_descuento: p.monto_descuento.toString(),
+      monto_final: p.monto_final.toString(),
+      estado: p.estado,
+      ultimos4_snapshot: p.ultimos4_snapshot ?? null,
+      marca_snapshot: p.marca_snapshot ?? null,
+      cupon: p.cupones
+        ? {
+            id: p.cupones.id.toString(),
+            codigo: p.cupones.codigo,
+            tipo: p.cupones.tipo,
+            valor: p.cupones.valor.toString(),
+          }
+        : null,
+      id_reserva: r.id.toString(),
+      created_at: p.created_at,
+    };
+  }
+
+  async findAdminPaginated(q: ListPagosQueryDto) {
+    const where: Record<string, any> = {};
+
+    if (q.estado) where['estado'] = q.estado;
+    if (q.metodo) where['metodo'] = q.metodo;
+
+    if (q.fecha_desde || q.fecha_hasta) {
+      where['created_at'] = {};
+      if (q.fecha_desde) where['created_at']['gte'] = new Date(q.fecha_desde);
+      if (q.fecha_hasta) where['created_at']['lte'] = new Date(q.fecha_hasta);
+    }
+
+    if (q.q) {
+      where['OR'] = [
+        { referencia_externa: { contains: q.q, mode: 'insensitive' } },
+        { reservas: { numero_reserva: { contains: q.q, mode: 'insensitive' } } },
+        { reservas: { usuarios: { nombre: { contains: q.q, mode: 'insensitive' } } } },
+        { reservas: { usuarios: { email: { contains: q.q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const reservaFilter: Record<string, any> = {};
+    if (q.id_cine || q.id_ciudad) {
+      const cineFilter: Record<string, any> = {};
+      if (q.id_cine) cineFilter['id_cine'] = BigInt(q.id_cine);
+      if (q.id_ciudad) cineFilter['cines'] = { id_ciudad: BigInt(q.id_ciudad) };
+      reservaFilter['funciones'] = { salas: cineFilter };
+    }
+    if (Object.keys(reservaFilter).length > 0) {
+      where['reservas'] = reservaFilter;
+    }
+
+    const skip = (q.page - 1) * q.limit;
+    const take = q.limit;
+
+    const [rows, total] = await Promise.all([
+      this.prisma.pagos.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { created_at: 'desc' },
+        include: this.adminPagoInclude,
+      }),
+      this.prisma.pagos.count({ where }),
+    ]);
+
+    return {
+      data: rows.map((p) => this.toAdminPagoRow(p)),
+      total,
+      page: q.page,
+      limit: q.limit,
+    };
+  }
+
+  async findOneAdmin(id: bigint) {
+    const p = await this.prisma.pagos.findUnique({
+      where: { id },
+      include: this.adminPagoInclude,
+    });
+
+    if (!p) {
+      throw new NotFoundException({
+        code: 'PAGO_NO_ENCONTRADO',
+        message: 'El pago no existe',
+      });
+    }
+
+    return this.toAdminPagoRow(p);
+  }
+
+  async findByReserva(idReserva: bigint) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id: idReserva },
+      select: { id: true },
+    });
+
+    if (!reserva) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'La reserva no existe',
+      });
+    }
+
+    const pagos = await this.prisma.pagos.findMany({
+      where: { id_reserva: idReserva },
+      orderBy: { created_at: 'desc' },
+      include: this.adminPagoInclude,
+    });
+
+    return pagos.map((p) => this.toAdminPagoRow(p));
   }
 
   private async validarYAplicarCupon(
