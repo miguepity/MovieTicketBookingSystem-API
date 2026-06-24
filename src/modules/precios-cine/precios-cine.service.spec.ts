@@ -38,8 +38,8 @@ describe('PreciosCineService (audit-log instrumentation)', () => {
     prisma.preciosCine.create.mockResolvedValueOnce({
       id: 7n,
       precio: decimal('25.00'),
-      cines: { id: 1n, nombre: 'CineStar' },
-      tipoAsiento: { id: 2n, nombre: 'VIP' },
+      cine: { id: 1n, nombre: 'CineStar' },
+      tipo_asiento: { id: 2n, nombre: 'VIP' },
     });
     await service.create(
       { id_cine: '1', id_tipo_asiento: '2', precio: '25.00' },
@@ -63,14 +63,14 @@ describe('PreciosCineService (audit-log instrumentation)', () => {
     prisma.preciosCine.findUnique.mockResolvedValueOnce({
       id: 7n,
       precio: decimal('20.00'),
-      cines: { id: 1n, nombre: 'CineStar' },
-      tipoAsiento: { id: 2n, nombre: 'VIP' },
+      cine: { id: 1n, nombre: 'CineStar' },
+      tipo_asiento: { id: 2n, nombre: 'VIP' },
     });
     prisma.preciosCine.update.mockResolvedValueOnce({
       id: 7n,
       precio: decimal('25.00'),
-      cines: { id: 1n, nombre: 'CineStar' },
-      tipoAsiento: { id: 2n, nombre: 'VIP' },
+      cine: { id: 1n, nombre: 'CineStar' },
+      tipo_asiento: { id: 2n, nombre: 'VIP' },
     });
     await service.update('7', { precio: '25.00' }, 9n);
     expect(auditLog.registrar).toHaveBeenCalledWith(
@@ -88,8 +88,8 @@ describe('PreciosCineService (audit-log instrumentation)', () => {
     prisma.preciosCine.findUnique.mockResolvedValueOnce({
       id: 7n,
       precio: decimal('20.00'),
-      cines: { id: 1n, nombre: 'CineStar' },
-      tipoAsiento: { id: 2n, nombre: 'VIP' },
+      cine: { id: 1n, nombre: 'CineStar' },
+      tipo_asiento: { id: 2n, nombre: 'VIP' },
     });
     prisma.preciosCine.delete.mockResolvedValueOnce({ id: 7n });
     await service.remove('7', 9n);

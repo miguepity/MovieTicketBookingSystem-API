@@ -8,7 +8,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -26,7 +25,6 @@ import {
 } from '@nestjs/swagger';
 import { TiposAsientoService } from './tipos-asiento.service';
 import { CreateTipoAsientoDto } from './dto/create-tipo-asiento.dto';
-import { UpdateTipoAsientoDto } from './dto/update-tipo-asiento.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -75,7 +73,7 @@ export class TiposAsientoController {
     return this.tiposAsientoService.create(dto, BigInt(user.userId));
   }
 
-  @Put(':id')
+  @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reemplazar un tipo de asiento' })
@@ -87,23 +85,6 @@ export class TiposAsientoController {
   replace(
     @Param('id') id: string,
     @Body() dto: CreateTipoAsientoDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    return this.tiposAsientoService.update(id, dto, BigInt(user.userId));
-  }
-
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar parcialmente un tipo de asiento' })
-  @ApiOkResponse({ description: 'Tipo de asiento actualizado exitosamente' })
-  @ApiBadRequestResponse({ description: 'Datos inválidos' })
-  @ApiNotFoundResponse({ description: 'Tipo de asiento no encontrado' })
-  @ApiConflictResponse({ description: 'El nombre ya está en uso' })
-  @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateTipoAsientoDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.tiposAsientoService.update(id, dto, BigInt(user.userId));

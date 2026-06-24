@@ -8,7 +8,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -72,22 +71,6 @@ export class PreciosCineController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.preciosCineService.create(dto, BigInt(user.userId));
-  }
-
-  @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Reemplazar el precio (solo el monto)' })
-  @ApiOkResponse({ description: 'Precio actualizado exitosamente' })
-  @ApiBadRequestResponse({ description: 'Datos inválidos' })
-  @ApiNotFoundResponse({ description: 'Precio no encontrado' })
-  @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  replace(
-    @Param('id') id: string,
-    @Body() dto: UpdatePrecioCineDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    return this.preciosCineService.update(id, dto, BigInt(user.userId));
   }
 
   @Patch(':id')
