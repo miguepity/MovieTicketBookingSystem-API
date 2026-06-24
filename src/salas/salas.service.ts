@@ -60,7 +60,9 @@ export class SalaService {
   }
 
   async getSalas() {
-    const salas = await this.prisma.salas.findMany();
+    const salas = await this.prisma.salas.findMany({
+      include: { cines: true },
+    });
     if (salas.length === 0) {
       throw new NotFoundException('Salas is empty');
     }
@@ -68,6 +70,7 @@ export class SalaService {
       ...sala,
       id: sala.id.toString(),
       id_cine: sala.id_cine.toString(),
+      cineNombre: sala.cines.nombre,
     }));
   }
 

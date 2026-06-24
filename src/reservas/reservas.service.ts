@@ -156,6 +156,7 @@ export class ReservasService {
 
     const reservas = await this.prisma.reservas.findMany({
       where: {
+        ...(dto.id_usuario && { id_usuario: BigInt(dto.id_usuario) }),
         ...(dto.estado && { estado: dto.estado }),
         ...(dto.id_pelicula && {
           funciones: { id_pelicula: BigInt(dto.id_pelicula) },
@@ -171,6 +172,28 @@ export class ReservasService {
             },
           },
         }),
+      },
+      include: {
+        funciones: {
+          include: {
+            peliculas: true,
+            salas: {
+              include: {
+                cines: true,
+              },
+            },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: {
+                asientos: true,
+              },
+            },
+          },
+        },
+        pagos: true,
       },
       skip: (page - 1) * limit,
       take: limit,

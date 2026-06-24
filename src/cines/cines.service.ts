@@ -21,6 +21,10 @@ export class CineService {
     return newCine;
   }
 
+  async findAll() {
+    return this.prisma.cines.findMany();
+  }
+
   async editCine(dtoP: ParamDto, dtoB: EditBodyDto) {
     const findCinema = await this.prisma.cines.findFirst({
       where: { id: dtoP.id },

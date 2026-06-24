@@ -13,6 +13,12 @@ export class ReservasFilterDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  id_usuario!: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   id_pelicula!: number;
 
   @ApiPropertyOptional({ example: 1 })
