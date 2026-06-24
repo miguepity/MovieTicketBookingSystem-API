@@ -6,14 +6,14 @@ export type PrecioCineSnapshot = {
 
 type PrecioCineInput = {
   precio: { toString(): string };
-  cines: { nombre: string };
-  tipoAsiento: { nombre: string };
+  cine?: { nombre: string } | null;
+  tipo_asiento: { nombre: string };
 };
 
 export function snapshotPrecioCine(p: PrecioCineInput): PrecioCineSnapshot {
   return {
-    cine_nombre: p.cines.nombre,
-    tipo_asiento_nombre: p.tipoAsiento.nombre,
+    cine_nombre: p.cine?.nombre ?? '',
+    tipo_asiento_nombre: p.tipo_asiento.nombre,
     precio: p.precio.toString(),
   };
 }

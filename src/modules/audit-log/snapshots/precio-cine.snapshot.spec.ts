@@ -7,8 +7,8 @@ describe('snapshotPrecioCine', () => {
       id_cine: 1n,
       id_tipo_asiento: 2n,
       precio: '45.00',
-      cines: { nombre: 'CC Miraflores' },
-      tipoAsiento: { nombre: 'VIP' },
+      cine: { nombre: 'CC Miraflores' },
+      tipo_asiento: { nombre: 'VIP' },
     };
     expect(snapshotPrecioCine(p as any)).toEqual({
       cine_nombre: 'CC Miraflores',
