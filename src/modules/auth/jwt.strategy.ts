@@ -17,6 +17,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.jti && (await this.authService.isTokenRevoked(payload.jti))) {
       throw new UnauthorizedException('Token revocado');
     }
+    if (await this.authService.isUserBlocked(payload.sub)) {
+      throw new UnauthorizedException('Cuenta bloqueada');
+    }
     return {
       userId: payload.sub,
       email: payload.email,

@@ -44,6 +44,10 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    if (usuario.estado === 'bloqueado') {
+      throw new UnauthorizedException('Cuenta bloqueada');
+    }
+
     const payload = {
       email: usuario.email,
       sub: usuario.id.toString(),
@@ -296,6 +300,14 @@ export class AuthService {
       select: { jti: true },
     });
     return entry !== null;
+  }
+
+  async isUserBlocked(userId: string): Promise<boolean> {
+    const u = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(userId) },
+      select: { estado: true },
+    });
+    return u?.estado === 'bloqueado';
   }
 
   async limpiarBlacklistExpirada(): Promise<number> {
