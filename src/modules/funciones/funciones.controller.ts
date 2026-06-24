@@ -7,7 +7,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Put,
   Patch,
 } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
@@ -69,7 +68,7 @@ export class FuncionesController {
     return this.funcionesService.findOne(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

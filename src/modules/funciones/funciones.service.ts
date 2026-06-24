@@ -232,6 +232,44 @@ export class FuncionesService {
     return updated;
   }
 
+  async checkConflictos(p: {
+    id_cine: bigint;
+    id_sala: bigint;
+    fecha_hora: Date;
+    duracion_min: number;
+    ignorar_id?: bigint;
+  }) {
+    const inicio = p.fecha_hora;
+    const fin = new Date(inicio.getTime() + p.duracion_min * 60000);
+
+    const candidatas = await this.prisma.funciones.findMany({
+      where: {
+        id_sala: p.id_sala,
+        estado: { in: [FuncionEstado.programada, FuncionEstado.en_curso] },
+        ...(p.ignorar_id ? { NOT: { id: p.ignorar_id } } : {}),
+      },
+      include: { peliculas: { select: { titulo: true, duracion_min: true } } },
+    });
+
+    return candidatas
+      .filter((f) => {
+        const ini = f.fecha_hora;
+        const finOtra = new Date(
+          ini.getTime() + Number(f.peliculas.duracion_min) * 60000,
+        );
+        return ini < fin && finOtra > inicio;
+      })
+      .map((f) => ({
+        id: f.id,
+        fecha_hora: f.fecha_hora,
+        fecha_hora_fin: new Date(
+          f.fecha_hora.getTime() +
+            Number(f.peliculas.duracion_min) * 60000,
+        ),
+        pelicula: { titulo: f.peliculas.titulo },
+      }));
+  }
+
   async cancelar(id: string, auditorId: bigint) {
     const id_funcion = BigInt(id);
 

@@ -1,6 +1,7 @@
 /// <reference types="multer" />
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -467,6 +468,52 @@ export class PeliculaService {
       valor_nuevo: snapshotPelicula(updated),
     });
 
+    return updated;
+  }
+
+  async softDelete(id: bigint, actorId: bigint) {
+    const fut = await this.prisma.funciones.count({
+      where: {
+        id_pelicula: id,
+        fecha_hora: { gte: new Date() },
+        estado: { in: ['programada', 'en_curso'] },
+      },
+    });
+    if (fut > 0) throw new ConflictException('Película tiene funciones futuras');
+    const before = await this.prisma.peliculas.findUniqueOrThrow({ where: { id } });
+    const updated = await this.prisma.peliculas.update({
+      where: { id },
+      data: { activo: false, deleted_at: new Date() },
+    });
+    await this.auditLog.registrar({
+      id_usuario: before.id_usuario,
+      id_auditor: actorId,
+      accion: 'PELICULA_ELIMINAR',
+      entidad: 'Pelicula',
+      entidad_id: id,
+      detalle: `Película ${id.toString()} (${before.titulo}) soft-deleted`,
+      valor_anterior: snapshotPelicula(before),
+      valor_nuevo: snapshotPelicula(updated),
+    });
+    return updated;
+  }
+
+  async setActivo(id: bigint, activo: boolean, actorId: bigint) {
+    const before = await this.prisma.peliculas.findUniqueOrThrow({ where: { id } });
+    const updated = await this.prisma.peliculas.update({
+      where: { id },
+      data: { activo },
+    });
+    await this.auditLog.registrar({
+      id_usuario: before.id_usuario,
+      id_auditor: actorId,
+      accion: 'PELICULA_SET_ACTIVO',
+      entidad: 'Pelicula',
+      entidad_id: id,
+      detalle: `Película ${id.toString()} (${before.titulo}) activo → ${activo}`,
+      valor_anterior: snapshotPelicula(before),
+      valor_nuevo: snapshotPelicula(updated),
+    });
     return updated;
   }
 

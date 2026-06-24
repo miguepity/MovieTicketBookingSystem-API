@@ -2,6 +2,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -9,7 +10,6 @@ import {
   ParseFilePipe,
   Patch,
   Post,
-  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -22,6 +22,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
   ApiConsumes,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -34,8 +35,11 @@ import { PeliculaService } from './pelicula.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
+import { SetActivoDto } from './dto/set-activo.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
@@ -82,7 +86,7 @@ export class PeliculaController {
     return this.peliculaService.createPelicula(data, BigInt(user.userId));
   }
 
-  @Put(':id')
+  @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Editar una película existente' })
@@ -158,11 +162,52 @@ export class PeliculaController {
     return this.peliculaService.findFuncionesByPeliculaAndCine(id, cineId);
   }
 
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soft-delete de una película (admin)' })
+  @ApiOkResponse({ description: 'Película marcada como eliminada' })
+  @ApiConflictResponse({ description: 'Película tiene funciones futuras' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  softDelete(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.peliculaService.softDelete(BigInt(id), BigInt(user.userId));
+  }
+
+  @Patch(':id/activo')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Establecer el estado activo de una película (admin)' })
+  @ApiBody({ type: SetActivoDto })
+  @ApiOkResponse({ description: 'Estado de la película actualizado' })
+  @ApiNotFoundResponse({ description: 'Película no encontrada' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  setActivo(
+    @Param('id') id: string,
+    @Body() dto: SetActivoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.peliculaService.setActivo(BigInt(id), dto.activo, BigInt(user.userId));
+  }
+
+  /**
+   * @deprecated Use PATCH /peliculas/:id/activo instead.
+   * Kept for one release as backward-compatible alias.
+   */
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Alternar el estado activo/inactivo de una película',
+    summary: '[Deprecated] Alternar el estado activo/inactivo de una película — use /activo',
+    deprecated: true,
   })
   @ApiOkResponse({ description: 'Estado de la película actualizado' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
