@@ -7,7 +7,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateStatusDto } from './dto/update-status.dto';
-import { ConfirmarRegistroDto } from './dto/confirmar-registro.dto';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -68,40 +67,6 @@ export class UsuariosService {
       id: Number(usuarioActualizado.id),
       status: usuarioActualizado.estado,
     };
-  }
-
-  async confirmarRegistro(dto: ConfirmarRegistroDto) {
-    let userId: number;
-
-    try {
-      const payload = this.jwtService.verify(dto.token);
-      userId = payload.sub;
-    } catch (error) {
-      throw new BadRequestException(
-        'El token de confirmación es inválido o ha expirado.',
-      );
-    }
-
-    const usuario = await this.prisma.usuarios.findUnique({
-      where: { id: BigInt(userId) },
-    });
-
-    if (!usuario) {
-      throw new NotFoundException('Usuario no encontrado.');
-    }
-
-    if (usuario.estado === 'activo') {
-      throw new BadRequestException(
-        'Esta cuenta ya se encuentra verificada y activa.',
-      );
-    }
-
-    await this.prisma.usuarios.update({
-      where: { id: BigInt(userId) },
-      data: { estado: 'activo' },
-    });
-
-    return { message: 'Cuenta confirmada y activada exitosamente.' };
   }
 
   async updatePassword(id: number, dto: UpdatePasswordDto) {
@@ -247,5 +212,26 @@ export class UsuariosService {
       message: `Proceso de cancelación iniciado para el usuario ${usuario.nombre}`,
       reservas_a_cancelar: usuario.reservas.length,
     };
+  }
+
+  async deleteUser(id: number) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    await this.prisma.usuarios.delete({
+      where: { id: BigInt(id) },
+    });
+
+    return { message: 'Usuario eliminado exitosamente.' };
+  }
+
+  async deleteAllUsers() {
+    await this.prisma.usuarios.deleteMany({});
+    return { message: 'Todos los usuarios han sido eliminados.' };
   }
 }

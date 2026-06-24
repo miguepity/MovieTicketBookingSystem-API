@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ActivateDto } from './dto/activate.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -21,6 +22,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Iniciar sesión y obtener token JWT' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('activate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Activar cuenta de usuario' })
+  activate(@Body() dto: ActivateDto) {
+    return this.authService.activate(dto);
   }
 
   @Post('logout')

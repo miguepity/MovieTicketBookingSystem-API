@@ -9,12 +9,14 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UnauthorizedException } from '@nestjs/common/exceptions';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -59,10 +61,8 @@ export class AuthService {
       { expiresIn: '24h' },
     );
 
-    // TODO: Enviar email de confirmación con el token
-    console.log(
-      `Token de confirmación para ${user.email}: ${confirmationToken}`,
-    );
+    // Enviar el correo usando el nuevo servicio
+    await this.emailService.sendActivationCode(user.email, confirmationToken);
 
     return {
       user: {
@@ -113,6 +113,19 @@ export class AuthService {
         rol: user.roles.nombre,
       },
     };
+  }
+
+  async activate(dto: { token: string }) {
+    try {
+      const payload = await this.jwtService.verifyAsync(dto.token);
+      const user = await this.prisma.usuarios.update({
+        where: { email: payload.email },
+        data: { estado: 'activo' },
+      });
+      return { message: 'Cuenta activada correctamente' };
+    } catch (e) {
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
   }
 
   // El logout se manejara completamente en el frontend eliminando el token JWT

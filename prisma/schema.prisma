@@ -4,7 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["relationJoins"]
 }
 
@@ -66,10 +66,10 @@ model AsientosFuncion {
   id_asiento      BigInt
   asientos        Asientos          @relation(fields: [id_asiento], references: [id])
   id_funcion      BigInt
-  funciones       Funciones         @relation(fields: [id_funcion], references: [id])
+  funciones       Funciones         @relation(fields: [id_funcion], references: [id], onDelete: Cascade)
   estado          String            @db.VarChar(20)
   id_usuario      BigInt?
-  usuarios        Usuarios?         @relation(fields: [id_usuario], references: [id])
+  usuarios        Usuarios?         @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   bloqueado_hasta DateTime          @default(now()) @db.Timestamptz
   version         Int
   reservaAsientos ReservaAsientos[]
@@ -81,9 +81,9 @@ model Reservas {
   id              BigInt            @id @default(autoincrement())
   numero_reserva  String            @unique @db.VarChar(20)
   id_usuario      BigInt
-  usuarios        Usuarios          @relation(fields: [id_usuario], references: [id])
+  usuarios        Usuarios          @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   id_funcion      BigInt
-  funciones       Funciones         @relation(fields: [id_funcion], references: [id])
+  funciones       Funciones         @relation(fields: [id_funcion], references: [id], onDelete: Cascade)
   estado          String            @db.VarChar(30)
   created_at      DateTime          @default(now()) @db.Timestamptz
   updated_at      DateTime          @updatedAt @db.Timestamptz
@@ -96,9 +96,9 @@ model Reservas {
 model ReservaAsientos {
   id                 BigInt          @id @default(autoincrement())
   id_reserva         BigInt
-  reservas           Reservas        @relation(fields: [id_reserva], references: [id])
+  reservas           Reservas        @relation(fields: [id_reserva], references: [id], onDelete: Cascade)
   id_asiento_funcion BigInt
-  asientosfuncion    AsientosFuncion @relation(fields: [id_asiento_funcion], references: [id])
+  asientosfuncion    AsientosFuncion @relation(fields: [id_asiento_funcion], references: [id], onDelete: Cascade)
 
   @@map("reserva_asientos")
 }
@@ -106,7 +106,7 @@ model ReservaAsientos {
 model Pagos {
   id                 BigInt       @id @default(autoincrement())
   id_reserva         BigInt
-  reservas           Reservas     @relation(fields: [id_reserva], references: [id])
+  reservas           Reservas     @relation(fields: [id_reserva], references: [id], onDelete: Cascade)
   id_cupon           BigInt?
   cupones            Cupones?     @relation(fields: [id_cupon], references: [id])
   monto_original     Decimal      @db.Decimal(10, 2)
@@ -146,13 +146,13 @@ model PoliticaCancelacion {
 }
 
 model Reembolsos {
-  id              BigInt   @id @default(autoincrement())
+  id              BigInt    @id @default(autoincrement())
   id_pago         BigInt
-  pagos           Pagos    @relation(fields: [id_pago], references: [id])
-  monto           Decimal  @db.Decimal(10, 2)
-  estado          String   @db.VarChar(20)
+  pagos           Pagos     @relation(fields: [id_pago], references: [id], onDelete: Cascade)
+  monto           Decimal   @db.Decimal(10, 2)
+  estado          String    @db.VarChar(20)
   fecha_procesado DateTime? @db.Timestamptz
-  created_at      DateTime @default(now()) @db.Timestamptz
+  created_at      DateTime  @default(now()) @db.Timestamptz
 
   @@map("reembolsos")
 }
@@ -160,7 +160,7 @@ model Reembolsos {
 model Funciones {
   id               BigInt            @id @default(autoincrement())
   id_pelicula      BigInt
-  peliculas        Peliculas         @relation(fields: [id_pelicula], references: [id])
+  peliculas        Peliculas         @relation(fields: [id_pelicula], references: [id], onDelete: Cascade)
   id_sala          BigInt
   salas            Salas             @relation(fields: [id_sala], references: [id])
   fecha_hora       DateTime          @db.Timestamptz
@@ -186,7 +186,7 @@ model Peliculas {
   created_at    DateTime    @default(now()) @db.Timestamptz
   updated_at    DateTime    @updatedAt @db.Timestamptz
   id_usuario    BigInt
-  usuarios      Usuarios    @relation(fields: [id_usuario], references: [id])
+  usuarios      Usuarios    @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   funciones     Funciones[]
 
   @@map("peliculas")
@@ -241,9 +241,9 @@ model Generos {
 model AuditLog {
   id            BigInt   @id @default(autoincrement())
   id_usuario    BigInt
-  usuarios      Usuarios @relation("AuditLogUsuario", fields: [id_usuario], references: [id])
+  usuarios      Usuarios @relation("AuditLogUsuario", fields: [id_usuario], references: [id], onDelete: Cascade)
   id_auditor    BigInt
-  realizado_por Usuarios @relation("AuditLogAuditor", fields: [id_auditor], references: [id])
+  realizado_por Usuarios @relation("AuditLogAuditor", fields: [id_auditor], references: [id], onDelete: Cascade)
   accion        String   @db.VarChar(100)
   detalle       String?  @db.Text
   created_at    DateTime @default(now()) @db.Timestamptz
@@ -254,7 +254,7 @@ model AuditLog {
 model PasswordResetToken {
   id         BigInt   @id @default(autoincrement())
   id_usuario BigInt
-  usuarios   Usuarios @relation(fields: [id_usuario], references: [id])
+  usuarios   Usuarios @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   token      String   @unique @db.VarChar(255)
   expires_at DateTime @db.Timestamptz
   usado      Boolean  @default(false)
