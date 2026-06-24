@@ -145,6 +145,31 @@ export class CuponesService {
     };
   }
 
+  async setActivo(id: string, activo: boolean, auditorId: bigint) {
+    const cuponId = BigInt(id);
+
+    const prev = await this.prisma.cupones.findUnique({ where: { id: cuponId } });
+    if (!prev) throw new NotFoundException('Cupón no existe');
+
+    const updated = await this.prisma.cupones.update({
+      where: { id: cuponId },
+      data: { activo },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CUPON_SET_ACTIVO',
+      entidad: 'Cupon',
+      entidad_id: cuponId,
+      detalle: `Cupón ${cuponId.toString()} (${updated.codigo}) activo → ${activo}`,
+      valor_anterior: snapshotCupon(prev),
+      valor_nuevo: snapshotCupon(updated),
+    });
+
+    return { id: updated.id.toString(), codigo: updated.codigo, activo: updated.activo };
+  }
+
   async toggleStatus(id: string, auditorId: bigint) {
     const cuponId = BigInt(id);
 

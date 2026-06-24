@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Body,
   Param,
   UseGuards,
@@ -14,11 +13,13 @@ import {
 import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
 import { UpdateCuponDto } from './dto/update-cupon.dto';
+import { SetActivoDto } from './dto/set-activo.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiTags,
   ApiOperation,
   ApiOkResponse,
@@ -65,7 +66,7 @@ export class CuponesController {
     return this.cuponesService.create(dto, BigInt(user.userId));
   }
 
-  @Put(':id')
+  @Patch(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -98,11 +99,37 @@ export class CuponesController {
     return this.cuponesService.validar(body.codigo);
   }
 
+  @Patch(':id/activo')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Establecer el estado activo/inactivo de un cupón' })
+  @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
+  @ApiBody({ type: SetActivoDto })
+  @ApiOkResponse({ description: 'Estado del cupón actualizado' })
+  @ApiBadRequestResponse({ description: 'ID inválido' })
+  @ApiNotFoundResponse({ description: 'Cupón no existe' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  setActivo(
+    @Param('id') id: string,
+    @Body() dto: SetActivoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cuponesService.setActivo(id, dto.activo, BigInt(user.userId));
+  }
+
+  /**
+   * @deprecated Use PATCH /cupones/:id/activo instead.
+   * Kept for one release as backward-compatible alias.
+   */
   @Patch(':id/status')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Alternar el estado activo/inactivo de un cupón' })
+  @ApiOperation({
+    summary: '[Deprecated] Alternar estado cupón — use /activo',
+    deprecated: true,
+  })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
   @ApiOkResponse({ description: 'Estado del cupón actualizado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })

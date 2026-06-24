@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Ciudad } from './entities/ciudades.entity';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
@@ -36,6 +36,25 @@ export class CiudadesService {
     });
 
     return nuevo;
+  }
+
+  async delete(id: bigint, auditorId: bigint): Promise<Ciudad> {
+    const used = await this.prisma.cines.count({ where: { id_ciudad: id } });
+    if (used > 0) throw new ConflictException('Ciudad tiene cines asociados');
+    const before = await this.prisma.ciudades.findUniqueOrThrow({ where: { id } });
+    const deleted = await this.prisma.ciudades.delete({ where: { id } });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'CIUDAD_ELIMINAR',
+      entidad: 'Ciudad',
+      entidad_id: id,
+      detalle: `Ciudad ${id.toString()} (${before.nombre}) eliminada`,
+      valor_anterior: snapshotCiudad(before),
+    });
+
+    return deleted;
   }
 
   async update(

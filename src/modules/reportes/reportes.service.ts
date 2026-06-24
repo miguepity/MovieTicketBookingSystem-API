@@ -3,6 +3,7 @@ import {
   Prisma,
   ReservaEstado,
   PagoEstado,
+  ReembolsoEstado,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
@@ -11,6 +12,7 @@ import { ReportesReservasListItemResponseDto } from './dto/reportes-reservas-lis
 import { ListReportePagosQueryDto } from './dto/list-reportes-pagos-query.dto';
 import { ReportesReservasPageResponseDto } from './dto/reportes-reservas-page.response.dto';
 import { ReportesPagosListItemResponseDto } from './dto/reportes-pagos-list-item.response.dto';
+import { CancelacionesQueryDto } from './dto/cancelaciones-query.dto';
 
 type ReservaWithRelations = Prisma.ReservasGetPayload<{
   include: {
@@ -131,6 +133,112 @@ export class ReportesService {
     });
 
     return this.toCsv(reservas);
+  }
+
+  async cancelaciones(q: CancelacionesQueryDto) {
+    // Build date filter
+    const dateFilter: Record<string, Date> = {};
+    if (q.fecha_desde) dateFilter.gte = new Date(q.fecha_desde);
+    if (q.fecha_hasta) dateFilter.lte = new Date(q.fecha_hasta);
+
+    // Base where — no estado filter (for total count)
+    const baseWhere: any = {};
+    if (Object.keys(dateFilter).length) baseWhere.created_at = dateFilter;
+    if (q.id_cine) {
+      baseWhere.funciones = {
+        salas: { id_cine: BigInt(q.id_cine) },
+      };
+    }
+
+    const canceladaWhere: any = { ...baseWhere, estado: ReservaEstado.cancelada };
+
+    const [totalReservas, totalCanceladas] = await Promise.all([
+      this.prisma.reservas.count({ where: baseWhere }),
+      this.prisma.reservas.count({ where: canceladaWhere }),
+    ]);
+
+    const tasa = totalReservas > 0 ? totalCanceladas / totalReservas : 0;
+
+    // ── por_cine ──────────────────────────────────────────────────────────────
+    const cancByFuncion = await this.prisma.reservas.groupBy({
+      by: ['id_funcion'],
+      where: canceladaWhere,
+      _count: { _all: true },
+    });
+
+    const funcionIds = cancByFuncion.map((r) => r.id_funcion);
+    const funciones =
+      funcionIds.length > 0
+        ? await this.prisma.funciones.findMany({
+            where: { id: { in: funcionIds } },
+            include: { salas: { include: { cines: true } } },
+          })
+        : [];
+
+    const cineMap = new Map<string, { nombre: string; count: number }>();
+    for (const r of cancByFuncion) {
+      const f = funciones.find((x) => x.id === r.id_funcion);
+      if (!f) continue;
+      const key = String(f.salas.cines.id);
+      const entry = cineMap.get(key) ?? {
+        nombre: f.salas.cines.nombre,
+        count: 0,
+      };
+      entry.count += r._count._all;
+      cineMap.set(key, entry);
+    }
+    const por_cine = [...cineMap.values()].sort((a, b) => b.count - a.count);
+
+    // ── por_politica ──────────────────────────────────────────────────────────
+    const reembByPolitica = await this.prisma.reembolsos.groupBy({
+      by: ['id_politica'],
+      where: { estado: { not: ReembolsoEstado.rechazado } },
+      _count: { _all: true },
+    });
+
+    const politicaIds = reembByPolitica
+      .map((r) => r.id_politica)
+      .filter(Boolean) as bigint[];
+
+    const politicas =
+      politicaIds.length > 0
+        ? await this.prisma.politicaCancelacion.findMany({
+            where: { id: { in: politicaIds } },
+          })
+        : [];
+
+    const por_politica = reembByPolitica
+      .map((r) => ({
+        nombre:
+          politicas.find((p) => p.id === r.id_politica)?.nombre ??
+          '(sin política)',
+        count: r._count._all,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // ── tendencia_30d ──────────────────────────────────────────────────────────
+    const thirtyAgo = new Date(Date.now() - 30 * 86_400_000);
+    const recent = await this.prisma.reservas.findMany({
+      where: { estado: ReservaEstado.cancelada, created_at: { gte: thirtyAgo } },
+      select: { created_at: true },
+    });
+
+    const byDate = new Map<string, number>();
+    for (const r of recent) {
+      const key = r.created_at.toISOString().slice(0, 10);
+      byDate.set(key, (byDate.get(key) ?? 0) + 1);
+    }
+    const tendencia_30d = [...byDate.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([fecha, count]) => ({ fecha, count }));
+
+    return {
+      total_canceladas: totalCanceladas,
+      tasa,
+      por_politica,
+      por_cine,
+      tendencia_30d,
+    };
   }
 
   private buildReservasWhere(

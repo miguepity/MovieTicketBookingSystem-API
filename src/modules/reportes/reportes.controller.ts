@@ -17,6 +17,7 @@ import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.
 import { ListReportePagosQueryDto } from './dto/list-reportes-pagos-query.dto';
 import { ReportesReservasPageResponseDto } from './dto/reportes-reservas-page.response.dto';
 import { ReportesPagosPageResponseDto } from './dto/reportes-pagos-page.response.dto';
+import { CancelacionesQueryDto } from './dto/cancelaciones-query.dto';
 
 @ApiTags('Reportes Administrativos')
 @ApiBearerAuth()
@@ -66,5 +67,28 @@ export class ReportesController {
     @Query() query: ListReportePagosQueryDto,
   ): Promise<ReportesPagosPageResponseDto> {
     return this.reportesService.historialPagos(query);
+  }
+
+  @Get('cancelaciones')
+  @ApiOperation({
+    summary: 'Reporte de cancelaciones',
+    description:
+      'Devuelve métricas de cancelaciones: total, tasa, distribución por cine y política, y tendencia de los últimos 30 días.',
+  })
+  @ApiOkResponse({
+    description: 'Reporte de cancelaciones generado exitosamente.',
+    schema: {
+      example: {
+        total_canceladas: 12,
+        tasa: 0.15,
+        por_politica: [{ nombre: 'Política estándar', count: 8 }],
+        por_cine: [{ nombre: 'Cineplex Central', count: 7 }],
+        tendencia_30d: [{ fecha: '2025-06-01', count: 2 }],
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Parámetros de fecha inválidos' })
+  cancelaciones(@Query() q: CancelacionesQueryDto) {
+    return this.reportesService.cancelaciones(q);
   }
 }
