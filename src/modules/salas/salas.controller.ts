@@ -7,7 +7,7 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
-  Put,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -78,7 +78,7 @@ export class SalasController {
     return this.salasService.findOne(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar una sala existente' })

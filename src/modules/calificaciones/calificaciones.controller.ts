@@ -5,7 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
-  Put,
+  Patch,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -47,7 +47,7 @@ export class CalificacionesController {
     );
   }
 
-  @Put('calificacion')
+  @Patch('calificacion')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Calificar una película (requiere haber asistido a una función)',

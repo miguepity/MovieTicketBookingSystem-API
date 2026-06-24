@@ -181,9 +181,15 @@ export class SalasService {
       );
     }
 
-    const deleted = await this.prisma.salas.delete({
-      where: { id: salaId },
-      select: { id: true },
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      await tx.asientosFuncion.deleteMany({
+        where: { asientos: { id_sala: salaId } },
+      });
+      await tx.asientos.deleteMany({ where: { id_sala: salaId } });
+      return tx.salas.delete({
+        where: { id: salaId },
+        select: { id: true },
+      });
     });
 
     await this.auditLog.registrar({

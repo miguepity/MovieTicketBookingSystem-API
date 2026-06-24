@@ -26,6 +26,10 @@ describe('SalasService (audit-log instrumentation)', () => {
       },
       asientos: {
         createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      asientosFuncion: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       funciones: { count: jest.fn().mockResolvedValue(0) },
     };

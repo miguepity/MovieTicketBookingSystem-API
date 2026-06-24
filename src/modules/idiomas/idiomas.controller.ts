@@ -7,7 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
-  Put,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -74,7 +74,7 @@ export class IdiomasController {
     return this.idiomasService.create(createIdiomaDto, BigInt(user.userId));
   }
 
-  @Put(':id')
+  @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un idioma existente' })

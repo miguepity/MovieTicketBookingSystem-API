@@ -7,7 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
-  Put,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -72,7 +72,7 @@ export class RolesController {
     return this.rolesService.create(createRolDto);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator('admin')
   @ApiBearerAuth()
