@@ -74,9 +74,17 @@ export class PeliculaService {
     return { ...peli, mi_calificacion };
   }
 
-  findAll(query: QueryPeliculaDto = {}) {
-    const { titulo, genero, idioma, fecha_inicio, fecha_fin, ciudad_id } =
-      query;
+  async findAll(query: QueryPeliculaDto = {}) {
+    const {
+      titulo,
+      genero,
+      idioma,
+      fecha_inicio,
+      fecha_fin,
+      ciudad_id,
+      page = 1,
+      limit = 20,
+    } = query;
 
     const where: Prisma.PeliculasWhereInput = {};
 
@@ -104,10 +112,17 @@ export class PeliculaService {
       };
     }
 
-    return this.prisma.peliculas.findMany({
-      where,
-      orderBy: { created_at: 'desc' },
-    });
+    const [data, total] = await Promise.all([
+      this.prisma.peliculas.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.peliculas.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
   }
 
   async createPelicula(
@@ -130,6 +145,9 @@ export class PeliculaService {
           : undefined,
         activo: data.activo,
         id_usuario: userId,
+        duracion_min: data.duracion_min,
+        tagline: data.tagline,
+        ficha_tecnica: data.ficha_tecnica as Prisma.InputJsonValue | undefined,
       },
       select: {
         id: true,
@@ -140,6 +158,9 @@ export class PeliculaService {
         id_idioma: true,
         id_genero: true,
         activo: true,
+        duracion_min: true,
+        tagline: true,
+        ficha_tecnica: true,
         generos: { select: { nombre: true } },
         idiomas: { select: { nombre: true } },
       },
@@ -252,6 +273,9 @@ export class PeliculaService {
           ? new Date(data.fecha_estreno)
           : undefined,
         activo: data.activo,
+        duracion_min: data.duracion_min,
+        tagline: data.tagline,
+        ficha_tecnica: data.ficha_tecnica as Prisma.InputJsonValue | undefined,
       },
       select: {
         id: true,
@@ -262,6 +286,9 @@ export class PeliculaService {
         activo: true,
         id_genero: true,
         id_idioma: true,
+        duracion_min: true,
+        tagline: true,
+        ficha_tecnica: true,
         generos: { select: { id: true, nombre: true } },
         idiomas: { select: { id: true, nombre: true } },
       },
@@ -452,6 +479,9 @@ export class PeliculaService {
         id_idioma: true,
         id_genero: true,
         activo: true,
+        duracion_min: true,
+        tagline: true,
+        ficha_tecnica: true,
         generos: { select: { nombre: true } },
         idiomas: { select: { nombre: true } },
       },
