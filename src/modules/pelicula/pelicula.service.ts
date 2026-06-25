@@ -74,9 +74,17 @@ export class PeliculaService {
     return { ...peli, mi_calificacion };
   }
 
-  findAll(query: QueryPeliculaDto = {}) {
-    const { titulo, genero, idioma, fecha_inicio, fecha_fin, ciudad_id } =
-      query;
+  async findAll(query: QueryPeliculaDto = {}) {
+    const {
+      titulo,
+      genero,
+      idioma,
+      fecha_inicio,
+      fecha_fin,
+      ciudad_id,
+      page,
+      limit,
+    } = query;
 
     const where: Prisma.PeliculasWhereInput = {};
 
@@ -104,10 +112,20 @@ export class PeliculaService {
       };
     }
 
-    return this.prisma.peliculas.findMany({
-      where,
-      orderBy: { created_at: 'desc' },
-    });
+    const pageNum = page ?? 1;
+    const limitNum = limit ?? 20;
+
+    const [total, data] = await this.prisma.$transaction([
+      this.prisma.peliculas.count({ where }),
+      this.prisma.peliculas.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+      }),
+    ]);
+
+    return { data, total, page: pageNum, limit: limitNum };
   }
 
   async createPelicula(
