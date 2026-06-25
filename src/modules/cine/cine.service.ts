@@ -185,12 +185,41 @@ export class CineService {
     }
   }
 
+  async setActivo(id: string, activo: boolean, auditorId: bigint) {
+    const cineId = this.parseId(id);
+    const prev = await this.prisma.cines.findUnique({
+      where: { id: cineId },
+      include: { ciudades: true },
+    });
+    if (!prev) throw new NotFoundException('Cine no encontrado');
+
+    const updated = await this.prisma.cines.update({
+      where: { id: cineId },
+      data: { activo },
+      include: { ciudades: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: activo ? 'CINE_ACTIVAR' : 'CINE_DESACTIVAR',
+      entidad: 'Cine',
+      entidad_id: updated.id,
+      detalle: `Cine ${updated.id.toString()} (${updated.nombre}) ${activo ? 'activado' : 'desactivado'}`,
+      valor_anterior: snapshotCine(prev),
+      valor_nuevo: snapshotCine(updated),
+    });
+
+    return updated;
+  }
+
   private toListItem(cine: CineListPayload): CineListItemResponseDto {
     return {
       id: cine.id.toString(),
       nombre: cine.nombre,
       direccion: cine.direccion ?? null,
       id_ciudad: cine.id_ciudad.toString(),
+      activo: cine.activo,
       salas: cine.salas
         ? cine.salas.map((s: any) => ({
             id: s.id.toString(),

@@ -19,6 +19,7 @@ model Cines {
   direccion            String?               @db.VarChar(255)
   id_ciudad            BigInt
   ciudades             Ciudades              @relation(fields: [id_ciudad], references: [id])
+  activo               Boolean               @default(true)
   created_at           DateTime              @default(now()) @db.Timestamptz
   salas                Salas[]
   precios_cine         PreciosCine[]

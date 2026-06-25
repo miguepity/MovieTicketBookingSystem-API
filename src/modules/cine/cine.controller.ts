@@ -86,6 +86,21 @@ export class CineController {
     return this.cineService.update(id, updateCineDto, BigInt(user.userId));
   }
 
+  @Patch(':id/activo')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Activar/desactivar un cine' })
+  @ApiOkResponse({ description: 'Estado actualizado' })
+  @ApiNotFoundResponse({ description: 'Cine no encontrado' })
+  @ApiBadRequestResponse({ description: 'Payload inválido' })
+  setActivo(
+    @Param('id') id: string,
+    @Body() body: { activo: boolean },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.cineService.setActivo(id, !!body?.activo, BigInt(user.userId));
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Eliminar un cine' })

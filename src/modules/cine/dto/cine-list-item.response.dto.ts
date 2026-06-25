@@ -7,6 +7,7 @@ export class CineListItemResponseDto {
   @ApiProperty() nombre!: string;
   @ApiPropertyOptional() direccion!: string | null;
   @ApiProperty() id_ciudad!: string;
+  @ApiProperty() activo!: boolean;
   @ApiProperty({ type: () => SalaListItemResponseDto, isArray: true })
   @Type(() => SalaListItemResponseDto)
   salas!: SalaListItemResponseDto[];

@@ -7,6 +7,7 @@ describe('snapshotCine', () => {
       nombre: 'CC Miraflores',
       direccion: 'Anillo Periférico',
       id_ciudad: 2n,
+      activo: true,
       ciudades: { nombre: 'Guatemala' },
     };
     expect(snapshotCine(c as any)).toEqual({
@@ -14,6 +15,7 @@ describe('snapshotCine', () => {
       direccion: 'Anillo Periférico',
       id_ciudad: '2',
       ciudad_nombre: 'Guatemala',
+      activo: true,
     });
   });
 
