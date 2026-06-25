@@ -31,6 +31,12 @@ export class AdminClientesController {
     return this.users.findClientesPaginated(q);
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Conteos agregados de clientes (total/activos/bloqueados)' })
+  stats() {
+    return this.users.getClientesStats();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Detalle de cliente con últimas 10 reservas' })
   one(@Param('id') id: string) {

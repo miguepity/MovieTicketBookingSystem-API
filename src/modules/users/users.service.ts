@@ -266,6 +266,18 @@ export class UsersService {
     };
   }
 
+  async getClientesStats() {
+    const baseWhere = { roles: { is: { nombre: 'cliente' } } };
+    const [total, activos, bloqueados] = await this.prisma.$transaction([
+      this.prisma.usuarios.count({ where: baseWhere }),
+      this.prisma.usuarios.count({ where: { ...baseWhere, estado: 'activo' } }),
+      this.prisma.usuarios.count({
+        where: { ...baseWhere, estado: 'bloqueado' },
+      }),
+    ]);
+    return { total, activos, bloqueados };
+  }
+
   async findClienteById(id: bigint) {
     const cliente = await this.prisma.usuarios.findFirst({
       where: {
@@ -289,6 +301,16 @@ export class UsersService {
                 peliculas: { select: { titulo: true } },
               },
             },
+            reservaAsientos: {
+              select: {
+                asientosfuncion: {
+                  select: {
+                    asientos: { select: { id: true, codigo: true } },
+                  },
+                },
+              },
+            },
+            pagos: { select: { monto_final: true, estado: true } },
           },
         },
       },
@@ -307,14 +329,26 @@ export class UsersService {
       notificaciones_activas: cliente.notificaciones_activas,
       num_reservas: cliente._count.reservas,
       created_at: cliente.created_at,
-      reservas: cliente.reservas.map((r) => ({
-        id: r.id.toString(),
-        numero_reserva: r.numero_reserva,
-        estado: r.estado,
-        created_at: r.created_at,
-        pelicula: r.funciones.peliculas?.titulo ?? null,
-        fecha_hora: r.funciones.fecha_hora,
-      })),
+      reservas: cliente.reservas.map((r) => {
+        const asientos = r.reservaAsientos.map((ra) => ({
+          id: ra.asientosfuncion.asientos.id.toString(),
+          codigo: ra.asientosfuncion.asientos.codigo,
+        }));
+        const monto_total = r.pagos
+          .filter((p) => p.estado === 'exitoso')
+          .reduce((sum, p) => sum + Number(p.monto_final ?? 0), 0);
+        return {
+          id: r.id.toString(),
+          numero_reserva: r.numero_reserva,
+          estado: r.estado,
+          created_at: r.created_at,
+          pelicula: r.funciones.peliculas?.titulo ?? null,
+          fecha_hora: r.funciones.fecha_hora,
+          num_asientos: asientos.length,
+          asientos,
+          monto_total,
+        };
+      }),
     };
   }
 
