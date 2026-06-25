@@ -3,11 +3,37 @@ import { ReportesPagosListItemResponseDto } from './reportes-pagos-list-item.res
 import { ReportesPagosResumenDto } from './reportes-pagos-resumen.dto';
 
 export class ReportesPagosPageResponseDto {
-  @ApiProperty({ type: [ReportesPagosListItemResponseDto] })
+  @ApiProperty({
+    description: 'Lista de pagos en la página actual',
+    type: () => ReportesPagosListItemResponseDto,
+    isArray: true,
+  })
   data!: ReportesPagosListItemResponseDto[];
-  @ApiProperty() total!: number;
-  @ApiProperty() page!: number;
-  @ApiProperty() limit!: number;
-  @ApiProperty({ type: ReportesPagosResumenDto })
+
+  @ApiProperty({
+    description: 'Total de pagos que coinciden con los filtros aplicados',
+    type: Number,
+    example: 1234,
+  })
+  total!: number;
+
+  @ApiProperty({
+    description: 'Página actual (comienza en 1)',
+    type: Number,
+    example: 1,
+  })
+  page!: number;
+
+  @ApiProperty({
+    description: 'Cantidad de resultados por página',
+    type: Number,
+    example: 20,
+  })
+  limit!: number;
+
+  @ApiProperty({
+    description: 'Resumen agregado de montos para los pagos filtrados',
+    type: () => ReportesPagosResumenDto,
+  })
   resumen!: ReportesPagosResumenDto;
 }

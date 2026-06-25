@@ -1,31 +1,30 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsBoolean, MaxLength } from 'class-validator';
 
 export class UpdatePerfilDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Nombre del usuario (máximo 150 caracteres)',
     example: 'Juan Pérez',
-    required: false,
+    maxLength: 150,
   })
   @IsOptional()
   @IsString()
   @MaxLength(150)
   nombre?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Teléfono del usuario (máximo 20 caracteres)',
     example: '+502 1234 5678',
-    required: false,
+    maxLength: 20,
   })
   @IsOptional()
   @IsString()
   @MaxLength(20)
   telefono?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Activar o desactivar notificaciones',
     example: true,
-    required: false,
   })
   @IsOptional()
   @IsBoolean()

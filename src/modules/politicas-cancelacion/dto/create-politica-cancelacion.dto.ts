@@ -11,18 +11,31 @@ import {
 import { ReglaPoliticaDto } from './regla-politica.dto';
 
 export class CreatePoliticaCancelacionDto {
-  @ApiProperty({ example: '1', description: 'ID del cine' })
+  @ApiProperty({
+    description: 'ID del cine al que se aplica esta política',
+    type: String,
+    example: '1',
+  })
   @IsString()
   @IsNotEmpty()
   id_cine!: string;
 
-  @ApiProperty({ example: 'Política Cine A 2026', maxLength: 100 })
+  @ApiProperty({
+    description: 'Nombre de la política de cancelación',
+    type: String,
+    example: 'Política Cine A 2026',
+    maxLength: 100,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   nombre!: string;
 
-  @ApiProperty({ type: [ReglaPoliticaDto] })
+  @ApiProperty({
+    description: 'Reglas que conforman esta política (al menos una)',
+    type: () => ReglaPoliticaDto,
+    isArray: true,
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

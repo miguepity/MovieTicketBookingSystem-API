@@ -9,24 +9,41 @@ import {
 } from 'class-validator';
 
 export class ListReportePagosQueryDto {
-  @ApiPropertyOptional({ example: '2023-01-01' })
+  @ApiPropertyOptional({
+    description: 'Filtrar pagos por fecha (ISO 8601)',
+    format: 'date-time',
+    example: '2026-01-01T00:00:00.000Z',
+  })
   @IsOptional()
   @IsDateString()
   fecha?: string;
 
-  @ApiPropertyOptional({ example: 'pendiente' })
+  @ApiPropertyOptional({
+    description: 'Filtrar por estado del pago',
+    example: 'COMPLETADO',
+  })
   @IsOptional()
   @IsString()
   estado?: string;
 
-  @ApiPropertyOptional({ example: 1, default: 1 })
+  @ApiPropertyOptional({
+    description: 'Número de página (comienza en 1)',
+    example: 1,
+    default: 1,
+    minimum: 1,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ example: 20, default: 20 })
+  @ApiPropertyOptional({
+    description: 'Cantidad de resultados por página',
+    example: 20,
+    default: 20,
+    minimum: 1,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

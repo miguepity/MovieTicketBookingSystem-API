@@ -5,6 +5,7 @@ export class CreateGeneroDto {
   @ApiProperty({
     description: 'Nombre único del género',
     example: 'Acción',
+    maxLength: 60,
   })
   @IsString()
   @IsNotEmpty()

@@ -6,34 +6,51 @@ import {
   IsOptional,
   IsDateString,
   Min,
+  MaxLength,
+  Max,
+  MinLength,
 } from 'class-validator';
 
 export class CreateCuponDto {
   @ApiProperty({
     description: 'Código único del cupón',
     example: 'PROMO10',
+    minLength: 1,
+    maxLength: 50,
   })
   @IsString()
   @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(50)
   codigo!: string;
 
   @ApiProperty({
     description: 'Tipo de descuento (porcentaje o monto fijo)',
     example: 'porcentaje',
+    minLength: 1,
+    maxLength: 50,
   })
   @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(50)
   tipo!: string;
 
   @ApiProperty({
     description: 'Valor del descuento',
     example: 10,
+    minimum: 0.01,
+    maximum: 999999.99,
   })
   @IsNumber()
+  @Min(0.01)
+  @Max(999999.99)
   valor!: number;
 
   @ApiProperty({
-    description: 'Fecha de expiración del cupón',
-    example: '2026-12-31',
+    description: 'Fecha de expiración del cupón (ISO date-time)',
+    example: '2026-12-31T23:59:59.000Z',
+    format: 'date-time',
   })
   @IsDateString()
   fecha_expiracion!: string;
@@ -41,9 +58,12 @@ export class CreateCuponDto {
   @ApiPropertyOptional({
     description: 'Cantidad máxima de usos permitidos',
     example: 100,
+    minimum: 1,
+    maximum: 1000000,
   })
   @IsOptional()
   @IsNumber()
   @Min(1)
+  @Max(1000000)
   usos_maximos?: number;
 }

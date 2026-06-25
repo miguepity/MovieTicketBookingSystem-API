@@ -35,7 +35,7 @@ import { PeliculaService } from './pelicula.service';
 import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
-import { SetActivoDto } from './dto/set-activo.dto';
+import { SetActivoPeliculaDto } from './dto/set-activo.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -185,13 +185,13 @@ export class PeliculaController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Establecer el estado activo de una película (admin)' })
-  @ApiBody({ type: SetActivoDto })
+  @ApiBody({ type: SetActivoPeliculaDto })
   @ApiOkResponse({ description: 'Estado de la película actualizado' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   setActivo(
     @Param('id') id: string,
-    @Body() dto: SetActivoDto,
+    @Body() dto: SetActivoPeliculaDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.peliculaService.setActivo(BigInt(id), dto.activo, BigInt(user.userId));

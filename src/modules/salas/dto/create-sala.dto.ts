@@ -9,25 +9,41 @@ import {
 } from 'class-validator';
 
 export class CreateSalaDto {
-  @ApiProperty({ example: 'Sala 1' })
+  @ApiProperty({
+    description: 'Nombre de la sala',
+    example: 'Sala 1',
+    maxLength: 50,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
   nombre!: string;
 
-  @ApiProperty({ example: 10 })
+  @ApiProperty({
+    description: 'Número de filas en la sala',
+    example: 10,
+    minimum: 1,
+  })
   @IsInt()
   @Min(1)
   @IsPositive()
   filas!: number;
 
-  @ApiProperty({ example: 10 })
+  @ApiProperty({
+    description: 'Número de columnas en la sala',
+    example: 10,
+    minimum: 1,
+  })
   @IsInt()
   @Min(1)
   @IsPositive()
   columnas!: number;
 
-  @ApiProperty({ type: String, example: '1' })
+  @ApiProperty({
+    description: 'ID del cine (serializador como string)',
+    type: String,
+    example: '1',
+  })
   @IsString()
   @IsNotEmpty()
   id_cine!: string;

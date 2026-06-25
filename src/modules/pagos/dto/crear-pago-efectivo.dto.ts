@@ -1,13 +1,23 @@
-import { IsOptional, IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CrearPagoEfectivoDto {
-  @ApiProperty({ example: '42' })
+  @ApiProperty({
+    description: 'ID de la reserva a pagar en efectivo',
+    type: String,
+    example: '42',
+  })
   @IsString()
   id_reserva!: string;
 
-  @ApiProperty({ required: false, example: 'PROMO10' })
+  @ApiPropertyOptional({
+    description: 'Código de cupón de descuento a aplicar',
+    type: String,
+    example: 'PROMO10',
+    maxLength: 20,
+  })
   @IsString()
   @IsOptional()
+  @MaxLength(20)
   codigo_cupon?: string;
 }

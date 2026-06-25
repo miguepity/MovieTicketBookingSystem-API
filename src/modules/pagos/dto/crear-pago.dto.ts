@@ -1,23 +1,42 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MetodoPago } from 'src/common/enums/metodo-pago.enum';
 
 export class CrearPagoDto {
-  @ApiProperty({ example: '42' })
+  @ApiProperty({
+    description: 'ID de la reserva a pagar',
+    type: String,
+    example: '42',
+  })
   @IsString()
   id_reserva!: string;
 
-  @ApiProperty({ enum: MetodoPago })
+  @ApiProperty({
+    description: 'Método de pago seleccionado',
+    enum: MetodoPago,
+    enumName: 'MetodoPago',
+    example: MetodoPago.TARJETA,
+  })
   @IsEnum(MetodoPago)
   metodo!: MetodoPago;
 
-  @ApiProperty({ required: false, example: '****1234' })
+  @ApiPropertyOptional({
+    description: 'Referencia externa del método de pago (token de transacción, último dígito de tarjeta, etc.)',
+    type: String,
+    example: '****1234',
+  })
   @IsString()
   @IsOptional()
   referencia_externa?: string;
 
-  @ApiProperty({ required: false, example: 'PROMO10' })
+  @ApiPropertyOptional({
+    description: 'Código de cupón de descuento a aplicar',
+    type: String,
+    example: 'PROMO10',
+    maxLength: 20,
+  })
   @IsString()
   @IsOptional()
+  @MaxLength(20)
   codigo_cupon?: string;
 }

@@ -13,7 +13,7 @@ import {
 import { CuponesService } from './cupones.service';
 import { CreateCuponDto } from './dto/create-cupon.dto';
 import { UpdateCuponDto } from './dto/update-cupon.dto';
-import { SetActivoDto } from './dto/set-activo.dto';
+import { SetActivoCuponDto } from './dto/set-activo.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -105,14 +105,14 @@ export class CuponesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Establecer el estado activo/inactivo de un cupón' })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
-  @ApiBody({ type: SetActivoDto })
+  @ApiBody({ type: SetActivoCuponDto })
   @ApiOkResponse({ description: 'Estado del cupón actualizado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   setActivo(
     @Param('id') id: string,
-    @Body() dto: SetActivoDto,
+    @Body() dto: SetActivoCuponDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.cuponesService.setActivo(id, dto.activo, BigInt(user.userId));

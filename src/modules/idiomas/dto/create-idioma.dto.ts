@@ -5,6 +5,7 @@ export class CreateIdiomaDto {
   @ApiProperty({
     description: 'Nombre único del idioma',
     example: 'Español',
+    maxLength: 60,
   })
   @IsString()
   @IsNotEmpty()

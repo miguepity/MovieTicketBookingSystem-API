@@ -17,7 +17,9 @@ import {
 export class CreatePeliculaDto {
   @ApiProperty({
     description: 'Título de la película',
+    type: String,
     example: 'Inception',
+    maxLength: 200,
   })
   @IsString()
   @IsNotEmpty()
@@ -26,6 +28,7 @@ export class CreatePeliculaDto {
 
   @ApiPropertyOptional({
     description: 'Sinopsis de la película',
+    type: String,
     example: 'Un ladrón roba secretos a través de los sueños.',
   })
   @IsOptional()
@@ -34,21 +37,32 @@ export class CreatePeliculaDto {
 
   @ApiPropertyOptional({
     description: 'URL del póster de la película',
+    type: String,
+    format: 'uri',
     example: 'https://example.com/poster.jpg',
+    maxLength: 500,
   })
   @IsOptional()
   @IsUrl()
   @MaxLength(500)
   poster_url?: string;
 
-  @ApiPropertyOptional({ description: 'ID del idioma', example: '1' })
+  @ApiPropertyOptional({
+    description: 'ID del idioma',
+    type: String,
+    example: '1',
+  })
   @IsOptional()
   @Transform(({ value }: { value: string | number | null | undefined }) =>
     value === null || value === undefined ? value : BigInt(value),
   )
   id_idioma?: bigint;
 
-  @ApiPropertyOptional({ description: 'ID del género', example: '1' })
+  @ApiPropertyOptional({
+    description: 'ID del género',
+    type: String,
+    example: '1',
+  })
   @IsOptional()
   @Transform(({ value }: { value: string | number | null | undefined }) =>
     value === null || value === undefined ? value : BigInt(value),
@@ -56,8 +70,10 @@ export class CreatePeliculaDto {
   id_genero?: bigint;
 
   @ApiPropertyOptional({
-    description: 'Fecha de estreno (YYYY-MM-DD)',
-    example: '2023-07-16',
+    description: 'Fecha de estreno de la película',
+    type: String,
+    format: 'date-time',
+    example: '2023-07-16T00:00:00.000Z',
   })
   @IsOptional()
   @IsDateString()
@@ -65,6 +81,7 @@ export class CreatePeliculaDto {
 
   @ApiPropertyOptional({
     description: 'Indica si la película está activa',
+    type: Boolean,
     example: true,
   })
   @IsOptional()
@@ -72,8 +89,11 @@ export class CreatePeliculaDto {
   activo?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Duración en minutos',
+    description: 'Duración de la película en minutos',
+    type: Number,
     example: 120,
+    minimum: 1,
+    maximum: 600,
   })
   @IsOptional()
   @Type(() => Number)
@@ -83,8 +103,10 @@ export class CreatePeliculaDto {
   duracion_min?: number;
 
   @ApiPropertyOptional({
-    description: 'Frase corta de la película (tagline)',
+    description: 'Frase corta o eslogan de la película',
+    type: String,
     example: 'Tu mente es la escena del crimen.',
+    maxLength: 200,
   })
   @IsOptional()
   @IsString()
@@ -92,8 +114,9 @@ export class CreatePeliculaDto {
   tagline?: string;
 
   @ApiPropertyOptional({
-    description:
-      'Ficha técnica como JSON (dirección, guion, reparto, fotografía, etc.)',
+    description: 'Ficha técnica como JSON (dirección, guion, reparto, fotografía, etc.)',
+    type: 'object',
+    additionalProperties: true,
     example: { direccion: 'Christopher Nolan', reparto: ['Leo'] },
   })
   @IsOptional()

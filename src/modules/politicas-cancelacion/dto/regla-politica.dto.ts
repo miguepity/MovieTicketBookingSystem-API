@@ -12,22 +12,35 @@ import {
 import { Type } from 'class-transformer';
 
 export class ReglaPoliticaDto {
-  @ApiProperty({ example: 0, description: 'Horas mínimas antes de la función' })
+  @ApiProperty({
+    description: 'Horas mínimas antes de la función para aplicar esta regla',
+    type: Number,
+    example: 0,
+    minimum: 0,
+  })
   @IsInt()
   @Min(0)
   horas_antes_minimo!: number;
 
   @ApiPropertyOptional({
+    description: 'Horas máximas antes de la función para aplicar esta regla (null = sin tope)',
+    type: Number,
     example: 24,
+    minimum: 1,
     nullable: true,
-    description: 'Horas máximas antes de la función (null = sin tope)',
   })
   @IsOptional()
   @IsInt()
   @Min(1)
   horas_antes_maximo?: number | null;
 
-  @ApiProperty({ example: 50, description: 'Porcentaje de reembolso (0-100)' })
+  @ApiProperty({
+    description: 'Porcentaje de reembolso aplicable a esta regla',
+    type: Number,
+    example: 50,
+    minimum: 0,
+    maximum: 100,
+  })
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -35,17 +48,33 @@ export class ReglaPoliticaDto {
 }
 
 export class ReglaPoliticaInputDto {
-  @ApiProperty({ example: 0, description: 'Horas mínimas antes de la función' })
+  @ApiProperty({
+    description: 'Horas mínimas antes de la función para aplicar esta regla',
+    type: Number,
+    example: 0,
+    minimum: 0,
+  })
   @IsNumber()
   @Min(0)
   horas_antes_minimo!: number;
 
-  @ApiProperty({ example: 24, description: 'Horas máximas antes de la función' })
+  @ApiProperty({
+    description: 'Horas máximas antes de la función para aplicar esta regla',
+    type: Number,
+    example: 24,
+    minimum: 0,
+  })
   @IsNumber()
   @Min(0)
   horas_antes_maximo!: number;
 
-  @ApiProperty({ example: 50, description: 'Porcentaje de reembolso (0-100)' })
+  @ApiProperty({
+    description: 'Porcentaje de reembolso aplicable a esta regla',
+    type: Number,
+    example: 50,
+    minimum: 0,
+    maximum: 100,
+  })
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -53,7 +82,11 @@ export class ReglaPoliticaInputDto {
 }
 
 export class ReplaceReglasDto {
-  @ApiProperty({ type: [ReglaPoliticaInputDto] })
+  @ApiProperty({
+    description: 'Lista de reglas de cancelación',
+    type: () => ReglaPoliticaInputDto,
+    isArray: true,
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ReglaPoliticaInputDto)
@@ -61,7 +94,11 @@ export class ReplaceReglasDto {
 }
 
 export class SetActivaDto {
-  @ApiProperty({ example: true })
+  @ApiProperty({
+    description: 'Indica si la política de cancelación está activa',
+    type: Boolean,
+    example: true,
+  })
   @IsBoolean()
   activa!: boolean;
 }

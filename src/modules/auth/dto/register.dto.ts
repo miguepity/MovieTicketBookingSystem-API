@@ -12,6 +12,7 @@ export class RegisterDto {
   @ApiProperty({
     description: 'Nombre completo del usuario',
     example: 'Juan Pérez',
+    maxLength: 150,
   })
   @IsString()
   @IsNotEmpty()
@@ -20,7 +21,8 @@ export class RegisterDto {
 
   @ApiProperty({
     description: 'Email del usuario',
-    example: 'usuario@email.com',
+    format: 'email',
+    example: 'usuario@example.com',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -28,7 +30,9 @@ export class RegisterDto {
 
   @ApiProperty({
     description: 'Contraseña del usuario',
-    example: 'MiPassword123',
+    format: 'password',
+    example: 'MiPassword123!',
+    minLength: 6,
   })
   @IsString()
   @IsNotEmpty()
@@ -38,6 +42,7 @@ export class RegisterDto {
   @ApiPropertyOptional({
     description: 'Teléfono del usuario',
     example: '+502 5555-5555',
+    maxLength: 20,
   })
   @IsString()
   @IsOptional()

@@ -2,7 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumberString, IsString, Matches } from 'class-validator';
 
 export class CreatePrecioCineDto {
-  @ApiProperty({ type: String, example: '1', description: 'ID del cine' })
+  @ApiProperty({
+    type: String,
+    example: '1',
+    description: 'ID del cine (BigInt como string)',
+  })
   @IsString()
   @IsNotEmpty()
   @IsNumberString({ no_symbols: true })
@@ -11,7 +15,7 @@ export class CreatePrecioCineDto {
   @ApiProperty({
     type: String,
     example: '1',
-    description: 'ID del tipo de asiento',
+    description: 'ID del tipo de asiento (BigInt como string)',
   })
   @IsString()
   @IsNotEmpty()
@@ -21,7 +25,8 @@ export class CreatePrecioCineDto {
   @ApiProperty({
     type: String,
     example: '100.00',
-    description: 'Precio con hasta 2 decimales',
+    description: 'Precio con hasta 2 decimales (formato: números.decimales)',
+    pattern: '^\\d+(\\.\\d{1,2})?$',
   })
   @IsString()
   @IsNotEmpty()

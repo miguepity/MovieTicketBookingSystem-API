@@ -3,25 +3,46 @@ import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 export class ListPoliticasCancelacionQueryDto {
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({
+    description: 'Número de página para la paginación',
+    type: Number,
+    example: 1,
+    minimum: 1,
+    default: 1,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ example: 20 })
+  @ApiPropertyOptional({
+    description: 'Cantidad de registros por página',
+    type: Number,
+    example: 20,
+    minimum: 1,
+    maximum: 100,
+    default: 20,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   limit?: number;
 
-  @ApiPropertyOptional({ example: '1', description: 'Filtrar por id_cine' })
+  @ApiPropertyOptional({
+    description: 'Filtrar políticas por ID del cine',
+    type: String,
+    example: '1',
+  })
   @IsOptional()
   id_cine?: string;
 
-  @ApiPropertyOptional({ example: true })
+  @ApiPropertyOptional({
+    description: 'Filtrar políticas por estado activo',
+    type: Boolean,
+    example: true,
+  })
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()

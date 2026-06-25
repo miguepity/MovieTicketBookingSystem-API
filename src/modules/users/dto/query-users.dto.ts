@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
 
 export class QueryUsersDto {
   @ApiPropertyOptional({
@@ -22,16 +22,17 @@ export class QueryUsersDto {
 
   @ApiPropertyOptional({
     description: 'Filtrar por email (búsqueda parcial)',
-    example: 'juan@',
+    example: 'juan@example.com',
   })
   @IsOptional()
   @IsString()
   email?: string;
 
   @ApiPropertyOptional({
-    description: 'Filtrar por estado',
+    description: 'Filtrar por estado del usuario',
     example: 'activo',
     enum: ['activo', 'inactivo', 'suspendido'],
+    enumName: 'EstadoUsuarioFilter',
   })
   @IsOptional()
   @IsString()
@@ -41,6 +42,7 @@ export class QueryUsersDto {
     description: 'Número de página',
     example: 1,
     default: 1,
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -52,10 +54,13 @@ export class QueryUsersDto {
     description: 'Resultados por página',
     example: 10,
     default: 10,
+    minimum: 1,
+    maximum: 100,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number = 10;
 }

@@ -15,6 +15,7 @@ export class ListCinesQueryDto {
     description: 'Número de página',
     example: 1,
     default: 1,
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -26,6 +27,8 @@ export class ListCinesQueryDto {
     description: 'Resultados por página',
     example: 10,
     default: 10,
+    minimum: 1,
+    maximum: 100,
   })
   @IsOptional()
   @Type(() => Number)
@@ -34,7 +37,11 @@ export class ListCinesQueryDto {
   @Max(100)
   limit?: number;
 
-  @ApiPropertyOptional({ example: 1, description: 'Filter by city id' })
+  @ApiPropertyOptional({
+    description: 'Filtrar por ID de ciudad',
+    type: String,
+    example: '1',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

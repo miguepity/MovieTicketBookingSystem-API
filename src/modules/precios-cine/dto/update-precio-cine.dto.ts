@@ -5,7 +5,8 @@ export class UpdatePrecioCineDto {
   @ApiProperty({
     type: String,
     example: '120.00',
-    description: 'Nuevo precio con hasta 2 decimales',
+    description: 'Nuevo precio con hasta 2 decimales (formato: números.decimales)',
+    pattern: '^\\d+(\\.\\d{1,2})?$',
   })
   @IsString()
   @IsNotEmpty()

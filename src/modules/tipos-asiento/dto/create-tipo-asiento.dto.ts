@@ -11,6 +11,7 @@ export class CreateTipoAsientoDto {
   @ApiProperty({
     description: 'Nombre único del tipo de asiento',
     example: 'preferencial',
+    maxLength: 30,
   })
   @IsString()
   @IsNotEmpty()

@@ -6,6 +6,7 @@ export class ChangeStatusDto {
     description: 'Nuevo estado del usuario',
     example: 'inactivo',
     enum: ['activo', 'inactivo', 'suspendido'],
+    enumName: 'EstadoUsuario',
   })
   @IsString()
   @IsIn(['activo', 'inactivo', 'suspendido'], {

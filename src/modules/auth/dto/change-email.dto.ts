@@ -4,7 +4,8 @@ import { IsEmail, IsNotEmpty } from 'class-validator';
 export class ChangeEmailDto {
   @ApiProperty({
     description: 'Nuevo email del usuario',
-    example: 'nuevo@email.com',
+    format: 'email',
+    example: 'nuevo@example.com',
   })
   @IsEmail()
   @IsNotEmpty()
