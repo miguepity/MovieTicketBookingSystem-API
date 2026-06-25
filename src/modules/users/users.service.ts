@@ -227,6 +227,20 @@ export class UsersService {
     };
   }
 
+  async findClientesStats() {
+    const baseWhere = { roles: { is: { nombre: 'cliente' } } } as const;
+    const [total, activos, bloqueados] = await Promise.all([
+      this.prisma.usuarios.count({ where: baseWhere }),
+      this.prisma.usuarios.count({
+        where: { ...baseWhere, estado: 'activo' },
+      }),
+      this.prisma.usuarios.count({
+        where: { ...baseWhere, estado: 'bloqueado' },
+      }),
+    ]);
+    return { total, activos, bloqueados };
+  }
+
   async findClientesPaginated(q: ListClientesQueryDto) {
     const where: any = { roles: { is: { nombre: 'cliente' } } };
     if (q.estado) where.estado = q.estado;
@@ -295,22 +309,33 @@ export class UsersService {
             numero_reserva: true,
             estado: true,
             created_at: true,
-            funciones: {
-              select: {
-                fecha_hora: true,
-                peliculas: { select: { titulo: true } },
-              },
-            },
             reservaAsientos: {
               select: {
                 asientosfuncion: {
                   select: {
-                    asientos: { select: { id: true, codigo: true } },
+                    asientos: {
+                      select: {
+                        id: true,
+                        codigo: true,
+                        id_tipo_asiento: true,
+                      },
+                    },
                   },
                 },
               },
             },
-            pagos: { select: { monto_final: true, estado: true } },
+            pagos: {
+              take: 1,
+              orderBy: { created_at: 'desc' },
+              select: { monto_final: true },
+            },
+            funciones: {
+              select: {
+                fecha_hora: true,
+                peliculas: { select: { titulo: true } },
+                salas: { select: { id_cine: true } },
+              },
+            },
           },
         },
       },
@@ -319,6 +344,41 @@ export class UsersService {
     if (!cliente) {
       throw new NotFoundException('Cliente no encontrado');
     }
+
+    // Cargar precios por (cine, tipo de asiento) para calcular monto_total
+    // de reservas que aún no tienen pago (pendiente_pago / cancelada sin cobro).
+    const cineTipoPairs = new Set<string>();
+    const idCineSet = new Set<bigint>();
+    const idTipoSet = new Set<bigint>();
+    for (const r of cliente.reservas) {
+      const idCine = r.funciones.salas.id_cine;
+      for (const ra of r.reservaAsientos) {
+        const idTipo = ra.asientosfuncion.asientos.id_tipo_asiento;
+        const key = `${idCine}:${idTipo}`;
+        if (!cineTipoPairs.has(key)) {
+          cineTipoPairs.add(key);
+          idCineSet.add(idCine);
+          idTipoSet.add(idTipo);
+        }
+      }
+    }
+
+    const precios = idCineSet.size
+      ? await this.prisma.preciosCine.findMany({
+          where: {
+            id_cine: { in: Array.from(idCineSet) },
+            id_tipo_asiento: { in: Array.from(idTipoSet) },
+          },
+          select: { id_cine: true, id_tipo_asiento: true, precio: true },
+        })
+      : [];
+
+    const precioPorCineTipo = new Map<string, number>(
+      precios.map((p) => [
+        `${p.id_cine}:${p.id_tipo_asiento}`,
+        Number(p.precio),
+      ]),
+    );
 
     return {
       id: cliente.id.toString(),
@@ -330,13 +390,13 @@ export class UsersService {
       num_reservas: cliente._count.reservas,
       created_at: cliente.created_at,
       reservas: cliente.reservas.map((r) => {
-        const asientos = r.reservaAsientos.map((ra) => ({
-          id: ra.asientosfuncion.asientos.id.toString(),
-          codigo: ra.asientosfuncion.asientos.codigo,
-        }));
-        const monto_total = r.pagos
-          .filter((p) => p.estado === 'exitoso')
-          .reduce((sum, p) => sum + Number(p.monto_final ?? 0), 0);
+        const pago = r.pagos[0];
+        const montoCalculado = r.reservaAsientos.reduce((sum, ra) => {
+          const idCine = r.funciones.salas.id_cine;
+          const idTipo = ra.asientosfuncion.asientos.id_tipo_asiento;
+          return sum + (precioPorCineTipo.get(`${idCine}:${idTipo}`) ?? 0);
+        }, 0);
+
         return {
           id: r.id.toString(),
           numero_reserva: r.numero_reserva,
@@ -344,9 +404,12 @@ export class UsersService {
           created_at: r.created_at,
           pelicula: r.funciones.peliculas?.titulo ?? null,
           fecha_hora: r.funciones.fecha_hora,
-          num_asientos: asientos.length,
-          asientos,
-          monto_total,
+          num_asientos: r.reservaAsientos.length,
+          asientos: r.reservaAsientos.map((ra) => ({
+            id: ra.asientosfuncion.asientos.id.toString(),
+            codigo: ra.asientosfuncion.asientos.codigo,
+          })),
+          monto_total: pago ? Number(pago.monto_final) : montoCalculado,
         };
       }),
     };

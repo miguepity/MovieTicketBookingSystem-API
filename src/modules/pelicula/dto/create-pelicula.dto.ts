@@ -1,13 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
+  IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class CreatePeliculaDto {
@@ -66,4 +70,33 @@ export class CreatePeliculaDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Duración en minutos',
+    example: 120,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(600)
+  duracion_min?: number;
+
+  @ApiPropertyOptional({
+    description: 'Frase corta de la película (tagline)',
+    example: 'Tu mente es la escena del crimen.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  tagline?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Ficha técnica como JSON (dirección, guion, reparto, fotografía, etc.)',
+    example: { direccion: 'Christopher Nolan', reparto: ['Leo'] },
+  })
+  @IsOptional()
+  @IsObject()
+  ficha_tecnica?: Record<string, unknown>;
 }

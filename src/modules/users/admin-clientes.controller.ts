@@ -32,9 +32,11 @@ export class AdminClientesController {
   }
 
   @Get('stats')
-  @ApiOperation({ summary: 'Conteos agregados de clientes (total/activos/bloqueados)' })
+  @ApiOperation({
+    summary: 'Conteos globales de clientes (total, activos, bloqueados)',
+  })
   stats() {
-    return this.users.getClientesStats();
+    return this.users.findClientesStats();
   }
 
   @Get(':id')
