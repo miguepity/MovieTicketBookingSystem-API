@@ -221,18 +221,25 @@ async function main() {
     funciones.push(funcion);
   }
 
-  // 12. Cupones (5 registros)
+  // 12. Cupones
+  const cuponesData = [
+    { codigo: 'PROMO20', tipo: 'PORCENTAJE', valor: 20.0, usos_maximos: null },
+    { codigo: 'DESC50', tipo: 'FIJO', valor: 50.0, usos_maximos: 10 },
+    { codigo: 'CUPON3', tipo: 'PORCENTAJE', valor: 15.0, usos_maximos: 100 },
+    { codigo: 'CUPON4', tipo: 'PORCENTAJE', valor: 5.0, usos_maximos: 100 },
+    { codigo: 'CUPON5', tipo: 'FIJO', valor: 10.0, usos_maximos: 50 },
+  ];
   const cupones: Cupones[] = [];
-  for (let i = 0; i < 5; i++) {
+  for (const c of cuponesData) {
     const cupon = await prisma.cupones.upsert({
-      where: { codigo: `CUPON${i + 1}` },
+      where: { codigo: c.codigo },
       update: {},
       create: {
-        codigo: `CUPON${i + 1}`,
-        tipo: 'PORCENTAJE',
-        valor: 10.0 + i,
-        fecha_expiracion: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        usos_maximos: 100,
+        codigo: c.codigo,
+        tipo: c.tipo,
+        valor: c.valor,
+        fecha_expiracion: new Date('2027-12-31'),
+        usos_maximos: c.usos_maximos,
       },
     });
     cupones.push(cupon);
@@ -299,15 +306,19 @@ async function main() {
     }
   }
 
-  // 17. PoliticaCancelacion (5 registros)
+  // 17. PoliticaCancelacion
+  const politicasData = [
+    { horas_antes_minimo: 24, porcentaje_reembolso: 50.0 },
+    { horas_antes_minimo: 48, porcentaje_reembolso: 75.0 },
+    { horas_antes_minimo: 72, porcentaje_reembolso: 100.0 },
+    { horas_antes_minimo: 12, porcentaje_reembolso: 25.0 },
+    { horas_antes_minimo: 6, porcentaje_reembolso: 10.0 },
+  ];
   const countPoliticas = await prisma.politicaCancelacion.count();
-  if (countPoliticas < 5) {
-    for (let i = countPoliticas; i < 5; i++) {
+  if (countPoliticas < politicasData.length) {
+    for (let i = countPoliticas; i < politicasData.length; i++) {
       await prisma.politicaCancelacion.create({
-        data: {
-          horas_antes_minimo: 24 + i,
-          porcentaje_reembolso: 100.0 - i * 10,
-        },
+        data: politicasData[i],
       });
     }
   }
