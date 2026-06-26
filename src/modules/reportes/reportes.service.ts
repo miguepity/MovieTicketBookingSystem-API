@@ -27,6 +27,8 @@ type ReservaWithRelations = Prisma.ReservasGetPayload<{
         };
       };
     };
+    reservaAsientos: true;
+    pagos: { orderBy: { created_at: 'desc' } };
   };
 }>;
 
@@ -46,6 +48,8 @@ const RESERVAS_INCLUDE = {
       salas: { include: { cines: true } },
     },
   },
+  reservaAsientos: true,
+  pagos: { orderBy: { created_at: 'desc' } },
 } satisfies Prisma.ReservasInclude;
 
 const PAGOS_INCLUDE = {
@@ -244,10 +248,23 @@ export class ReportesService {
   private buildReservasWhere(
     query: ListReporteReservasQueryDto,
   ): Prisma.ReservasWhereInput {
-    const { estado, pelicula, cine, fecha } = query;
+    const {
+      estado,
+      pelicula,
+      cine,
+      fecha,
+      search,
+      idCine,
+      idCiudad,
+      idPelicula,
+      desde,
+      hasta,
+    } = query;
 
     const where: Prisma.ReservasWhereInput = {};
     const funcionesFilter: Prisma.FuncionesWhereInput = {};
+    const salasFilter: Prisma.SalasWhereInput = {};
+    const cinesFilter: Prisma.CinesWhereInput = {};
 
     if (estado) where.estado = estado as ReservaEstado;
 
@@ -258,21 +275,47 @@ export class ReportesService {
     }
 
     if (cine) {
-      funcionesFilter.salas = {
-        cines: {
-          nombre: { contains: cine, mode: 'insensitive' },
-        },
-      };
+      cinesFilter.nombre = { contains: cine, mode: 'insensitive' };
     }
 
-    const rango = this.dayRange(fecha);
-    if (rango) where.created_at = rango;
+    if (idPelicula) funcionesFilter.id_pelicula = BigInt(idPelicula);
+    if (idCine) salasFilter.id_cine = BigInt(idCine);
+    if (idCiudad) cinesFilter.id_ciudad = BigInt(idCiudad);
 
-    if (Object.keys(funcionesFilter).length > 0) {
-      where.funciones = funcionesFilter;
+    if (Object.keys(cinesFilter).length > 0) salasFilter.cines = cinesFilter;
+    if (Object.keys(salasFilter).length > 0) funcionesFilter.salas = salasFilter;
+    if (Object.keys(funcionesFilter).length > 0) where.funciones = funcionesFilter;
+
+    if (search) {
+      where.OR = [
+        { numero_reserva: { contains: search, mode: 'insensitive' } },
+        { usuarios: { nombre: { contains: search, mode: 'insensitive' } } },
+        { usuarios: { email: { contains: search, mode: 'insensitive' } } },
+      ];
     }
+
+    const range = this.rangeFromQuery(desde, hasta, fecha);
+    if (range) where.created_at = range;
 
     return where;
+  }
+
+  private rangeFromQuery(
+    desde?: string,
+    hasta?: string,
+    fecha?: string,
+  ): { gte?: Date; lte?: Date; lt?: Date } | undefined {
+    const out: { gte?: Date; lte?: Date; lt?: Date } = {};
+    if (desde) {
+      const d = new Date(desde);
+      if (!Number.isNaN(d.getTime())) out.gte = d;
+    }
+    if (hasta) {
+      const d = new Date(hasta);
+      if (!Number.isNaN(d.getTime())) out.lte = d;
+    }
+    if (out.gte || out.lte) return out;
+    return this.dayRange(fecha);
   }
 
   private buildPagosWhere(
@@ -307,6 +350,9 @@ export class ReportesService {
   private toListReservasItem(
     reservas: ReservaWithRelations,
   ): ReportesReservasListItemResponseDto {
+    const pagoExitoso = reservas.pagos.find((p) => p.estado === PagoEstado.exitoso);
+    const montoTotal = pagoExitoso ? Number(pagoExitoso.monto_final) : 0;
+
     return {
       id: reservas.id.toString(),
       numeroReserva: reservas.numero_reserva,
@@ -314,6 +360,7 @@ export class ReportesService {
       usuario: {
         id: reservas.usuarios.id.toString(),
         nombre: reservas.usuarios.nombre,
+        email: reservas.usuarios.email,
       },
       funcion: {
         id: reservas.funciones.id.toString(),
@@ -331,6 +378,8 @@ export class ReportesService {
           },
         },
       },
+      numAsientos: reservas.reservaAsientos.length,
+      montoTotal,
       createdAt: reservas.created_at,
       updatedAt: reservas.updated_at,
     };
@@ -370,20 +419,32 @@ export class ReportesService {
       'Reserva',
       'Estado',
       'Usuario',
+      'Email',
       'Pelicula',
       'Cine',
+      'Sala',
       'Fecha',
+      'Asientos',
+      'Total',
     ];
 
-    const rows = reservas.map((r) => [
-      r.id.toString(),
-      r.numero_reserva,
-      r.estado,
-      r.usuarios.nombre,
-      r.funciones.peliculas.titulo,
-      r.funciones.salas.cines.nombre,
-      r.funciones.fecha_hora.toISOString(),
-    ]);
+    const rows = reservas.map((r) => {
+      const pagoExitoso = r.pagos.find((p) => p.estado === PagoEstado.exitoso);
+      const montoTotal = pagoExitoso ? Number(pagoExitoso.monto_final) : 0;
+      return [
+        r.id.toString(),
+        r.numero_reserva,
+        r.estado,
+        r.usuarios.nombre,
+        r.usuarios.email,
+        r.funciones.peliculas.titulo,
+        r.funciones.salas.cines.nombre,
+        r.funciones.salas.nombre,
+        r.funciones.fecha_hora.toISOString(),
+        r.reservaAsientos.length.toString(),
+        montoTotal.toFixed(2),
+      ];
+    });
 
     const body = [
       headers.join(','),
