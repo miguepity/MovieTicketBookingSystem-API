@@ -27,6 +27,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateFuncionDto } from './dto/update-funcion.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import { FuncionResponseDto } from './dto/funcion-response.dto';
 
 @ApiTags('Funciones')
 @Controller('funciones')
@@ -38,7 +39,7 @@ export class FuncionesController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Crear una función nueva' })
-  @ApiCreatedResponse({ description: 'Función creada exitosamente' })
+  @ApiCreatedResponse({ type: FuncionResponseDto, description: 'Función creada exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({
     description: 'Ya existe una función programada para esa sala y horario',
@@ -53,7 +54,7 @@ export class FuncionesController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todas las funciones' })
-  @ApiOkResponse({ description: 'Listado de funciones' })
+  @ApiOkResponse({ type: FuncionResponseDto, isArray: true, description: 'Listado de funciones' })
   findAll() {
     return this.funcionesService.findAll();
   }
@@ -61,7 +62,7 @@ export class FuncionesController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una función por ID' })
   @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
-  @ApiOkResponse({ description: 'Función encontrada' })
+  @ApiOkResponse({ type: FuncionResponseDto, description: 'Función encontrada' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'La función no existe' })
   findOne(@Param('id') id: string) {
@@ -74,7 +75,7 @@ export class FuncionesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Actualizar una función existente' })
   @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
-  @ApiOkResponse({ description: 'Función actualizada exitosamente' })
+  @ApiOkResponse({ type: FuncionResponseDto, description: 'Función actualizada exitosamente' })
   @ApiBadRequestResponse({ description: 'ID inválido o datos inválidos' })
   @ApiNotFoundResponse({ description: 'Función no existe' })
   @ApiConflictResponse({
@@ -96,7 +97,7 @@ export class FuncionesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancelar una función' })
   @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
-  @ApiOkResponse({ description: 'Función cancelada exitosamente' })
+  @ApiOkResponse({ type: FuncionResponseDto, description: 'Función cancelada exitosamente' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Función no existe' })
   @ApiConflictResponse({

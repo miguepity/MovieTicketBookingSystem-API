@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiOkResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -18,7 +19,10 @@ import { QueryUsersDto } from './dto/query-users.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
-import { UserListResponse } from './entities/user-list.entity';
+import { UserListResponseDto } from './dto/user-list-response.dto';
+import { ToggleNotificacionesResponseDto } from './dto/toggle-notificaciones-response.dto';
+import { UpdatePerfilResponseDto } from './dto/update-perfil-response.dto';
+import { MessageResponseDto } from '../../common/dto/message-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -38,10 +42,9 @@ export class UsersController {
     description:
       'Actualiza la contraseña del usuario. Solo el propio usuario puede modificar su contraseña.',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Contraseña actualizada exitosamente.',
-    schema: { example: { message: 'Contraseña actualizada exitosamente' } },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 401,
@@ -69,12 +72,9 @@ export class UsersController {
     description:
       'Cambia el estado de un usuario (activo, inactivo, suspendido) y registra la acción en la bitácora. Solo el rol admin puede realizar esta operación.',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Estado actualizado.',
-    schema: {
-      example: { message: 'Estado del usuario actualizado a "inactivo"' },
-    },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -98,10 +98,9 @@ export class UsersController {
     description:
       'Activa o desactiva las notificaciones del usuario. Solo el propio usuario puede modificar su preferencia.',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Preferencia actualizada.',
-    schema: { example: { notificaciones_activas: true } },
+    type: ToggleNotificacionesResponseDto,
   })
   @ApiResponse({
     status: 403,
@@ -124,18 +123,9 @@ export class UsersController {
       'Actualiza el perfil del usuario autenticado. **Deprecated**: use `PATCH /me/perfil` instead.',
     deprecated: true,
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Perfil actualizado exitosamente.',
-    schema: {
-      example: {
-        id: 1,
-        nombre: 'Juan Pérez',
-        email: 'juan@example.com',
-        telefono: '+502 1234 5678',
-        notificaciones_activas: true,
-      },
-    },
+    type: UpdatePerfilResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autenticado.' })
@@ -156,10 +146,9 @@ export class UsersController {
     description:
       'Devuelve todos los usuarios con filtros opcionales por nombre, email y estado, más paginación.',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Lista de usuarios obtenida exitosamente.',
-    type: UserListResponse,
+    type: UserListResponseDto,
   })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   findAll(@Query() query: QueryUsersDto) {

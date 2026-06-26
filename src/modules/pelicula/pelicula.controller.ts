@@ -36,6 +36,11 @@ import { CreatePeliculaDto } from './dto/create-pelicula.dto';
 import { UpdatePeliculaDto } from './dto/update-pelicula.dto';
 import { QueryPeliculaDto } from './dto/query-pelicula.dto';
 import { SetActivoPeliculaDto } from './dto/set-activo.dto';
+import { PeliculaResponseDto } from './dto/pelicula-response.dto';
+import { PeliculasPageResponseDto } from './dto/peliculas-page-response.dto';
+import { PosterUploadResponseDto } from './dto/poster-upload-response.dto';
+import { CineConFuncionesResponseDto } from './dto/cine-con-funciones-response.dto';
+import { FuncionesPorCineResponseDto } from './dto/funciones-por-cine-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -53,7 +58,7 @@ export class PeliculaController {
     summary:
       'Listar películas con filtros por título, género, idioma, ciudad y rango de funciones',
   })
-  @ApiOkResponse({ description: 'Listado de películas' })
+  @ApiOkResponse({ description: 'Listado de películas', type: PeliculasPageResponseDto })
   findAll(@Query() query: QueryPeliculaDto) {
     return this.peliculaService.findAll(query);
   }
@@ -64,7 +69,7 @@ export class PeliculaController {
     summary:
       'Obtener detalle de una película; incluye mi_calificacion si el usuario está autenticado',
   })
-  @ApiOkResponse({ description: 'Detalle de la película' })
+  @ApiOkResponse({ description: 'Detalle de la película', type: PeliculaResponseDto })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   findOne(@Param('id') id: string, @CurrentUser() user?: CurrentUserPayload) {
     const idUsuario = user?.userId ? BigInt(user.userId) : undefined;
@@ -76,7 +81,7 @@ export class PeliculaController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva película' })
-  @ApiCreatedResponse({ description: 'Película creada exitosamente' })
+  @ApiCreatedResponse({ description: 'Película creada exitosamente', schema: { type: 'object', properties: { id: { type: 'string', example: '1' } }, required: ['id'] } })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   createPelicula(
@@ -91,7 +96,7 @@ export class PeliculaController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Editar una película existente' })
   @ApiBody({ type: UpdatePeliculaDto })
-  @ApiOkResponse({ description: 'Película actualizada exitosamente' })
+  @ApiOkResponse({ description: 'Película actualizada exitosamente', type: PeliculaResponseDto })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -119,7 +124,7 @@ export class PeliculaController {
       required: ['file'],
     },
   })
-  @ApiOkResponse({ description: 'Poster subido y URL actualizada' })
+  @ApiOkResponse({ description: 'Poster subido y URL actualizada', type: PosterUploadResponseDto })
   @ApiBadRequestResponse({ description: 'Archivo inválido o faltante' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   uploadPoster(
@@ -141,7 +146,7 @@ export class PeliculaController {
   @ApiOperation({
     summary: 'Obtener cines con funciones activas para una película',
   })
-  @ApiOkResponse({ description: 'Listado de cines con sus funciones activas' })
+  @ApiOkResponse({ description: 'Listado de cines con sus funciones activas', type: CineConFuncionesResponseDto, isArray: true })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   getCinesByPelicula(@Param('id') id: string) {
     return this.peliculaService.findCinesByPelicula(id);
@@ -152,7 +157,7 @@ export class PeliculaController {
     summary:
       'Listar funciones activas futuras de una película en un cine, con disponibilidad de asientos',
   })
-  @ApiOkResponse({ description: 'Listado de funciones con disponibilidad' })
+  @ApiOkResponse({ description: 'Listado de funciones con disponibilidad', type: FuncionesPorCineResponseDto })
   @ApiNotFoundResponse({ description: 'Película o cine no encontrados' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   findFuncionesByPeliculaAndCine(
@@ -168,7 +173,7 @@ export class PeliculaController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete de una película (admin)' })
-  @ApiOkResponse({ description: 'Película marcada como eliminada' })
+  @ApiOkResponse({ description: 'Película marcada como eliminada (activo=false, deleted_at set)', type: PeliculaResponseDto })
   @ApiConflictResponse({ description: 'Película tiene funciones futuras' })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -186,7 +191,7 @@ export class PeliculaController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Establecer el estado activo de una película (admin)' })
   @ApiBody({ type: SetActivoPeliculaDto })
-  @ApiOkResponse({ description: 'Estado de la película actualizado' })
+  @ApiOkResponse({ description: 'Estado de la película actualizado', type: PeliculaResponseDto })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   setActivo(
@@ -209,7 +214,7 @@ export class PeliculaController {
     summary: '[Deprecated] Alternar el estado activo/inactivo de una película — use /activo',
     deprecated: true,
   })
-  @ApiOkResponse({ description: 'Estado de la película actualizado' })
+  @ApiOkResponse({ description: 'Estado de la película actualizado', type: PeliculaResponseDto })
   @ApiNotFoundResponse({ description: 'Película no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   toggleActivo(

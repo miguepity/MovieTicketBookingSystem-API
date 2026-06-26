@@ -27,6 +27,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { SalaResponseDto } from './dto/sala.response.dto';
+import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -103,7 +104,7 @@ export class SalasController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar una sala' })
-  @ApiOkResponse({ description: 'Sala eliminada exitosamente' })
+  @ApiOkResponse({ type: DeleteResponseDto, description: 'Sala eliminada exitosamente' })
   @ApiNotFoundResponse({ description: 'Sala no encontrada' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiConflictResponse({
@@ -113,7 +114,7 @@ export class SalasController {
   remove(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserPayload,
-  ): Promise<{ id: number }> {
+  ): Promise<{ id: string }> {
     return this.salasService.remove(id, BigInt(user.userId));
   }
 }

@@ -10,6 +10,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
+import { PerfilResponseDto } from './dto/perfil-response.dto';
+import { UpdatePerfilResponseDto } from './dto/update-perfil-response.dto';
 
 @ApiTags('me')
 @ApiBearerAuth()
@@ -23,15 +25,7 @@ export class MePerfilController {
   @ApiResponse({
     status: 200,
     description: 'Perfil del usuario autenticado.',
-    schema: {
-      example: {
-        id: '1',
-        nombre: 'Juan Pérez',
-        email: 'juan@example.com',
-        telefono: '+502 1234 5678',
-        notificaciones_activas: true,
-      },
-    },
+    type: PerfilResponseDto,
   })
   @ApiResponse({ status: 401, description: 'No autenticado.' })
   get(@CurrentUser() user: CurrentUserPayload) {
@@ -47,15 +41,7 @@ export class MePerfilController {
   @ApiResponse({
     status: 200,
     description: 'Perfil actualizado exitosamente.',
-    schema: {
-      example: {
-        id: '1',
-        nombre: 'Juan Pérez',
-        email: 'juan@example.com',
-        telefono: '+502 1234 5678',
-        notificaciones_activas: true,
-      },
-    },
+    type: UpdatePerfilResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autenticado.' })

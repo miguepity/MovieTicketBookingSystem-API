@@ -22,6 +22,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import { PoliticasCancelacionService } from './politicas-cancelacion.service';
 import { ReplaceReglasDto, SetActivaDto } from './dto/regla-politica.dto';
+import { PoliticaSimpleResponseDto } from './dto/politica-simple.response.dto';
+import { ReglaPoliticaResponseDto } from './dto/politicas-cancelacion-list-item.response.dto';
 
 @ApiTags('Reglas de Política de Cancelación')
 @ApiBearerAuth()
@@ -35,7 +37,7 @@ export class ReglasPoliticaController {
 
   @Get('cine/:idCine')
   @ApiOperation({ summary: 'Listar políticas de cancelación por cine' })
-  @ApiOkResponse({ description: 'Lista de políticas del cine' })
+  @ApiOkResponse({ type: PoliticaSimpleResponseDto, isArray: true, description: 'Lista de políticas del cine' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   listByCine(@Param('idCine') idCine: string) {
     return this.svc.listByCine(BigInt(idCine));
@@ -43,7 +45,7 @@ export class ReglasPoliticaController {
 
   @Get(':id/reglas')
   @ApiOperation({ summary: 'Listar reglas de una política' })
-  @ApiOkResponse({ description: 'Lista de reglas ordenadas por horas_antes_minimo' })
+  @ApiOkResponse({ type: ReglaPoliticaResponseDto, isArray: true, description: 'Lista de reglas ordenadas por horas_antes_minimo' })
   @ApiNotFoundResponse({ description: 'Política no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   listReglas(@Param('id') id: string) {
@@ -52,7 +54,7 @@ export class ReglasPoliticaController {
 
   @Patch(':id/reglas')
   @ApiOperation({ summary: 'Reemplazar todas las reglas de una política (atómico)' })
-  @ApiOkResponse({ description: 'Reglas reemplazadas' })
+  @ApiOkResponse({ type: ReglaPoliticaResponseDto, isArray: true, description: 'Reglas reemplazadas' })
   @ApiBadRequestResponse({ description: 'Reglas inválidas (solapadas o min >= max)' })
   @ApiNotFoundResponse({ description: 'Política no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -66,7 +68,7 @@ export class ReglasPoliticaController {
 
   @Patch(':id/activa')
   @ApiOperation({ summary: 'Activar o desactivar una política (activar desactiva las demás del mismo cine)' })
-  @ApiOkResponse({ description: 'Política actualizada' })
+  @ApiOkResponse({ type: PoliticaSimpleResponseDto, description: 'Política actualizada' })
   @ApiNotFoundResponse({ description: 'Política no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   setActiva(

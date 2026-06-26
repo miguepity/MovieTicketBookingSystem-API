@@ -26,6 +26,8 @@ import {
 import { IdiomasService } from './idiomas.service';
 import { CreateIdiomaDto } from './dto/create-idioma.dto';
 import { UpdateIdiomaDto } from './dto/update-idioma.dto';
+import { IdiomaResponseDto } from './dto/idioma-response.dto';
+import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -44,14 +46,14 @@ export class IdiomasController {
     required: false,
     description: 'Coincidencia parcial sobre el nombre (case-insensitive)',
   })
-  @ApiOkResponse({ description: 'Listado de idiomas obtenido exitosamente' })
+  @ApiOkResponse({ type: IdiomaResponseDto, isArray: true, description: 'Listado de idiomas obtenido exitosamente' })
   findAll(@Query('nombre') nombre?: string) {
     return this.idiomasService.findAll(nombre);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un idioma por ID' })
-  @ApiOkResponse({ description: 'Idioma encontrado' })
+  @ApiOkResponse({ type: IdiomaResponseDto, description: 'Idioma encontrado' })
   @ApiNotFoundResponse({ description: 'Idioma no encontrado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   findOne(@Param('id') id: string) {
@@ -63,7 +65,7 @@ export class IdiomasController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un nuevo idioma' })
-  @ApiCreatedResponse({ description: 'Idioma creado exitosamente' })
+  @ApiCreatedResponse({ type: IdiomaResponseDto, description: 'Idioma creado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -78,7 +80,7 @@ export class IdiomasController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un idioma existente' })
-  @ApiOkResponse({ description: 'Idioma actualizado exitosamente' })
+  @ApiOkResponse({ type: IdiomaResponseDto, description: 'Idioma actualizado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Idioma no encontrado' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
@@ -95,7 +97,7 @@ export class IdiomasController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un idioma' })
-  @ApiOkResponse({ description: 'Idioma eliminado exitosamente' })
+  @ApiOkResponse({ type: DeleteResponseDto, description: 'Idioma eliminado exitosamente' })
   @ApiNotFoundResponse({ description: 'Idioma no encontrado' })
   @ApiConflictResponse({
     description: 'No se puede eliminar porque tiene películas asociadas',

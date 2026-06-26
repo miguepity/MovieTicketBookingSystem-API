@@ -26,6 +26,8 @@ import {
 import { GenerosService } from './generos.service';
 import { CreateGeneroDto } from './dto/create-genero.dto';
 import { UpdateGeneroDto } from './dto/update-genero.dto';
+import { GeneroResponseDto } from './dto/genero-response.dto';
+import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
@@ -44,14 +46,14 @@ export class GenerosController {
     required: false,
     description: 'Coincidencia parcial sobre el nombre (case-insensitive)',
   })
-  @ApiOkResponse({ description: 'Listado de géneros obtenido exitosamente' })
+  @ApiOkResponse({ type: GeneroResponseDto, isArray: true, description: 'Listado de géneros obtenido exitosamente' })
   findAll(@Query('nombre') nombre?: string) {
     return this.generosService.findAll(nombre);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un género por ID' })
-  @ApiOkResponse({ description: 'Género encontrado' })
+  @ApiOkResponse({ type: GeneroResponseDto, description: 'Género encontrado' })
   @ApiNotFoundResponse({ description: 'Género no encontrado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   findOne(@Param('id') id: string) {
@@ -63,7 +65,7 @@ export class GenerosController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un nuevo género' })
-  @ApiCreatedResponse({ description: 'Género creado exitosamente' })
+  @ApiCreatedResponse({ type: GeneroResponseDto, description: 'Género creado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -78,7 +80,7 @@ export class GenerosController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar un género existente' })
-  @ApiOkResponse({ description: 'Género actualizado exitosamente' })
+  @ApiOkResponse({ type: GeneroResponseDto, description: 'Género actualizado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Género no encontrado' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
@@ -95,7 +97,7 @@ export class GenerosController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un género' })
-  @ApiOkResponse({ description: 'Género eliminado exitosamente' })
+  @ApiOkResponse({ type: DeleteResponseDto, description: 'Género eliminado exitosamente' })
   @ApiNotFoundResponse({ description: 'Género no encontrado' })
   @ApiConflictResponse({
     description: 'No se puede eliminar porque tiene películas asociadas',

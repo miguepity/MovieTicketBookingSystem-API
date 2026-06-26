@@ -10,6 +10,7 @@ import { JwtAuthGuard } from 'src/modules/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-user.decorator';
 import { ReembolsosService } from './reembolsos.service';
+import { MiReembolsoResponseDto } from './dto/reembolso.response.dto';
 
 @ApiTags('me/reembolsos')
 @ApiBearerAuth()
@@ -20,7 +21,7 @@ export class MisReembolsosController {
 
   @Get()
   @ApiOperation({ summary: 'Listar mis reembolsos' })
-  @ApiOkResponse({ description: 'Lista de reembolsos del usuario autenticado' })
+  @ApiOkResponse({ type: MiReembolsoResponseDto, isArray: true, description: 'Lista de reembolsos del usuario autenticado' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   list(@CurrentUser() user: CurrentUserPayload) {
     return this.reembolsosService.findMisReembolsos(user.userId);

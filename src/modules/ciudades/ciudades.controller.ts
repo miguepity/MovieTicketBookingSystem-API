@@ -21,6 +21,8 @@ import {
 import { CiudadesService } from './ciudades.service';
 import { CreateCiudadesDto } from './dto/create-ciudades.dto';
 import { UpdateCiudadesDto } from './dto/update-ciudades.dto';
+import { CiudadResponseDto } from './dto/ciudad-response.dto';
+import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -42,6 +44,8 @@ export class CiudadesController {
   @ApiResponse({
     status: 200,
     description: 'Lista de ciudades obtenida exitosamente.',
+    type: CiudadResponseDto,
+    isArray: true,
   })
   findAll() {
     return this.ciudadesService.findAll();
@@ -55,7 +59,7 @@ export class CiudadesController {
     summary: 'Crear una nueva ciudad',
     description: 'Permite crear una nueva ciudad con los datos proporcionados.',
   })
-  @ApiResponse({ status: 201, description: 'Ciudad creada exitosamente.' })
+  @ApiResponse({ status: 201, description: 'Ciudad creada exitosamente.', type: CiudadResponseDto })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   create(
@@ -73,7 +77,7 @@ export class CiudadesController {
     description: 'Permite actualizar los datos de una ciudad existente.',
   })
   @ApiParam({ name: 'id', description: 'ID de la ciudad', example: '1' })
-  @ApiResponse({ status: 200, description: 'Ciudad actualizada exitosamente.' })
+  @ApiResponse({ status: 200, description: 'Ciudad actualizada exitosamente.', type: CiudadResponseDto })
   @ApiResponse({ status: 400, description: 'ID inválido o datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 404, description: 'Ciudad no encontrada.' })
@@ -95,7 +99,7 @@ export class CiudadesController {
     description: 'Elimina una ciudad que no tenga cines asociados.',
   })
   @ApiParam({ name: 'id', description: 'ID de la ciudad', example: '1' })
-  @ApiResponse({ status: 200, description: 'Ciudad eliminada exitosamente.' })
+  @ApiResponse({ status: 200, description: 'Ciudad eliminada exitosamente.', type: DeleteResponseDto })
   @ApiConflictResponse({ description: 'Ciudad tiene cines asociados.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   @ApiResponse({ status: 403, description: 'Rol insuficiente.' })

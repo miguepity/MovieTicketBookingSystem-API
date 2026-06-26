@@ -21,6 +21,8 @@ import {
 } from '@nestjs/swagger';
 import { AsientosService } from './asientos.service';
 import { BloquearAsientosDto } from './dto/bloquear-asientos.dto';
+import { AsientoMapaResponseDto } from './dto/asiento-mapa-response.dto';
+import { BloquearAsientosResponseDto } from './dto/bloquear-asientos-response.dto';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-user.decorator';
@@ -35,11 +37,11 @@ export class AsientosController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener el mapa de asientos de una función' })
   @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
-  @ApiOkResponse({ description: 'Mapa de asientos de la función' })
+  @ApiOkResponse({ type: AsientoMapaResponseDto })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'La función no existe' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  getMapa(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+  getMapa(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload): Promise<AsientoMapaResponseDto> {
     return this.asientosService.getMapa(id, user.userId);
   }
 
@@ -51,7 +53,7 @@ export class AsientosController {
     summary: 'Bloquear asientos de una función para el usuario actual',
   })
   @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
-  @ApiOkResponse({ description: 'Asientos bloqueados exitosamente' })
+  @ApiOkResponse({ type: BloquearAsientosResponseDto })
   @ApiBadRequestResponse({
     description:
       'Datos inválidos o uno o más asientos no pertenecen a la función',
@@ -65,7 +67,7 @@ export class AsientosController {
     @Param('id') id: string,
     @Body() dto: BloquearAsientosDto,
     @CurrentUser() user: CurrentUserPayload,
-  ) {
+  ): Promise<BloquearAsientosResponseDto> {
     return this.asientosService.bloquear(
       id,
       dto.ids_asiento_funcion,

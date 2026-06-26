@@ -28,6 +28,8 @@ import { CreatePoliticaCancelacionDto } from './dto/create-politica-cancelacion.
 import { UpdatePoliticasCancelacionDto } from './dto/update-politicas-cancelacion.dto';
 import { ListPoliticasCancelacionQueryDto } from './dto/list-politicas-cancelacion-query.dto';
 import { PoliticasCancelacionPageResponseDto } from './dto/politicas-cancelacion-page.response.dto';
+import { PoliticasCancelacionListItemResponseDto } from './dto/politicas-cancelacion-list-item.response.dto';
+import { DesactivarPoliticaResponseDto } from './dto/desactivar-politica.response.dto';
 
 @ApiTags('Politicas de Cancelacion')
 @Controller('politicas-cancelacion')
@@ -45,7 +47,7 @@ export class PoliticasCancelacionController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una política por ID' })
-  @ApiOkResponse({ description: 'Política encontrada' })
+  @ApiOkResponse({ type: PoliticasCancelacionListItemResponseDto, description: 'Política encontrada' })
   @ApiNotFoundResponse({ description: 'Política no encontrada' })
   findOne(@Param('id') id: string) {
     return this.politicasCancelacionService.findOne(id);
@@ -56,7 +58,7 @@ export class PoliticasCancelacionController {
   @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear una nueva política activa para un cine' })
-  @ApiCreatedResponse({ description: 'Política creada' })
+  @ApiCreatedResponse({ type: PoliticasCancelacionListItemResponseDto, description: 'Política creada' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   create(
@@ -71,7 +73,7 @@ export class PoliticasCancelacionController {
   @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar política (reemplaza reglas)' })
-  @ApiOkResponse({ description: 'Política actualizada' })
+  @ApiOkResponse({ type: PoliticasCancelacionListItemResponseDto, description: 'Política actualizada' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Política no encontrada' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -92,7 +94,7 @@ export class PoliticasCancelacionController {
   @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Desactivar política' })
-  @ApiOkResponse({ description: 'Política desactivada' })
+  @ApiOkResponse({ type: DesactivarPoliticaResponseDto, description: 'Política desactivada' })
   @ApiNotFoundResponse({ description: 'Política no encontrada o ya inactiva' })
   desactivar(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.politicasCancelacionService.desactivar(id, BigInt(user.userId));

@@ -21,6 +21,8 @@ import {
 } from '@nestjs/swagger';
 import { ReservasService } from './reservas.service';
 import { CrearReservaDto } from './dto/crear-reserva.dto';
+import { ReservaCreatedResponseDto } from './dto/reserva-created.response.dto';
+import { CancelarReservaResponseDto } from './dto/cancelar-reserva.response.dto';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-user.decorator';
@@ -36,7 +38,10 @@ export class ReservasController {
   @ApiOperation({
     summary: 'Crear una reserva a partir de asientos bloqueados',
   })
-  @ApiCreatedResponse({ description: 'Reserva creada exitosamente' })
+  @ApiCreatedResponse({
+    description: 'Reserva creada exitosamente',
+    type: ReservaCreatedResponseDto,
+  })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({
     description:
@@ -63,7 +68,10 @@ export class ReservasController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancelar una reserva' })
   @ApiParam({ name: 'id', description: 'ID de la reserva', example: '1' })
-  @ApiOkResponse({ description: 'Reserva cancelada exitosamente' })
+  @ApiOkResponse({
+    description: 'Reserva cancelada exitosamente',
+    type: CancelarReservaResponseDto,
+  })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'La reserva no existe' })
   @ApiConflictResponse({
