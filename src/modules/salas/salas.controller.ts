@@ -25,12 +25,18 @@ import {
   ApiTags,
   ApiQuery,
   ApiUnauthorizedResponse,
+  ApiParam,
 } from '@nestjs/swagger';
 import { SalaResponseDto } from './dto/sala.response.dto';
 import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { UpdateAsientosBatchDto } from './dto/update-asientos-batch.dto';
+import { SalaAsientoResponseDto } from './dto/sala-asiento.response.dto';
+import { UpdateAsientosBatchResponseDto } from './dto/update-asientos-batch.response.dto';
 
 @ApiTags('Salas')
 @Controller('salas')
@@ -77,6 +83,45 @@ export class SalasController {
   @ApiBadRequestResponse({ description: 'ID inválido' })
   findOne(@Param('id') id: string): Promise<SalaResponseDto> {
     return this.salasService.findOne(id);
+  }
+
+  @Get(':id/asientos')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Listar asientos físicos de una sala con su tipo asignado',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la sala', example: '1' })
+  @ApiOkResponse({ type: [SalaAsientoResponseDto] })
+  @ApiUnauthorizedResponse({ description: 'Token inválido o ausente' })
+  @ApiNotFoundResponse({ description: 'Sala no encontrada' })
+  findAsientos(@Param('id') id: string): Promise<SalaAsientoResponseDto[]> {
+    return this.salasService.findAsientos(id);
+  }
+
+  @Patch(':id/asientos')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Actualizar tipos de asiento en batch para una sala',
+    description:
+      'Recibe una lista de pares { id_asiento, id_tipo_asiento }. Atómico — si una asignación es inválida, ninguna se aplica.',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la sala', example: '1' })
+  @ApiOkResponse({ type: UpdateAsientosBatchResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Token inválido o ausente' })
+  @ApiNotFoundResponse({ description: 'Sala no encontrada' })
+  @ApiBadRequestResponse({
+    description: 'Asiento no pertenece a la sala o tipo inexistente',
+  })
+  updateAsientos(
+    @Param('id') id: string,
+    @Body() dto: UpdateAsientosBatchDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<UpdateAsientosBatchResponseDto> {
+    return this.salasService.updateAsientos(id, dto, BigInt(user.userId));
   }
 
   @Patch(':id')
