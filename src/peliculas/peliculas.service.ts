@@ -57,9 +57,30 @@ export class PeliculasService {
   findAll() {
     return this.prisma.peliculas.findMany({
       include: {
-        generos: true,
-        idiomas: true,
-      },
+        idiomas: { select: {nombre: true} },
+        generos: { select: {nombre: true} },
+        funciones: { 
+          select: { 
+            id: true,
+            id_pelicula: true,
+            fecha_hora: true,
+            estado: true,
+            formato: true,
+            salas: {
+              select: {
+                id: true,
+                nombre: true, 
+                cines: {
+                  select: {
+                    nombre: true,
+                    ciudades: { select: {nombre: true} }
+                  }
+                }
+              } 
+            }
+          }
+        }
+      }
     });
   }
 

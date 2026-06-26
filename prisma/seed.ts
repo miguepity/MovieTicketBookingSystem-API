@@ -227,6 +227,8 @@ async function main() {
         fecha_estreno: new Date('2026-07-01'),
         activo: true,
         id_usuario: admin.id,
+        dur: '2h 13m',
+        year: 2008
       },
     }),
     prisma.peliculas.create({
@@ -238,6 +240,8 @@ async function main() {
         fecha_estreno: new Date('2026-07-15'),
         activo: true,
         id_usuario: admin.id,
+        dur: '1h 30m',
+        year: 2007
       },
     }),
   ]);
@@ -250,6 +254,7 @@ async function main() {
       id_sala: BigInt(sala1.id),
       fecha_hora: new Date('2026-07-01T20:00:00'),
       estado: 'activa',
+      formato: '3D - Subtitulada'
     },
   });
 
@@ -259,6 +264,7 @@ async function main() {
       id_sala: BigInt(sala1.id),
       fecha_hora: new Date('2026-07-02T18:00:00'),
       estado: 'activa',
+      formato: '2D - Subtitulada'
     },
   });
   console.log('✅ Funciones creadas');
