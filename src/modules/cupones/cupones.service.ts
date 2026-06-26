@@ -40,6 +40,8 @@ export class CuponesService {
         valor: dto.valor,
         fecha_expiracion: new Date(dto.fecha_expiracion),
         usos_maximos: dto.usos_maximos,
+        titulo: dto.titulo,
+        descripcion: dto.descripcion,
       },
     });
 
@@ -95,6 +97,8 @@ export class CuponesService {
           ? new Date(dto.fecha_expiracion)
           : undefined,
         usos_maximos: dto.usos_maximos,
+        titulo: dto.titulo,
+        descripcion: dto.descripcion,
       },
     });
 

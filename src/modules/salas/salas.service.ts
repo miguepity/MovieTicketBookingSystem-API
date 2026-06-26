@@ -161,7 +161,7 @@ export class SalasService {
     return result;
   }
 
-  async remove(id: string, auditorId: bigint): Promise<{ id: number }> {
+  async remove(id: string, auditorId: bigint): Promise<{ id: string }> {
     const salaId = this.parseId(id);
     const existing = await this.prisma.salas.findUnique({
       where: { id: salaId },
@@ -202,7 +202,7 @@ export class SalasService {
       valor_anterior: snapshotSala(existing),
     });
 
-    return { id: Number(deleted.id) };
+    return { id: String(deleted.id) };
   }
 
   private toDto(sala: {
