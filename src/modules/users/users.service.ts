@@ -635,6 +635,40 @@ export class UsersService {
     return { tempPassword };
   }
 
+  async softDeleteMe(userId: string): Promise<{ message: string }> {
+    const prev = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(userId) },
+      include: { roles: true },
+    });
+
+    if (!prev) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (prev.estado === 'eliminado') {
+      throw new BadRequestException('La cuenta ya está eliminada');
+    }
+
+    const updated = await this.prisma.usuarios.update({
+      where: { id: prev.id },
+      data: { estado: 'eliminado' },
+      include: { roles: true },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: prev.id,
+      id_auditor: prev.id,
+      accion: 'USUARIO_ELIMINAR_CUENTA',
+      entidad: 'Usuario',
+      entidad_id: prev.id,
+      detalle: `Cuenta eliminada por el propio usuario`,
+      valor_anterior: snapshotUsuario(prev),
+      valor_nuevo: snapshotUsuario(updated),
+    });
+
+    return { message: 'Cuenta eliminada exitosamente' };
+  }
+
   async updatePerfil(idUsuario: bigint, dto: UpdatePerfilDto) {
     return this.prisma.usuarios.update({
       where: { id: idUsuario },

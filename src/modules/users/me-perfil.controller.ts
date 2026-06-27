@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -51,5 +58,19 @@ export class MePerfilController {
     @Body() dto: UpdatePerfilDto,
   ) {
     return this.users.updatePerfil(BigInt(user.userId), dto);
+  }
+
+  @Delete('cuenta')
+  @ApiOperation({
+    summary: 'Eliminar cuenta del usuario autenticado',
+    description:
+      'Soft-delete del usuario autenticado: la cuenta queda con estado="eliminado" y no podrá volver a iniciar sesión. Los datos históricos (reservas, pagos) se conservan.',
+  })
+  @ApiResponse({ status: 200, description: 'Cuenta eliminada exitosamente.' })
+  @ApiResponse({ status: 400, description: 'La cuenta ya está eliminada.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  delete(@CurrentUser() user: CurrentUserPayload) {
+    return this.users.softDeleteMe(user.userId);
   }
 }
