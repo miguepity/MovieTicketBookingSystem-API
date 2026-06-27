@@ -175,7 +175,8 @@ export class ReservasService {
       },
       include: {
         funciones: {
-          include: {
+          select: {
+            fecha_hora: true,
             peliculas: true,
             salas: {
               include: {

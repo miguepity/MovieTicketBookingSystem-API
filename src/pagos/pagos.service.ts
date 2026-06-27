@@ -104,6 +104,23 @@ export class PagosService {
     return pago;
   }
 
+
+  async findAll() {
+    return await this.prisma.pagos.findMany({
+      include: {
+        reservas: {
+          select: {
+            usuarios: {
+              select: {
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   async findOne(id: number) {
     const pago = await this.prisma.pagos.findUnique({
       where: { id: BigInt(id) },

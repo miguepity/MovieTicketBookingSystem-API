@@ -30,6 +30,12 @@ export class PagosController {
     return await this.pagosService.pagoEfectivo(dto);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Obtener todos los pagos' })
+  async findAll() {
+    return await this.pagosService.findAll();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un pago por ID' })
   @ApiParam({ name: 'id', description: 'ID del pago' })
