@@ -22,6 +22,7 @@ export class AuthGuard implements CanActivate {
         userId: string;
         email: string;
         role: number;
+        name: string;
       }>(token, {
         secret: process.env.JWT_SECRET,
       });

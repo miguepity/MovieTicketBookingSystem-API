@@ -62,7 +62,6 @@ export class PeliculasController {
   }
 
   @Get()
-  @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     description: 'Obtener peliculas activas con busqueda opcional por titulo',

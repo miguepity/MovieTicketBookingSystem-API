@@ -21,6 +21,10 @@ async function bootstrap() {
     }),
   );
 
+  app.enableCors({
+    origin: '*',
+  });
+
   // Serializar BigInt como string en respuestas JSON
   (BigInt.prototype as unknown as { toJSON: () => string }).toJSON =
     function () {
