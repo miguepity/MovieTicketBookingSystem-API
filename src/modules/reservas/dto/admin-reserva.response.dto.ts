@@ -79,6 +79,12 @@ export class AdminReservaRowDto {
   @ApiProperty({ type: String, format: 'date-time', example: '2026-06-25T10:00:00.000Z' })
   created_at!: Date;
 
+  @ApiProperty({ type: String, format: 'date-time', example: '2026-06-25T10:05:00.000Z' })
+  updated_at!: Date;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: '100.00' })
+  monto_total!: string | null;
+
   @ApiProperty({ type: () => AdminReservaClienteDto })
   cliente!: AdminReservaClienteDto;
 
@@ -229,6 +235,12 @@ export class AdminReservaDetailResponseDto {
 
   @ApiProperty({ type: String, format: 'date-time', example: '2026-06-25T10:05:00.000Z' })
   updated_at!: Date;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Cancelada por solicitud del cliente' })
+  notas_internas!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date-time', example: '2026-06-25T10:20:00.000Z' })
+  expira_en!: string | null;
 
   @ApiProperty({ type: () => AdminReservaClienteDto })
   cliente!: AdminReservaClienteDto;

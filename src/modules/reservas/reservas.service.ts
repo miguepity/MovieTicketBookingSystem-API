@@ -601,6 +601,11 @@ export class ReservasService {
               },
             },
           },
+          pagos: {
+            orderBy: { created_at: 'desc' as const },
+            take: 1,
+            select: { monto_final: true },
+          },
         },
       }),
       this.prisma.reservas.count({ where }),
@@ -615,11 +620,14 @@ export class ReservasService {
   }
 
   private toAdminReservaRow(r: any) {
+    const pago = r.pagos?.[0] ?? null;
     return {
       id: r.id.toString(),
       numero_reserva: r.numero_reserva,
       estado: r.estado,
       created_at: r.created_at,
+      updated_at: r.updated_at,
+      monto_total: pago ? pago.monto_final.toString() : null,
       cliente: {
         id: r.usuarios.id.toString(),
         nombre: r.usuarios.nombre,
@@ -696,6 +704,8 @@ export class ReservasService {
       monto_total: pago ? pago.monto_final.toString() : null,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      notas_internas: r.notas_internas ?? null,
+      expira_en: r.expira_en ? r.expira_en.toISOString() : null,
       cliente: {
         id: r.usuarios.id.toString(),
         nombre: r.usuarios.nombre,
