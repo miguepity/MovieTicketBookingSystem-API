@@ -112,6 +112,7 @@ async function main() {
           id_cine: cines[i].id,
           filas: 5,
           columnas: 5,
+           precio: 150.00,
         },
       });
 

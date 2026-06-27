@@ -16,7 +16,7 @@ export class ReservasController {
   @ApiResponse({ status: 201, description: 'Reserva creada y asientos apartados en firme.' })
   @ApiResponse({ status: 409, description: 'Conflicto: Uno o más asientos ya fueron adquiridos.' })
   createReserva(@Body() createReservaDto: CreateReservaDto, @Req() req: any) {
-    return this.reservasService.createReserva(createReservaDto, req.user.id);
+    return this.reservasService.createReserva(createReservaDto, req.user.id, req.user.role);
   }
 
   @Get()

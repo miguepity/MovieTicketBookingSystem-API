@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Patch, Param, Delete, ParseIntPipe, UseGuards, Req, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CuponesService } from './cupon.service';
 import { CreateCuponDto } from './create-cupon.dto';
@@ -39,12 +39,12 @@ export class CuponesController {
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Obtener todos los cupones registrados' })
+  @ApiOperation({ summary: 'Obtener todos los cupones o filtrar por código' })
   @ApiResponse({ status: 200, description: 'Lista de cupones obtenida con éxito.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' }) 
   @ApiResponse({ status: 404, description: 'No se encontraron cupones.' })
-  findAll() {
-    return this.cuponesService.findAll();
+  findAll(@Query('codigo') codigo?: string) {
+    return this.cuponesService.findAll(codigo);
   }
 
   @Get(':id')

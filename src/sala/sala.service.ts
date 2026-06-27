@@ -15,7 +15,7 @@ export class SalaService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createSalaDto: CreateSalaDto, auditorId: number) {
-    const { nombre, id_cine, filas, columnas } = createSalaDto;
+    const { nombre, id_cine, filas, columnas, precio } = createSalaDto;
 
     const salaExistente = await this.prisma.salas.findFirst({
       where: { id_cine: BigInt(id_cine), nombre: nombre },
@@ -40,6 +40,7 @@ export class SalaService {
           id_cine: BigInt(id_cine),
           filas,
           columnas,
+          precio: new Prisma.Decimal(precio),
         },
       });
 
@@ -139,6 +140,7 @@ export class SalaService {
         ...(id_cine !== undefined && { id_cine: BigInt(id_cine) }),
         ...(filas !== undefined && { filas }),
         ...(columnas !== undefined && { columnas }),
+        ...(updateSalaDto.precio !== undefined && { precio: new Prisma.Decimal(updateSalaDto.precio) }),
       };
 
       const sala = await tx.salas.update({
@@ -241,6 +243,7 @@ export class SalaService {
       ...sala,
       id: Number(sala.id),
       id_cine: Number(sala.id_cine),
+      precio: sala.precio ? Number(sala.precio) : 0,
     };
 
     if (sala.cines) {

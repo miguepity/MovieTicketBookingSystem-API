@@ -50,7 +50,26 @@ export class PagosService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      
+      if (id_cupon) {
+        const cupon = await tx.cupones.findUnique({
+          where: { id: BigInt(id_cupon) },
+        });
+
+        if (
+          !cupon ||
+          !cupon.activo ||
+          new Date(cupon.fecha_expiracion) < new Date() ||
+          (cupon.usos_maximos !== null && cupon.usos_actuales >= cupon.usos_maximos)
+        ) {
+          throw new BadRequestException('El cupón ya no es válido o ha alcanzado su límite de usos.');
+        }
+
+        await tx.cupones.update({
+          where: { id: BigInt(id_cupon) },
+          data: { usos_actuales: { increment: 1 } },
+        });
+      }
+
       const pago = await tx.pagos.create({
         data: {
           id_reserva: BigInt(id_reserva),
@@ -134,6 +153,25 @@ export class PagosService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      if (id_cupon) {
+        const cupon = await tx.cupones.findUnique({
+          where: { id: BigInt(id_cupon) },
+        });
+
+        if (
+          !cupon ||
+          !cupon.activo ||
+          new Date(cupon.fecha_expiracion) < new Date() ||
+          (cupon.usos_maximos !== null && cupon.usos_actuales >= cupon.usos_maximos)
+        ) {
+          throw new BadRequestException('El cupón ya no es válido o ha alcanzado su límite de usos.');
+        }
+
+        await tx.cupones.update({
+          where: { id: BigInt(id_cupon) },
+          data: { usos_actuales: { increment: 1 } },
+        });
+      }
       
       const pago = await tx.pagos.create({
         data: {

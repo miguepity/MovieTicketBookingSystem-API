@@ -338,6 +338,7 @@ export class PeliculasService {
             nombre: true,
             filas: true,
             columnas: true,
+            precio: true,
           },
         },
         asientosFuncions: {
@@ -400,6 +401,7 @@ export class PeliculasService {
           nombre: funcion.salas.nombre,
           total_filas: funcion.salas.filas,
           total_columnas: funcion.salas.columnas,
+          precio: Number(funcion.salas.precio),
         },
         resumen_disponibilidad: {
           total: totalAsientos,

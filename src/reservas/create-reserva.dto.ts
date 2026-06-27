@@ -12,4 +12,9 @@ export class CreateReservaDto {
   @ArrayNotEmpty()
   @IsInt({ each: true })
   asientosFuncionIds!: number[];
+
+  @ApiProperty({ example: 2, description: 'ID del cliente (opcional, solo para recepcionistas)', required: false })
+  @IsInt()
+  @IsNotEmpty()
+  id_usuario_cliente?: number;
 }
