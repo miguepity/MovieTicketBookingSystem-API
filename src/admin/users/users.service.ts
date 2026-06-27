@@ -139,7 +139,8 @@ export class UsersService {
       },
     });
 
-    return { message: 'Usuario actualizado', data: actualizado };
+    const { password_hash, ...dataSinPassword } = actualizado;
+    return { message: 'Usuario actualizado', data: dataSinPassword };
   }
 
   async eliminarUsuario(id: string, auditorId: number) {
