@@ -19,6 +19,18 @@ import { ReservasFilterDto } from './dto/reservas.filter.dto';
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Listar reservas con filtros opcionales' })
+  getReservas(@Query() dto: ReservasFilterDto) {
+    return this.reservasService.getReservas(dto);
+  }
+
+  @Get('export')
+  @ApiOperation({ summary: 'Exportar reservas' })
+  exportReservas() {
+    return this.reservasService.exportReservas();
+  }
+  
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una reserva por ID' })
   @ApiParam({ name: 'id', description: 'ID de la reserva' })
@@ -30,18 +42,6 @@ export class ReservasController {
   @ApiOperation({ summary: 'Crear una reserva' })
   createReserva(@Body() dto: ReservasBodyDto) {
     return this.reservasService.createReserva(dto);
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Listar reservas con filtros opcionales' })
-  getReservas(@Query() dto: ReservasFilterDto) {
-    return this.reservasService.getReservas(dto);
-  }
-
-  @Get('export')
-  @ApiOperation({ summary: 'Exportar reservas' })
-  exportReservas() {
-    return this.reservasService.exportReservas();
   }
 
   @Patch(':id/cancelar')

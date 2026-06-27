@@ -106,7 +106,7 @@ export class UsuariosService {
     const clientes = await this.prisma.usuarios.findMany({
       where: {
         roles: {
-          nombre: 'usuario',
+          nombre: 'cliente',
         },
       },
       select: {
