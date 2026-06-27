@@ -101,10 +101,10 @@ export class ReservasService {
     if (!findReserva) {
       throw new NotFoundException('Reserva no existe');
     }
-    if (findReserva.estado === 'cancelado') {
+    if (findReserva.estado === 'Cancelada') {
       throw new BadRequestException('La reserva ya está cancelada');
     }
-    if (findReserva.estado === 'pagada') {
+    if (findReserva.estado === 'Completada') {
       throw new BadRequestException(
         'No se puede cancelar una reserva pagada. Solicite un reembolso.',
       );
@@ -123,11 +123,11 @@ export class ReservasService {
       }),
       this.prisma.reservas.update({
         where: { id: BigInt(id) },
-        data: { estado: 'cancelado' },
+        data: { estado: 'Cancelada' },
       }),
     ]);
 
-    return 'Reserva cancelada con exito.';
+    return {message: 'Reserva cancelada con exito.'};
   }
 
   async getReservas(dto: ReservasFilterDto) {
