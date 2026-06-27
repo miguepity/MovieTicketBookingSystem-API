@@ -3,6 +3,7 @@ import { ApiTags, ApiResponse, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, 
 import { UsersService } from './users.service.js';
 import { QueryUsuariosDto } from './dto/query-usuarios.dto.js';
 import { CambiarEstadoDto } from './dto/cambiar-estado.dto.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../guards/roles.guard.js';
 import { Roles } from '../../auth/decorators/roles.decorator.js';
@@ -15,6 +16,20 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator.js';
 @Controller('admin/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+      @UseGuards(JwtAuthGuard)
+      @ApiBearerAuth('token')
+      @ApiOperation({ summary: 'Crear un nuevo usuario' })
+      @ApiResponse({ status: 201, description: 'Usuario creado exitosamente' })
+      @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+      @ApiResponse({ status: 401, description: 'No autorizado' })
+      @ApiResponse({ status: 404, description: 'Rol no encontrado' })
+      @ApiResponse({ status: 409, description: 'Correo electrónico ya en uso' })
+      async create(@Body() createUserDto: CreateUserDto) {
+          return await this.usersService.create(createUserDto);
+      }
+  
 
   @Get()
   @ApiOperation({ summary: 'Buscar clientes por nombre o email' })

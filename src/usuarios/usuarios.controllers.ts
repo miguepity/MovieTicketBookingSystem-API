@@ -3,26 +3,13 @@ import { ApiTags, ApiResponse, ApiBearerAuth, ApiParam, ApiOperation } from '@ne
 import { UsuariosService } from './usuarios.service';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from '../admin/users/dto/create-user.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Usuarios')
 @Controller('users')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
-
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth('token')
-    @ApiOperation({ summary: 'Crear un nuevo usuario' })
-    @ApiResponse({ status: 201, description: 'Usuario creado exitosamente' })
-    @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-    @ApiResponse({ status: 401, description: 'No autorizado' })
-    @ApiResponse({ status: 404, description: 'Rol no encontrado' })
-    @ApiResponse({ status: 409, description: 'Correo electrónico ya en uso' })
-    async create(@Body() createUserDto: CreateUserDto) {
-        return await this.usuariosService.create(createUserDto);
-    }
 
     @Get('me')
     @UseGuards(JwtAuthGuard)

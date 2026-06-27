@@ -2,81 +2,12 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException, 
 import { PrismaService } from "src/prisma/prisma.service";
 import { UpdateEmailDto } from "./dto/update-email.dto";
 import { UpdatePasswordDto } from "./dto/update-password.dto";
-import { CreateUserDto } from "./dto/create-user.dto";
+import { CreateUserDto } from "../admin/users/dto/create-user.dto";
 import * as bcrypt from 'bcrypt';
-
-const USER_SELECT = {
-  id: true,
-  nombre: true,
-  email: true,
-  telefono: true,
-  estado: true,
-  notificaciones_activas: true,
-  created_at: true,
-  updated_at: true,
-  roles: {
-    select: {
-      id: true,
-      nombre: true,
-    },
-  },
-} as const;
 
 @Injectable()
 export class UsuariosService {
     constructor(private prisma: PrismaService) {}
-
-    private serializeUser(usuario: any) {
-      return {
-        ...usuario,
-        id: Number(usuario.id),
-        roles: usuario.roles
-          ? { id: Number(usuario.roles.id), nombre: usuario.roles.nombre }
-          : usuario.roles,
-      };
-    }
-
-    async create(createUserDto: CreateUserDto) {
-      const { name, email, password, phone, roleId } = createUserDto;
-
-      const emailEnUso = await this.prisma.usuarios.findUnique({
-        where: { email },
-      });
-
-      if (emailEnUso) {
-        throw new ConflictException('El correo electrónico ya se encuentra registrado.');
-      }
-
-      const rol = await this.prisma.roles.findUnique({
-        where: { id: BigInt(roleId) },
-      });
-
-      if (!rol) {
-        throw new NotFoundException(`Rol con ID ${roleId} no encontrado.`);
-      }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-
-      const usuario = await this.prisma.usuarios.create({
-        data: {
-          nombre: name,
-          email,
-          password_hash: passwordHash,
-          telefono: phone,
-          estado: 'ACTIVO',
-          notificaciones_activas: false,
-          roles: {
-            connect: { id: BigInt(roleId) },
-          },
-        },
-        select: USER_SELECT,
-      });
-
-      return {
-        message: 'Usuario creado exitosamente.',
-        user: this.serializeUser(usuario),
-      };
-    }
 
     async getMyProfile(userId: number) {
       const usuario = await this.prisma.usuarios.findUnique({
