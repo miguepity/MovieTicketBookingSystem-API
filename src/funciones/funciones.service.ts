@@ -236,6 +236,7 @@ export class FuncionesService {
       if (!acc[fila]) acc[fila] = [];
       acc[fila].push({
         id: af.id.toString(),
+        id_asiento: af.id_asiento.toString(),
         columna: af.asientos.columna,
         codigo: af.asientos.codigo,
         tipo: af.asientos.tipo,
