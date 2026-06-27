@@ -48,6 +48,10 @@ export class AuthService {
       throw new UnauthorizedException('Cuenta bloqueada');
     }
 
+    if (usuario.estado === 'eliminado') {
+      throw new UnauthorizedException('Cuenta eliminada');
+    }
+
     const payload = {
       email: usuario.email,
       sub: usuario.id.toString(),
