@@ -24,4 +24,10 @@ export class CreateSalaDto {
   @IsNumber()
   @Min(1)
   columnas: number;
+
+  @ApiProperty({ description: 'Precio de la sala', example: 150 })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  precio: number;
 }

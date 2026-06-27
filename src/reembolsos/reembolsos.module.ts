@@ -9,5 +9,6 @@ import { AuthModule } from '../auth/auth.module';
     imports: [PrismaModule, MailModule, AuthModule],
     controllers: [ReembolsosController],
     providers: [ReembolsosService],
+    exports: [ReembolsosService],
 })
 export class ReembolsosModule { }

@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiResponse, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards, ParseIntPipe, Put, Delete } from '@nestjs/common';
+import { ApiTags, ApiResponse, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
 import { QueryUsuariosDto } from './dto/query-usuarios.dto.js';
 import { CambiarEstadoDto } from './dto/cambiar-estado.dto.js';
@@ -26,6 +26,18 @@ export class UsersController {
     return this.usersService.buscarClientes(query);
   }
 
+  @Get('all')
+  @ApiOperation({ summary: 'Listar todos los usuarios con filtro opcional de rol' })
+  @ApiQuery({ name: 'rolId', required: false, description: 'ID del rol para filtrar', example: '1' })
+  @ApiQuery({ name: 'search', required: false, description: 'Búsqueda por nombre o email', example: 'admin' })
+  @ApiResponse({ status: 200, description: 'Lista de usuarios retornada exitosamente.' })
+  listarUsuarios(
+    @Query('rolId', new ParseIntPipe({ optional: true })) rolId?: number,
+    @Query('search') search?: string,
+  ) {
+    return this.usersService.listarUsuarios({ rolId, search });
+  }
+
   @Patch(':id/status')
   @ApiOperation({ summary: 'Cambiar el estado de un usuario con registro en bitácora' })
   @ApiParam({ name: 'id', description: 'ID del usuario a modificar', example: '1' })
@@ -40,5 +52,22 @@ export class UsersController {
     @CurrentUser('id') auditorId: number,
   ) {
     return this.usersService.cambiarEstado(id, dto, auditorId);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Editar datos de un usuario (nombre, email, rol)' })
+  @ApiBody({ schema: { type: 'object', properties: { nombre: { type: 'string' }, email: { type: 'string' }, id_rol: { type: 'number' } } } })
+  editarUsuario(
+    @Param('id') id: string,
+    @Body() dto: { nombre?: string; email?: string; id_rol?: number },
+    @CurrentUser('id') auditorId: number,
+  ) {
+    return this.usersService.editarUsuario(id, dto, auditorId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar un usuario' })
+  eliminarUsuario(@Param('id') id: string, @CurrentUser('id') auditorId: number) {
+    return this.usersService.eliminarUsuario(id, auditorId);
   }
 }

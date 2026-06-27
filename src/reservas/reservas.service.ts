@@ -4,15 +4,22 @@ import { CreateReservaDto } from './create-reserva.dto';
 import { MailService } from '../mail/mail.service';
 import { buildReservationCancellationTemplate } from '../mail/templates/reservation-cancellation.template';
 
+import { ReembolsosService } from '../reembolsos/reembolsos.service';
+
 @Injectable()
 export class ReservasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly reembolsosService: ReembolsosService,
   ) {}
 
-  async createReserva(createReservaDto: CreateReservaDto, userId: number) {
-    const { id_funcion, asientosFuncionIds } = createReservaDto;
+  async createReserva(createReservaDto: CreateReservaDto, userId: number, userRole: string) {
+    const { id_funcion, asientosFuncionIds, id_usuario_cliente } = createReservaDto;
+
+    const clienteId = (userRole === 'RECEPCIONISTA' && id_usuario_cliente) 
+                      ? BigInt(id_usuario_cliente) 
+                      : BigInt(userId);
 
     const numeroUnicoReserva = `RES-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
@@ -53,7 +60,7 @@ export class ReservasService {
       const reserva = await tx.reservas.create({
         data: {
           numero_reserva: numeroUnicoReserva,
-          id_usuario: BigInt(userId),
+          id_usuario: clienteId,
           id_funcion: BigInt(id_funcion),
           estado: 'PENDIENTE_DE_PAGO',
         },
@@ -69,13 +76,13 @@ export class ReservasService {
         where: { id: { in: asientosFuncionIds.map((id) => BigInt(id)) } },
         data: {
           estado: 'PENDIENTE_DE_PAGO',
-          id_usuario: BigInt(userId),
+          id_usuario: clienteId,
         },
       });
 
       await tx.auditLog.create({
         data: {
-          id_usuario: BigInt(userId),
+          id_usuario: clienteId,
           id_auditor: BigInt(userId),
           accion: 'RESERVA_CREADA',
           detalle: `Reserva ${numeroUnicoReserva} creada para función ${id_funcion} con ${asientosFuncionIds.length} asiento(s)`,
@@ -189,12 +196,32 @@ export class ReservasService {
         });
       }
 
+      const pago = reserva.pagos?.[0];
+      if (pago && pago.estado === 'APROBADO') {
+        const calculo = await this.reembolsosService.calcularReembolso({ id_pago: Number(pago.id) });
+        
+        if (Number(calculo.monto_a_reembolsar) > 0) {
+            await tx.reembolsos.create({
+                data: {
+                    id_pago: pago.id,
+                    monto: calculo.monto_a_reembolsar,
+                    estado: 'PROCESADO',
+                    fecha_procesado: new Date(),
+                }
+            });
+            await tx.pagos.update({
+                where: { id: pago.id },
+                data: { estado: 'REEMBOLSADO' }
+            });
+        }
+      }
+
       await tx.auditLog.create({
         data: {
           id_usuario: reserva.id_usuario,
           id_auditor: BigInt(userId),
           accion: 'RESERVA_CANCELADA',
-          detalle: `Reserva ${idReserva} cancelada`,
+          detalle: `Reserva ${idReserva} cancelada y reembolso procesado automáticamente`,
         },
       });
     });
@@ -202,7 +229,7 @@ export class ReservasService {
     await this.notifyReservationCancellation(reserva);
 
     return {
-      message: 'Reserva cancelada exitosamente. Los asientos han sido reabiertos al público.',
+      message: 'Reserva cancelada exitosamente y reembolso procesado.',
       idReserva,
       nuevoEstado: 'CANCELADA',
     };
