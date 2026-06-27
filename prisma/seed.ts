@@ -18,6 +18,21 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Iniciando seed...');
 
+  // ── Limpieza de datos transaccionales ───────────────────
+  // Permite re-correr el seed varias veces sin chocar con unique constraints
+  // (los datos maestros de abajo usan upsert, así que no hace falta borrarlos)
+  await prisma.reembolsos.deleteMany();
+  await prisma.pagos.deleteMany();
+  await prisma.reservaAsientos.deleteMany();
+  await prisma.reservas.deleteMany();
+  await prisma.asientosFuncion.deleteMany();
+  await prisma.funciones.deleteMany();
+  await prisma.peliculas.deleteMany();
+  await prisma.asientos.deleteMany();
+  await prisma.salas.deleteMany();
+  await prisma.cines.deleteMany();
+  console.log('🧹 Datos transaccionales limpiados');
+
   // ── Roles ──────────────────────────────────────────────
   const [rolAdmin, rolRecepcionista, rolCliente] = await Promise.all([
     prisma.roles.upsert({
@@ -39,7 +54,7 @@ async function main() {
   console.log('✅ Roles creados');
 
   // ── Idiomas ────────────────────────────────────────────
-  const [espanol, ingles] = await Promise.all([
+  const [espanol, ingles, japones] = await Promise.all([
     prisma.idiomas.upsert({
       where: { nombre: 'Español' },
       update: {},
@@ -59,7 +74,7 @@ async function main() {
   console.log('✅ Idiomas creados');
 
   // ── Géneros ────────────────────────────────────────────
-  const [accion, drama] = await Promise.all([
+  const [accion, drama, , , animacion] = await Promise.all([
     prisma.generos.upsert({
       where: { nombre: 'Acción' },
       update: {},
@@ -228,7 +243,7 @@ async function main() {
         activo: true,
         id_usuario: admin.id,
         dur: '2h 13m',
-        year: 2008
+        year: 2008,
       },
     }),
     prisma.peliculas.create({
@@ -241,10 +256,95 @@ async function main() {
         activo: true,
         id_usuario: admin.id,
         dur: '1h 30m',
-        year: 2007
+        year: 2007,
       },
     }),
   ]);
+
+  // Películas icónicas reales, solo para tener pósters de ejemplo creíbles
+  const [elReyLeon, frozen, toyStory, fastAndFurious, chihiro] =
+    await Promise.all([
+      prisma.peliculas.create({
+        data: {
+          titulo: 'El Rey León',
+          sinopsis:
+            'Un joven león debe asumir su lugar como rey tras la muerte de su padre.',
+          poster_url:
+            'https://upload.wikimedia.org/wikipedia/en/3/3d/The_Lion_King_poster.jpg',
+          id_idioma: ingles.id,
+          id_genero: animacion.id,
+          fecha_estreno: new Date('1994-06-15'),
+          activo: true,
+          id_usuario: admin.id,
+          dur: '1h 28m',
+          year: 1994,
+        },
+      }),
+      prisma.peliculas.create({
+        data: {
+          titulo: 'Frozen: Una Aventura Congelada',
+          sinopsis:
+            'Una princesa se embarca en un viaje junto a un montañista y su reno para encontrar a su hermana.',
+          poster_url:
+            'https://upload.wikimedia.org/wikipedia/en/0/05/Frozen_%282013_film%29_poster.jpg',
+          id_idioma: ingles.id,
+          id_genero: animacion.id,
+          fecha_estreno: new Date('2013-11-27'),
+          activo: true,
+          id_usuario: admin.id,
+          dur: '1h 42m',
+          year: 2013,
+        },
+      }),
+      prisma.peliculas.create({
+        data: {
+          titulo: 'Toy Story',
+          sinopsis:
+            'Los juguetes de Andy temen perder su lugar cuando llega Buzz Lightyear.',
+          poster_url:
+            'https://upload.wikimedia.org/wikipedia/en/1/13/Toy_Story.jpg',
+          id_idioma: ingles.id,
+          id_genero: animacion.id,
+          fecha_estreno: new Date('1995-11-22'),
+          activo: true,
+          id_usuario: admin.id,
+          dur: '1h 21m',
+          year: 1995,
+        },
+      }),
+      prisma.peliculas.create({
+        data: {
+          titulo: 'Fast & Furious',
+          sinopsis:
+            'Dominic Toretto y su equipo regresan para una nueva carrera contra el crimen.',
+          poster_url:
+            'https://upload.wikimedia.org/wikipedia/en/8/8f/Fast_and_Furious_Poster.jpg',
+          id_idioma: ingles.id,
+          id_genero: accion.id,
+          fecha_estreno: new Date('2009-04-03'),
+          activo: true,
+          id_usuario: admin.id,
+          dur: '1h 47m',
+          year: 2009,
+        },
+      }),
+      prisma.peliculas.create({
+        data: {
+          titulo: 'El Viaje de Chihiro',
+          sinopsis:
+            'Chihiro debe trabajar en una casa de baños habitada por espíritus para salvar a sus padres.',
+          poster_url:
+            'https://upload.wikimedia.org/wikipedia/en/d/db/Spirited_Away_Japanese_poster.png',
+          id_idioma: japones.id,
+          id_genero: animacion.id,
+          fecha_estreno: new Date('2001-07-20'),
+          activo: true,
+          id_usuario: admin.id,
+          dur: '2h 5m',
+          year: 2001,
+        },
+      }),
+    ]);
   console.log('✅ Películas creadas');
 
   // ── Funciones ──────────────────────────────────────────
@@ -254,33 +354,84 @@ async function main() {
       id_sala: BigInt(sala1.id),
       fecha_hora: new Date('2026-07-01T20:00:00'),
       estado: 'activa',
-      formato: '3D - Subtitulada'
+      formato: '3D - Subtitulada',
     },
   });
 
-  await prisma.funciones.create({
+  const funcion2 = await prisma.funciones.create({
     data: {
       id_pelicula: BigInt(pelicula2.id),
       id_sala: BigInt(sala1.id),
       fecha_hora: new Date('2026-07-02T18:00:00'),
       estado: 'activa',
-      formato: '2D - Subtitulada'
+      formato: '2D - Subtitulada',
     },
   });
+
+  const funcionesIconicas = await Promise.all([
+    prisma.funciones.create({
+      data: {
+        id_pelicula: BigInt(elReyLeon.id),
+        id_sala: BigInt(sala1.id),
+        fecha_hora: new Date('2026-07-03T16:00:00'),
+        estado: 'activa',
+        formato: '2D - Doblada',
+      },
+    }),
+    prisma.funciones.create({
+      data: {
+        id_pelicula: BigInt(frozen.id),
+        id_sala: BigInt(sala1.id),
+        fecha_hora: new Date('2026-07-03T19:00:00'),
+        estado: 'activa',
+        formato: '2D - Doblada',
+      },
+    }),
+    prisma.funciones.create({
+      data: {
+        id_pelicula: BigInt(toyStory.id),
+        id_sala: BigInt(sala1.id),
+        fecha_hora: new Date('2026-07-04T15:00:00'),
+        estado: 'activa',
+        formato: '2D - Doblada',
+      },
+    }),
+    prisma.funciones.create({
+      data: {
+        id_pelicula: BigInt(fastAndFurious.id),
+        id_sala: BigInt(sala1.id),
+        fecha_hora: new Date('2026-07-04T21:00:00'),
+        estado: 'activa',
+        formato: '2D - Subtitulada',
+      },
+    }),
+    prisma.funciones.create({
+      data: {
+        id_pelicula: BigInt(chihiro.id),
+        id_sala: BigInt(sala1.id),
+        fecha_hora: new Date('2026-07-05T18:30:00'),
+        estado: 'activa',
+        formato: '2D - Subtitulada',
+      },
+    }),
+  ]);
   console.log('✅ Funciones creadas');
 
   // ── AsientosFuncion ────────────────────────────────────
+  // Cada función necesita su propio set de asientos_funcion (uno por asiento de la sala)
   await Promise.all(
-    asientosCreados.map((asiento) =>
-      prisma.asientosFuncion.create({
-        data: {
-          id_asiento: BigInt(asiento.id),
-          id_funcion: BigInt(funcion1.id),
-          estado: 'disponible',
-          bloqueado_hasta: new Date(),
-          version: 0,
-        },
-      }),
+    [funcion1, funcion2, ...funcionesIconicas].flatMap((funcion) =>
+      asientosCreados.map((asiento) =>
+        prisma.asientosFuncion.create({
+          data: {
+            id_asiento: BigInt(asiento.id),
+            id_funcion: BigInt(funcion.id),
+            estado: 'disponible',
+            bloqueado_hasta: new Date(),
+            version: 0,
+          },
+        }),
+      ),
     ),
   );
   console.log('✅ AsientosFuncion creados');

@@ -133,7 +133,7 @@ export class UsuariosService {
   async searchClientes(q?: string) {
     const clientes = await this.prisma.usuarios.findMany({
       where: {
-        roles: { nombre: 'usuario' },
+        roles: { nombre: 'cliente' },
         ...(q && {
           OR: [
             { nombre: { contains: q, mode: 'insensitive' } },

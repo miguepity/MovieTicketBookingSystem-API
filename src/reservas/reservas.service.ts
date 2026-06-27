@@ -158,6 +158,7 @@ export class ReservasService {
       where: {
         ...(dto.id_usuario && { id_usuario: BigInt(dto.id_usuario) }),
         ...(dto.estado && { estado: dto.estado }),
+        ...(dto.numero_reserva && { numero_reserva: dto.numero_reserva }),
         ...(dto.id_pelicula && {
           funciones: { id_pelicula: BigInt(dto.id_pelicula) },
         }),
@@ -174,9 +175,11 @@ export class ReservasService {
         }),
       },
       include: {
+        usuarios: { select: { nombre: true, email: true } },
         funciones: {
           select: {
             fecha_hora: true,
+            formato: true,
             peliculas: true,
             salas: {
               include: {

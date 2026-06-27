@@ -42,6 +42,11 @@ export class ReservasFilterDto {
   @IsString()
   estado!: string;
 
+  @ApiPropertyOptional({ example: 'RES-000001' })
+  @IsOptional()
+  @IsString()
+  numero_reserva!: string;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)
