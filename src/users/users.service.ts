@@ -175,6 +175,33 @@ export class UsersService {
     });
   }
 
+  async findById(id: number) {
+    const user = await this.prismaService.usuarios.findUnique({
+      where: { id: BigInt(id) },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        id_rol: true,
+        estado: true,
+        notificaciones_activas: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    return JSON.parse(
+      JSON.stringify(user, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    );
+  }
+
   async findUsersForNotifications() {
     return await this.prismaService.usuarios.findMany({
       where: {

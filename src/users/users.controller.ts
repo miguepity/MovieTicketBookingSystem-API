@@ -101,8 +101,38 @@ export class UsersController {
       id: usuario.id.toString(),
       notificaciones_activas: usuario.notificaciones_activas,
     };
-    }    
-  
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener información del usuario autenticado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Información del usuario autenticado',
+    schema: {
+      example: {
+        id: '1',
+        nombre: 'Juan Perez',
+        email: 'juan@example.com',
+        telefono: '+50211223344',
+        id_rol: '2',
+        estado: 'active',
+        notificaciones_activas: true,
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado: Token inválido o ausente',
+  })
+  async getMe(@Request() req: any) {
+    const userId = Number(req.user.userId);
+    return await this.usersService.findById(userId);
+  }
+
   @Get()
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -133,8 +163,8 @@ export class UsersController {
       );
 
     return await this.usersService.findAll(searchUserDto);
-    }
-  
+  }
+
   @Put(':id/password')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

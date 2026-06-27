@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateReservaDto {
-  @ApiProperty({ example: 1, description: 'ID del usuario que realiza la reserva' })
+  @ApiProperty({
+    example: 1,
+    description: 'ID del usuario que realiza la reserva',
+  })
   @IsNumber()
   @IsNotEmpty()
   id_usuario: number;

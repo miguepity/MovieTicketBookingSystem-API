@@ -28,7 +28,9 @@ export class PoliticaCancelacionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todas las reglas de política de cancelación' })
+  @ApiOperation({
+    summary: 'Obtener todas las reglas de política de cancelación',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de políticas de cancelación',

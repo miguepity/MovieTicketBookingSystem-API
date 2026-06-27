@@ -82,7 +82,6 @@ export class PeliculasService {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return await this.prisma.peliculas.findMany({
       where: {
         activo: true,
@@ -111,7 +110,6 @@ export class PeliculasService {
     updatePeliculaDto: UpdatePeliculaDto,
     idUsuario: number,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const pelicula = await this.prisma.peliculas.findUnique({
       where: { id: BigInt(id) },
     });
@@ -119,7 +117,7 @@ export class PeliculasService {
     if (!pelicula) {
       throw new NotFoundException(`Película no encontrada`);
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     return await this.prisma.peliculas.update({
       where: { id: BigInt(id) },
       data: {

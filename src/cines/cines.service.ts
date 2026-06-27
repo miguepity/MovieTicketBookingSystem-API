@@ -13,7 +13,7 @@ export class CinesService {
 
   async crearCine(dto: CreateCineDto) {
     // Verificar que la ciudad existe
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     const ciudad = await this.prisma.ciudades.findUnique({
       where: { id: BigInt(dto.id_ciudad) },
     });
@@ -25,7 +25,7 @@ export class CinesService {
     }
 
     // Verificar nombre unico por ciudad
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     const cineExistente = await this.prisma.cines.findFirst({
       where: {
         nombre: dto.nombre,
@@ -39,7 +39,6 @@ export class CinesService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return await this.prisma.cines.create({
       data: {
         nombre: dto.nombre,
@@ -56,7 +55,6 @@ export class CinesService {
     });
   }
   async getCine(id: number) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const cine = await this.prisma.cines.findUnique({
       where: { id: BigInt(id) },
       select: {
@@ -92,7 +90,6 @@ export class CinesService {
       throw new NotFoundException(`Cine con id ${id} no encontrado`);
     }
     if (dto.id_ciudad) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const ciudad = await this.prisma.ciudades.findUnique({
         where: { id: BigInt(dto.id_ciudad) },
       });
@@ -105,7 +102,7 @@ export class CinesService {
 
     if (dto.nombre) {
       const idCiudad = dto.id_ciudad ?? Number(cine.id_ciudad);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
       const cineExistente = await this.prisma.cines.findFirst({
         where: {
           nombre: dto.nombre,
@@ -120,7 +117,6 @@ export class CinesService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return await this.prisma.cines.update({
       where: { id: BigInt(id) },
       data: {
@@ -139,7 +135,6 @@ export class CinesService {
   }
 
   async getCines() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return await this.prisma.cines.findMany({
       select: {
         id: true,

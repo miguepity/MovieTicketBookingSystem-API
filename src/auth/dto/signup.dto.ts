@@ -13,18 +13,28 @@ export class SignupDto {
   @IsNotEmpty()
   nombre: string;
 
-  @ApiProperty({ example: 'juan@example.com', description: 'Correo electrónico' })
+  @ApiProperty({
+    example: 'juan@example.com',
+    description: 'Correo electrónico',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ example: 'password123', description: 'Contraseña (mínimo 6 caracteres)' })
+  @ApiProperty({
+    example: 'password123',
+    description: 'Contraseña (mínimo 6 caracteres)',
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
   password: string;
 
-  @ApiProperty({ example: '+50212345678', description: 'Teléfono', required: false })
+  @ApiProperty({
+    example: '+50212345678',
+    description: 'Teléfono',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   telefono?: string;
