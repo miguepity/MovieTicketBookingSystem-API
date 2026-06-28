@@ -154,6 +154,24 @@ export class ReservasService {
   async findAll() {
     const reservas = await this.prisma.reservas.findMany({
       include: {
+        usuarios: true,
+
+        funciones: {
+          include: {
+            peliculas: true,
+
+            salas: {
+              include: {
+                cines: {
+                  include: {
+                    ciudades: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+
         reservaAsientos: {
           include: {
             asientosfuncion: {
@@ -165,6 +183,7 @@ export class ReservasService {
         },
       },
     });
+
     return this.serialize(reservas);
   }
 
