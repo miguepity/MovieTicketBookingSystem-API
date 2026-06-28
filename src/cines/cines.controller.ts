@@ -7,6 +7,8 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  Delete,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -167,5 +169,54 @@ export class CinesController {
       id: c.id.toString(),
       id_ciudad: c.id_ciudad.toString(),
     }));
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    description: 'Desactivar un cine por su ID (soft delete)',
+    responses: {
+      200: {
+        description: 'Cine desactivado exitosamente',
+        content: {
+          'application/json': {
+            example: { message: 'Cine con id 1 desactivado exitosamente' },
+          },
+        },
+      },
+      401: { description: 'No autorizado' },
+      404: { description: 'Cine no encontrado' },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  @ApiParam({ name: 'id', description: 'ID del cine a desactivar' })
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    return this.cinesService.delete(id);
+  }
+
+  @Patch(':id/reactivar')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    description: 'Reactivar un cine desactivado',
+    responses: {
+      200: {
+        description: 'Cine reactivado exitosamente',
+        content: {
+          'application/json': {
+            example: { message: 'Cine con id 1 reactivado exitosamente' },
+          },
+        },
+      },
+      400: { description: 'El cine ya está activo' },
+      401: { description: 'No autorizado' },
+      404: { description: 'Cine no encontrado' },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  @ApiParam({ name: 'id', description: 'ID del cine a reactivar' })
+  async reactivar(@Param('id', ParseIntPipe) id: number) {
+    return this.cinesService.reactivar(id);
   }
 }
