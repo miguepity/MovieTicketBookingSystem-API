@@ -20,6 +20,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { PagosService } from './pagos.service';
 import { ListPagosQueryDto } from './dto/list-pagos-query.dto';
+import { AdminPagoPageResponseDto, AdminPagoRowDto } from './dto/pago.response.dto';
 
 @ApiTags('admin/pagos')
 @ApiBearerAuth()
@@ -33,7 +34,7 @@ export class AdminPagosController {
 
   @Get()
   @ApiOperation({ summary: 'Listado paginado de todos los pagos (admin)' })
-  @ApiOkResponse({ description: 'Página de pagos con datos de cliente y cine' })
+  @ApiOkResponse({ type: AdminPagoPageResponseDto, description: 'Página de pagos con datos de cliente y cine' })
   list(@Query() q: ListPagosQueryDto) {
     return this.pagos.findAdminPaginated(q);
   }
@@ -41,7 +42,7 @@ export class AdminPagosController {
   @Get('reserva/:idReserva')
   @ApiOperation({ summary: 'Pagos de una reserva específica (admin)' })
   @ApiParam({ name: 'idReserva', description: 'ID numérico de la reserva' })
-  @ApiOkResponse({ description: 'Array de pagos de la reserva' })
+  @ApiOkResponse({ type: AdminPagoRowDto, isArray: true, description: 'Array de pagos de la reserva' })
   @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
   byReserva(@Param('idReserva') idReserva: string) {
     return this.pagos.findByReserva(BigInt(idReserva));
@@ -50,7 +51,7 @@ export class AdminPagosController {
   @Get(':id')
   @ApiOperation({ summary: 'Detalle de un pago por ID (admin)' })
   @ApiParam({ name: 'id', description: 'ID numérico del pago' })
-  @ApiOkResponse({ description: 'Detalle del pago' })
+  @ApiOkResponse({ type: AdminPagoRowDto, description: 'Detalle del pago' })
   @ApiNotFoundResponse({ description: 'Pago no encontrado' })
   one(@Param('id') id: string) {
     return this.pagos.findOneAdmin(BigInt(id));

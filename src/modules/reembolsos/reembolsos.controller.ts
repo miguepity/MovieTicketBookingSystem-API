@@ -27,6 +27,13 @@ import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-use
 import { ListReembolsosQueryDto } from './dto/list-reembolsos-query.dto';
 import { ProcesarReembolsoDto } from './dto/procesar-reembolso.dto';
 import { RechazarReembolsoDto } from './dto/rechazar-reembolso.dto';
+import {
+  AdminReembolsoPageResponseDto,
+  AdminReembolsoRowDto,
+  ProcesarReembolsoResponseDto,
+  RechazarReembolsoResponseDto,
+  ReembolsosKpisResponseDto,
+} from './dto/reembolso.response.dto';
 
 @ApiTags('admin/reembolsos')
 @ApiBearerAuth()
@@ -40,14 +47,14 @@ export class ReembolsosController {
 
   @Get()
   @ApiOperation({ summary: 'Listado paginado de reembolsos (admin)' })
-  @ApiOkResponse({ description: 'Página de reembolsos con datos enriquecidos' })
+  @ApiOkResponse({ type: AdminReembolsoPageResponseDto, description: 'Página de reembolsos con datos enriquecidos' })
   list(@Query() q: ListReembolsosQueryDto) {
     return this.reembolsosService.findAdminPaginated(q);
   }
 
   @Get('kpis')
   @ApiOperation({ summary: 'KPIs de reembolsos (admin)' })
-  @ApiOkResponse({ description: 'Métricas: pendientes, en_procesamiento, monto_pendiente, completados_30d' })
+  @ApiOkResponse({ type: ReembolsosKpisResponseDto, description: 'Métricas: pendientes, en_procesamiento, monto_pendiente, completados_30d' })
   kpis() {
     return this.reembolsosService.kpis();
   }
@@ -55,7 +62,7 @@ export class ReembolsosController {
   @Get(':id')
   @ApiOperation({ summary: 'Detalle de un reembolso por ID (admin)' })
   @ApiParam({ name: 'id', description: 'ID numérico del reembolso' })
-  @ApiOkResponse({ description: 'Detalle del reembolso' })
+  @ApiOkResponse({ type: AdminReembolsoRowDto, description: 'Detalle del reembolso' })
   @ApiNotFoundResponse({ description: 'Reembolso no encontrado' })
   one(@Param('id') id: string) {
     return this.reembolsosService.findOneAdmin(BigInt(id));
@@ -64,7 +71,7 @@ export class ReembolsosController {
   @Patch(':id/procesar')
   @ApiOperation({ summary: 'Procesar reembolso pendiente (admin)' })
   @ApiParam({ name: 'id', description: 'ID numérico del reembolso' })
-  @ApiOkResponse({ description: 'Reembolso procesado' })
+  @ApiOkResponse({ type: ProcesarReembolsoResponseDto, description: 'Reembolso procesado' })
   @ApiNotFoundResponse({ description: 'Reembolso no encontrado' })
   @ApiConflictResponse({ description: 'El reembolso no está en estado pendiente' })
   procesar(
@@ -78,7 +85,7 @@ export class ReembolsosController {
   @Patch(':id/rechazar')
   @ApiOperation({ summary: 'Rechazar reembolso pendiente (admin)' })
   @ApiParam({ name: 'id', description: 'ID numérico del reembolso' })
-  @ApiOkResponse({ description: 'Reembolso rechazado' })
+  @ApiOkResponse({ type: RechazarReembolsoResponseDto, description: 'Reembolso rechazado' })
   @ApiNotFoundResponse({ description: 'Reembolso no encontrado' })
   @ApiConflictResponse({ description: 'El reembolso no está en estado pendiente' })
   rechazar(

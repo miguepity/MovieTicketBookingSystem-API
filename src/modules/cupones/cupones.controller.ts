@@ -30,6 +30,12 @@ import {
   ApiUnauthorizedResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import {
+  CuponResponseDto,
+  CuponActivoResponseDto,
+  ValidarCuponResponseDto,
+  CuponEliminadoResponseDto,
+} from './dto/cupon-response.dto';
 
 @ApiTags('Cupones')
 @Controller('cupones')
@@ -38,7 +44,7 @@ export class CuponesController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todos los cupones' })
-  @ApiOkResponse({ description: 'Listado de cupones' })
+  @ApiOkResponse({ type: CuponResponseDto, isArray: true, description: 'Listado de cupones' })
   findAll() {
     return this.cuponesService.findAll();
   }
@@ -46,7 +52,7 @@ export class CuponesController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un cupón por ID' })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
-  @ApiOkResponse({ description: 'Cupón encontrado' })
+  @ApiOkResponse({ type: CuponResponseDto, description: 'Cupón encontrado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   findOne(@Param('id') id: string) {
@@ -58,7 +64,7 @@ export class CuponesController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Crear un cupón nuevo' })
-  @ApiCreatedResponse({ description: 'Cupón creado exitosamente' })
+  @ApiCreatedResponse({ type: CuponResponseDto, description: 'Cupón creado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'Ya existe un cupón con ese código' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -72,7 +78,7 @@ export class CuponesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Actualizar un cupón existente' })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
-  @ApiOkResponse({ description: 'Cupón actualizado exitosamente' })
+  @ApiOkResponse({ type: CuponResponseDto, description: 'Cupón actualizado exitosamente' })
   @ApiBadRequestResponse({ description: 'ID inválido o datos inválidos' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiConflictResponse({ description: 'Ya existe un cupón con ese código' })
@@ -88,7 +94,7 @@ export class CuponesController {
   @Post('validar')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validar un cupón por código' })
-  @ApiOkResponse({ description: 'Cupón válido' })
+  @ApiOkResponse({ type: ValidarCuponResponseDto, description: 'Cupón válido' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiConflictResponse({
@@ -106,7 +112,7 @@ export class CuponesController {
   @ApiOperation({ summary: 'Establecer el estado activo/inactivo de un cupón' })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
   @ApiBody({ type: SetActivoCuponDto })
-  @ApiOkResponse({ description: 'Estado del cupón actualizado' })
+  @ApiOkResponse({ type: CuponActivoResponseDto, description: 'Estado del cupón actualizado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -131,7 +137,7 @@ export class CuponesController {
     deprecated: true,
   })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
-  @ApiOkResponse({ description: 'Estado del cupón actualizado' })
+  @ApiOkResponse({ type: CuponActivoResponseDto, description: 'Estado del cupón actualizado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -148,7 +154,7 @@ export class CuponesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar un cupón' })
   @ApiParam({ name: 'id', description: 'ID del cupón', example: '1' })
-  @ApiOkResponse({ description: 'Cupón eliminado exitosamente' })
+  @ApiOkResponse({ type: CuponEliminadoResponseDto, description: 'Cupón eliminado exitosamente' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   @ApiNotFoundResponse({ description: 'Cupón no existe' })
   @ApiConflictResponse({

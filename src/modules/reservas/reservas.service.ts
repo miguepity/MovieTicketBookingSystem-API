@@ -601,6 +601,11 @@ export class ReservasService {
               },
             },
           },
+          pagos: {
+            orderBy: { created_at: 'desc' as const },
+            take: 1,
+            select: { monto_final: true },
+          },
         },
       }),
       this.prisma.reservas.count({ where }),
@@ -615,11 +620,14 @@ export class ReservasService {
   }
 
   private toAdminReservaRow(r: any) {
+    const pago = r.pagos?.[0] ?? null;
     return {
       id: r.id.toString(),
       numero_reserva: r.numero_reserva,
       estado: r.estado,
       created_at: r.created_at,
+      updated_at: r.updated_at,
+      monto_total: pago ? pago.monto_final.toString() : null,
       cliente: {
         id: r.usuarios.id.toString(),
         nombre: r.usuarios.nombre,
@@ -696,6 +704,8 @@ export class ReservasService {
       monto_total: pago ? pago.monto_final.toString() : null,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      notas_internas: r.notas_internas ?? null,
+      expira_en: r.expira_en ? r.expira_en.toISOString() : null,
       cliente: {
         id: r.usuarios.id.toString(),
         nombre: r.usuarios.nombre,
@@ -734,6 +744,117 @@ export class ReservasService {
             created_at: pago.created_at,
           }
         : null,
+    };
+  }
+
+  async findCobrarByNumero(numero: string) {
+    const r = await this.prisma.reservas.findUnique({
+      where: { numero_reserva: numero },
+      include: {
+        usuarios: { select: { id: true, nombre: true, email: true, telefono: true } },
+        funciones: {
+          select: {
+            id: true,
+            fecha_hora: true,
+            peliculas: { select: { id: true, titulo: true } },
+            salas: {
+              select: {
+                id: true,
+                nombre: true,
+                id_cine: true,
+                cines: { select: { id: true, nombre: true } },
+              },
+            },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: {
+                asientos: {
+                  include: { tipoAsiento: { select: { id: true, nombre: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!r) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'Reserva no encontrada',
+      });
+    }
+
+    const idCine = r.funciones.salas.id_cine;
+    const tiposAsientoIds: bigint[] = Array.from(
+      new Set<bigint>(
+        r.reservaAsientos.map(
+          (ra: any) => ra.asientosfuncion.asientos.id_tipo_asiento as bigint,
+        ),
+      ),
+    );
+
+    const precios = await this.prisma.preciosCine.findMany({
+      where: { id_cine: idCine, id_tipo_asiento: { in: tiposAsientoIds } },
+      select: { id_tipo_asiento: true, precio: true },
+    });
+    const precioPorTipo = new Map(
+      precios.map((p) => [p.id_tipo_asiento, Number(p.precio.toString())]),
+    );
+
+    const asientos = r.reservaAsientos.map((ra: any) => {
+      const asiento = ra.asientosfuncion.asientos;
+      const precio = precioPorTipo.get(asiento.id_tipo_asiento);
+      if (precio === undefined) {
+        throw new ConflictException({
+          code: 'PRECIO_NO_CONFIGURADO',
+          message: `El cine no tiene precio configurado para el tipo "${asiento.tipoAsiento.nombre}"`,
+        });
+      }
+      return {
+        id: asiento.id.toString(),
+        codigo: asiento.codigo,
+        tipo: asiento.tipoAsiento.nombre,
+        precio,
+      };
+    });
+
+    const monto_total = asientos.reduce((s, a) => s + a.precio, 0);
+
+    return {
+      id: r.id.toString(),
+      numero_reserva: r.numero_reserva,
+      estado: r.estado,
+      created_at: r.created_at,
+      expira_en: r.expira_en ?? null,
+      cliente: {
+        id: r.usuarios.id.toString(),
+        nombre: r.usuarios.nombre,
+        email: r.usuarios.email,
+        telefono: r.usuarios.telefono ?? null,
+      },
+      pelicula: {
+        id: r.funciones.peliculas.id.toString(),
+        titulo: r.funciones.peliculas.titulo,
+      },
+      funcion: {
+        id: r.funciones.id.toString(),
+        fecha_hora: r.funciones.fecha_hora,
+      },
+      sala: {
+        id: r.funciones.salas.id.toString(),
+        nombre: r.funciones.salas.nombre,
+      },
+      cine: {
+        id: r.funciones.salas.cines.id.toString(),
+        nombre: r.funciones.salas.cines.nombre,
+      },
+      asientos,
+      num_asientos: asientos.length,
+      monto_total,
     };
   }
 

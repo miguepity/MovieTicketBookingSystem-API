@@ -16,6 +16,7 @@ import { CrearPagoEfectivoDto } from './dto/crear-pago-efectivo.dto';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-user.decorator';
+import { PagoCreatedResponseDto } from './dto/pago.response.dto';
 
 @ApiTags('Pagos')
 @Controller('pagos')
@@ -26,7 +27,7 @@ export class PagosController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear un pago para una reserva' })
-  @ApiCreatedResponse({ description: 'Pago procesado exitosamente' })
+  @ApiCreatedResponse({ type: PagoCreatedResponseDto, description: 'Pago procesado exitosamente' })
   @ApiBadRequestResponse({
     description: 'Datos inválidos o cupón no válido',
   })
@@ -51,9 +52,7 @@ export class PagosController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Registrar un pago en efectivo (solo admin (caja))' })
-  @ApiCreatedResponse({
-    description: 'Pago en efectivo registrado exitosamente',
-  })
+  @ApiCreatedResponse({ type: PagoCreatedResponseDto, description: 'Pago en efectivo registrado exitosamente' })
   @ApiBadRequestResponse({
     description: 'Datos inválidos o cupón no válido',
   })

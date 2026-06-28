@@ -35,6 +35,18 @@ export class ReportesReservasListItemResponseDto {
   funcion!: ReporteFuncionDto;
 
   @ApiProperty({
+    description: 'Cantidad de asientos en la reserva',
+    example: 2,
+  })
+  numAsientos!: number;
+
+  @ApiProperty({
+    description: 'Monto total de la reserva (monto_final del pago exitoso más reciente; 0 si no hay pago exitoso)',
+    example: 350.00,
+  })
+  montoTotal!: number;
+
+  @ApiProperty({
     description: 'Fecha de creación de la reserva',
     type: String,
     format: 'date-time',

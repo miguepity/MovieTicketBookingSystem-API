@@ -14,7 +14,6 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -27,6 +26,7 @@ import type { CurrentUserPayload } from '../auth/decorators/current-user.decorat
 import { MetodosPagoService } from './metodos-pago.service';
 import { CrearMetodoPagoDto } from './dto/crear-metodo-pago.dto';
 import { MetodoPagoResponseDto } from './dto/metodo-pago-response.dto';
+import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 
 @ApiTags('me')
 @ApiBearerAuth()
@@ -60,16 +60,16 @@ export class MetodosPagoController {
   }
 
   @Delete(':id')
-  @HttpCode(204)
   @ApiOperation({ summary: 'Eliminar un método guardado' })
-  @ApiNoContentResponse({ description: 'Eliminado' })
+  @ApiOkResponse({ type: DeleteResponseDto, description: 'Método de pago eliminado' })
   @ApiNotFoundResponse({ description: 'No existe o no es tuyo' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(
+  async remove(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
-  ): Promise<void> {
-    return this.svc.remove(BigInt(user.userId), BigInt(id));
+  ): Promise<DeleteResponseDto> {
+    await this.svc.remove(BigInt(user.userId), BigInt(id));
+    return { id };
   }
 
   @Patch(':id/predeterminada')

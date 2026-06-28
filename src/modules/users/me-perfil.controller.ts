@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -10,6 +17,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
+import { PerfilResponseDto } from './dto/perfil-response.dto';
+import { UpdatePerfilResponseDto } from './dto/update-perfil-response.dto';
 
 @ApiTags('me')
 @ApiBearerAuth()
@@ -23,15 +32,7 @@ export class MePerfilController {
   @ApiResponse({
     status: 200,
     description: 'Perfil del usuario autenticado.',
-    schema: {
-      example: {
-        id: '1',
-        nombre: 'Juan Pérez',
-        email: 'juan@example.com',
-        telefono: '+502 1234 5678',
-        notificaciones_activas: true,
-      },
-    },
+    type: PerfilResponseDto,
   })
   @ApiResponse({ status: 401, description: 'No autenticado.' })
   get(@CurrentUser() user: CurrentUserPayload) {
@@ -47,15 +48,7 @@ export class MePerfilController {
   @ApiResponse({
     status: 200,
     description: 'Perfil actualizado exitosamente.',
-    schema: {
-      example: {
-        id: '1',
-        nombre: 'Juan Pérez',
-        email: 'juan@example.com',
-        telefono: '+502 1234 5678',
-        notificaciones_activas: true,
-      },
-    },
+    type: UpdatePerfilResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   @ApiResponse({ status: 401, description: 'No autenticado.' })
@@ -65,5 +58,19 @@ export class MePerfilController {
     @Body() dto: UpdatePerfilDto,
   ) {
     return this.users.updatePerfil(BigInt(user.userId), dto);
+  }
+
+  @Delete('cuenta')
+  @ApiOperation({
+    summary: 'Eliminar cuenta del usuario autenticado',
+    description:
+      'Soft-delete del usuario autenticado: la cuenta queda con estado="eliminado" y no podrá volver a iniciar sesión. Los datos históricos (reservas, pagos) se conservan.',
+  })
+  @ApiResponse({ status: 200, description: 'Cuenta eliminada exitosamente.' })
+  @ApiResponse({ status: 400, description: 'La cuenta ya está eliminada.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  delete(@CurrentUser() user: CurrentUserPayload) {
+    return this.users.softDeleteMe(user.userId);
   }
 }

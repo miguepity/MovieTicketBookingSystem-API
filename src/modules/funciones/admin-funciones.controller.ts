@@ -1,10 +1,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { FuncionesService } from './funciones.service';
 import { CheckConflictosQueryDto } from './dto/check-conflictos-query.dto';
+import { FuncionConflictDto } from './dto/funcion-response.dto';
 
 @ApiTags('admin/funciones')
 @ApiBearerAuth()
@@ -18,6 +19,7 @@ export class AdminFuncionesController {
   @ApiOperation({
     summary: 'Verificar conflictos de horario para una sala y función',
   })
+  @ApiOkResponse({ type: FuncionConflictDto, isArray: true, description: 'Lista de conflictos de horario' })
   conflictos(@Query() q: CheckConflictosQueryDto) {
     return this.svc.checkConflictos({
       id_cine: BigInt(q.id_cine),

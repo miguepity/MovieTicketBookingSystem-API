@@ -27,6 +27,7 @@ import { CreateCineDto } from './dto/create-cine.dto';
 import { ListCinesQueryDto } from './dto/list-cines-query.dto';
 import { CineCreatedResponseDto } from './dto/cine-created-response.dto';
 import { CinesPageResponseDto } from './dto/cines-page.response.dto';
+import { CineDetailResponseDto } from './dto/cine-detail-response.dto';
 import { UpdateCineDto } from './dto/update-cine.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -42,7 +43,7 @@ export class CineController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un cine' })
-  @ApiCreatedResponse({ type: CreateCineDto })
+  @ApiCreatedResponse({ type: CineCreatedResponseDto })
   @ApiBadRequestResponse({
     description: 'Ciudad inexistente o payload invalido',
   })
@@ -65,14 +66,14 @@ export class CineController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un cine por ID' })
   @ApiBadRequestResponse({ description: 'ID de cine inválido' })
-  @ApiOkResponse({ type: CineCreatedResponseDto })
+  @ApiOkResponse({ type: CineDetailResponseDto })
   findOne(@Param('id') id: string) {
     return this.cineService.findOne(id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un cine' })
-  @ApiOkResponse({ description: 'Cine actualizado exitosamente' })
+  @ApiOkResponse({ type: CineDetailResponseDto, description: 'Cine actualizado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Cine no encontrado' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -90,7 +91,7 @@ export class CineController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Activar/desactivar un cine' })
-  @ApiOkResponse({ description: 'Estado actualizado' })
+  @ApiOkResponse({ type: CineDetailResponseDto, description: 'Estado actualizado' })
   @ApiNotFoundResponse({ description: 'Cine no encontrado' })
   @ApiBadRequestResponse({ description: 'Payload inválido' })
   setActivo(
@@ -104,7 +105,7 @@ export class CineController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Eliminar un cine' })
-  @ApiOkResponse({ description: 'Cine eliminado exitosamente.' })
+  @ApiOkResponse({ type: CineDetailResponseDto, description: 'Cine eliminado exitosamente.' })
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {

@@ -66,4 +66,22 @@ export class CreateCuponDto {
   @Min(1)
   @Max(1000000)
   usos_maximos?: number;
+
+  @ApiPropertyOptional({
+    description: 'Título descriptivo del cupón',
+    example: 'Promo Verano',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  titulo?: string;
+
+  @ApiPropertyOptional({
+    description: 'Descripción larga del cupón',
+    example: 'Disfruta un 10 % de descuento en tu primera compra.',
+  })
+  @IsOptional()
+  @IsString()
+  descripcion?: string;
 }

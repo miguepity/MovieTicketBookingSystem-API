@@ -13,4 +13,10 @@ export class ReporteUsuarioDto {
     example: 'María García López',
   })
   nombre!: string;
+
+  @ApiProperty({
+    description: 'Email del usuario',
+    example: 'maria.garcia@ejemplo.com',
+  })
+  email!: string;
 }

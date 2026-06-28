@@ -65,4 +65,54 @@ export class ListReporteReservasQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+
+  @ApiPropertyOptional({
+    description: 'Búsqueda libre: matchea numero_reserva, nombre del usuario o email del usuario (case-insensitive contains)',
+    example: 'RES-2026',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por ID de cine exacto',
+    example: '1',
+  })
+  @IsOptional()
+  @IsString()
+  idCine?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por ID de ciudad exacto (resuelto vía cine.id_ciudad)',
+    example: '1',
+  })
+  @IsOptional()
+  @IsString()
+  idCiudad?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por ID de película exacto (resuelto vía funcion.id_pelicula)',
+    example: '5',
+  })
+  @IsOptional()
+  @IsString()
+  idPelicula?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar reservas creadas a partir de esta fecha (ISO 8601). Si se provee con `hasta`, forma rango sobre created_at.',
+    format: 'date-time',
+    example: '2026-06-01T00:00:00.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  desde?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar reservas creadas hasta esta fecha (ISO 8601). Si se provee con `desde`, forma rango sobre created_at.',
+    format: 'date-time',
+    example: '2026-06-30T23:59:59.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  hasta?: string;
 }

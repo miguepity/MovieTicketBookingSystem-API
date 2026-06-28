@@ -19,6 +19,7 @@ import { ChangeEmailDto } from './dto/change-email.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthResponse } from './entities/auth-response.entity';
+import { MessageResponseDto } from '../../common/dto/message-response.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { CurrentUserPayload } from './decorators/current-user.decorator';
@@ -68,12 +69,7 @@ export class AuthController {
     status: 200,
     description:
       'Email de recuperación enviado (respuesta genérica por seguridad).',
-    schema: {
-      example: {
-        message:
-          'Si el email está registrado, recibirás un enlace para restablecer tu contraseña.',
-      },
-    },
+    type: MessageResponseDto,
   })
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
@@ -88,7 +84,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Contraseña actualizada exitosamente.',
-    schema: { example: { message: 'Contraseña actualizada exitosamente' } },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -109,7 +105,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Sesión cerrada exitosamente.',
-    schema: { example: { message: 'Sesión cerrada exitosamente' } },
+    type: MessageResponseDto,
   })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   logout(@CurrentUser() user: CurrentUserPayload) {

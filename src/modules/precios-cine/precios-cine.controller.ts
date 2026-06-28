@@ -29,6 +29,8 @@ import { ListPreciosCineQueryDto } from './dto/list-precios-cine-query.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import { PrecioCineResponseDto } from './dto/precio-cine.response.dto';
+import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 
 @ApiTags('Precios por cine')
 @Controller('precios-cine')
@@ -39,14 +41,14 @@ export class PreciosCineController {
   @ApiOperation({
     summary: 'Listar precios por cine, con filtros opcionales',
   })
-  @ApiOkResponse({ description: 'Listado de precios' })
+  @ApiOkResponse({ type: PrecioCineResponseDto, isArray: true, description: 'Listado de precios' })
   findAll(@Query() query: ListPreciosCineQueryDto) {
     return this.preciosCineService.findAll(query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un precio por ID' })
-  @ApiOkResponse({ description: 'Precio encontrado' })
+  @ApiOkResponse({ type: PrecioCineResponseDto, description: 'Precio encontrado' })
   @ApiNotFoundResponse({ description: 'Precio no encontrado' })
   @ApiBadRequestResponse({ description: 'ID inválido' })
   findOne(@Param('id') id: string) {
@@ -58,7 +60,7 @@ export class PreciosCineController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear precio para un (cine, tipo de asiento)' })
-  @ApiCreatedResponse({ description: 'Precio creado exitosamente' })
+  @ApiCreatedResponse({ type: PrecioCineResponseDto, description: 'Precio creado exitosamente' })
   @ApiBadRequestResponse({
     description: 'Cine o tipo de asiento inexistente, o payload inválido',
   })
@@ -77,7 +79,7 @@ export class PreciosCineController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar el precio (solo el monto)' })
-  @ApiOkResponse({ description: 'Precio actualizado exitosamente' })
+  @ApiOkResponse({ type: PrecioCineResponseDto, description: 'Precio actualizado exitosamente' })
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiNotFoundResponse({ description: 'Precio no encontrado' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
@@ -93,7 +95,7 @@ export class PreciosCineController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar un precio' })
-  @ApiOkResponse({ description: 'Precio eliminado exitosamente' })
+  @ApiOkResponse({ type: DeleteResponseDto, description: 'Precio eliminado exitosamente' })
   @ApiNotFoundResponse({ description: 'Precio no encontrado' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
