@@ -48,7 +48,7 @@ export class PoliticasCancelacionController {
   @Get()
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'CLIENTE', 'RECEPCIONISTA')
+  @Roles('ADMIN', 'CLIENTE')
   @ApiOperation({ summary: 'Listar todas las políticas de cancelación' })
   @ApiResponse({
     status: 200,
@@ -61,7 +61,7 @@ export class PoliticasCancelacionController {
   @Get(':id')
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'CLIENTE', 'RECEPCIONISTA')
+  @Roles('ADMIN', 'CLIENTE')
   @ApiOperation({ summary: 'Obtener una política de cancelación por su ID' })
   @ApiResponse({
     status: 200,

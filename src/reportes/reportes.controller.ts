@@ -10,7 +10,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 @ApiTags('Admin Reportes')
 @ApiBearerAuth('token')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'RECEPCIONISTA')
 @Controller('admin/reportes')
 export class ReportesController {
   constructor(private readonly reportesService: ReportesService) {}
