@@ -103,6 +103,9 @@ export class UsersService {
         email: true,
         telefono: true,
         estado: true,
+        created_at: true,
+        updated_at: true,
+        roles: { select: { id: true, nombre: true } },
       },
       orderBy: { nombre: 'asc' },
     });
@@ -110,7 +113,12 @@ export class UsersService {
     return {
       message: 'Clientes encontrados',
       total: usuarios.length,
-      data: usuarios.map((u) => ({ ...u, id: Number(u.id) })),
+      data: usuarios.map((u) => ({
+        ...u,
+        id: Number(u.id),
+        rol: u.roles?.nombre,
+        roles: u.roles ? { id: Number(u.roles.id), nombre: u.roles.nombre } : u.roles,
+      })),
     };
   }
 
@@ -133,7 +141,9 @@ export class UsersService {
         email: true,
         telefono: true,
         estado: true,
-        roles: { select: { nombre: true } },
+        created_at: true,
+        updated_at: true,
+        roles: { select: { id: true, nombre: true } },
       },
       orderBy: { nombre: 'asc' },
     });
@@ -145,6 +155,7 @@ export class UsersService {
         ...u,
         id: Number(u.id),
         rol: u.roles.nombre,
+        roles: { id: Number(u.roles.id), nombre: u.roles.nombre },
       })),
     };
   }
@@ -218,6 +229,30 @@ export class UsersService {
 
     const { password_hash, ...dataSinPassword } = actualizado;
     return { message: 'Usuario actualizado', data: dataSinPassword };
+  }
+
+  async cambiarPassword(id: string, password: string, auditorId: number) {
+    const usuario = await this.prisma.usuarios.findUnique({ where: { id: BigInt(id) } });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.usuarios.update({
+        where: { id: BigInt(id) },
+        data: { password_hash: passwordHash },
+      }),
+      this.prisma.auditLog.create({
+        data: {
+          id_usuario: BigInt(id),
+          id_auditor: BigInt(auditorId),
+          accion: 'PASSWORD_ACTUALIZADA',
+          detalle: `Contraseña del usuario ${id} actualizada por administrador`,
+        },
+      }),
+    ]);
+
+    return { message: 'Contraseña actualizada correctamente' };
   }
 
   async eliminarUsuario(id: string, auditorId: number) {

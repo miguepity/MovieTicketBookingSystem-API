@@ -3,6 +3,7 @@ import { ApiTags, ApiResponse, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, 
 import { UsersService } from './users.service.js';
 import { QueryUsuariosDto } from './dto/query-usuarios.dto.js';
 import { CambiarEstadoDto } from './dto/cambiar-estado.dto.js';
+import { CambiarPasswordDto } from './dto/cambiar-password.dto.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../guards/roles.guard.js';
@@ -82,6 +83,22 @@ export class UsersController {
     @CurrentUser('id') auditorId: number,
   ) {
     return this.usersService.editarUsuario(id, dto, auditorId);
+  }
+
+  @Patch(':id/password')
+  @ApiOperation({ summary: 'Cambiar la contraseña de un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario a modificar', example: '1' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Contraseña inválida.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @Roles('ADMIN')
+  cambiarPassword(
+    @Param('id') id: string,
+    @Body() dto: CambiarPasswordDto,
+    @CurrentUser('id') auditorId: number,
+  ) {
+    return this.usersService.cambiarPassword(id, dto.password, auditorId);
   }
 
   @Delete(':id')
