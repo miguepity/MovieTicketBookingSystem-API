@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { CreateCiudadeDto } from './dto/create-ciudade.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -11,12 +12,28 @@ export class CiudadesService {
   constructor(private prismaService: PrismaService) {}
 
   async create(createCiudadeDto: CreateCiudadeDto) {
+    const newCiudad = this.normalizar(createCiudadeDto.nombre);
+
+    const ciudades = await this.prismaService.ciudades.findMany();
+    const existe = ciudades.find(
+      (c) => this.normalizar(c.nombre) === newCiudad,
+    );
+
+    if (existe) {
+      throw new ConflictException(
+        `Ya existe una ciudad con el nombre "${createCiudadeDto.nombre}"`,
+      );
+    }
+
     return await this.prismaService.ciudades.create({ data: createCiudadeDto });
   }
 
   async findAll() {
-    return await this.prismaService.ciudades.findMany();
+    return await this.prismaService.ciudades.findMany({
+      orderBy: { id: 'asc' },
+    });
   }
+
   async update(id: number, updateCiudadeDto: CreateCiudadeDto) {
     const ciudad = await this.prismaService.ciudades.findUnique({
       where: { id: BigInt(id) },
@@ -24,6 +41,22 @@ export class CiudadesService {
 
     if (!ciudad || !ciudad.activo) {
       throw new NotFoundException(`Ciudad con id ${id} no encontrada`);
+    }
+
+    if (updateCiudadeDto.nombre) {
+      const newCiudad = this.normalizar(updateCiudadeDto.nombre);
+      const ciudades = await this.prismaService.ciudades.findMany({
+        where: { NOT: { id: BigInt(id) } },
+      });
+      const existe = ciudades.find(
+        (c) => this.normalizar(c.nombre) === newCiudad,
+      );
+
+      if (existe) {
+        throw new ConflictException(
+          `Ya existe una ciudad con el nombre "${updateCiudadeDto.nombre}"`,
+        );
+      }
     }
 
     return await this.prismaService.ciudades.update({
@@ -68,5 +101,13 @@ export class CiudadesService {
     });
 
     return { message: `Ciudad con id ${id} reactivada exitosamente` };
+  }
+
+  private normalizar(texto: string): string {
+    return texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
   }
 }
