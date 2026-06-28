@@ -2,9 +2,10 @@ import { Controller, ValidationPipe, ParseIntPipe, Delete } from '@nestjs/common
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
 import { Body, Put, Param, Patch, Post, Get, Query } from '@nestjs/common';
-import { UpdateEmailDto } from './dto/update-email.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { ClientesFilterDto } from './dto/clientes-filter.dto';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -12,14 +13,14 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Put(':id')
-  @ApiOperation({ summary: 'Actualizar el email de un usuario' })
+  @ApiOperation({ summary: 'Actualizar el nombre, email y/o teléfono de un usuario' })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
-  async updateUserEmail(
+  async updateProfile(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    updateEmailDto: UpdateEmailDto,
+    updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usuariosService.updateUserEmail(id, updateEmailDto.newEmail);
+    return this.usuariosService.updateProfile(id, updateProfileDto);
   }
 
   @Put(':id/password')
@@ -45,9 +46,9 @@ export class UsuariosController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los clientes' })
-  async findAllClientes() {
-    return this.usuariosService.findAllClientes();
+  @ApiOperation({ summary: 'Listar clientes con filtros y paginación' })
+  async findAllClientes(@Query() filtro: ClientesFilterDto) {
+    return this.usuariosService.findAllClientes(filtro);
   }
 
   @Get('search')
@@ -81,6 +82,13 @@ export class UsuariosController {
   })
   getClientesSuscritos() {
     return this.usuariosService.findClientesSuscritos();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener los datos de un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usuariosService.findOne(id);
   }
 
   @Delete(':id')
