@@ -1,6 +1,7 @@
 import { PrismaService } from '../prisma/prisma.service';
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -8,10 +9,16 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class PasswordResetService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PasswordResetService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async forgotPassword(dto: ForgotPasswordDto) {
     const user = await this.prisma.usuarios.findUnique({
@@ -38,8 +45,15 @@ export class PasswordResetService {
       },
     });
 
-    // TODO: Integrar con EmailService para enviar el token
-    console.log(`Token de recuperación para ${dto.email}: ${token}`);
+    const resetLink = `${process.env.APP_URL}/reset-password?token=${token}`;
+    this.emailService
+      .sendPasswordReset(user.email, user.nombre, resetLink)
+      .catch((err: unknown) => {
+        this.logger.error(
+          'Error enviando correo de recuperación de contraseña',
+          err instanceof Error ? err.message : String(err),
+        );
+      });
 
     return {
       message:

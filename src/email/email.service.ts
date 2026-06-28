@@ -148,6 +148,28 @@ export class EmailService {
     });
   }
 
+  async sendPasswordReset(
+    to: string,
+    nombre: string,
+    resetLink: string,
+  ): Promise<void> {
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM ?? 'no-reply@movieticketing.com',
+      to,
+      subject: 'Recuperación de contraseña',
+      html: `
+      <h2>Hola, ${nombre}</h2>
+      <p>Solicitaste restablecer tu contraseña. Este enlace es válido por 1 hora.</p>
+      <a href="${resetLink}" style="padding: 10px 20px; background-color: #e50914; color: white; text-decoration: none; border-radius: 4px;">
+        Restablecer contraseña
+      </a>
+      <br/><br/>
+      <p>Si no solicitaste esto, puedes ignorar este correo.</p>
+      <p><em>El equipo de MovieTicket</em></p>
+    `,
+    });
+  }
+
   async sendNotificacionGeneral(
     to: string,
     nombre: string,
