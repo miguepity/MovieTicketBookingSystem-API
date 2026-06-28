@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateReservaDto } from './create-reserva.dto';
 import { MailService } from '../mail/mail.service';
 import { buildReservationCancellationTemplate } from '../mail/templates/reservation-cancellation.template';
-
+import { buildCashRefundNotificationTemplate } from '../mail/templates/cash-refund-notification.template';
 import { ReembolsosService } from '../reembolsos/reembolsos.service';
 
 @Injectable()
@@ -168,15 +168,14 @@ export class ReservasService {
     if (!reserva) throw new NotFoundException(`La reserva con ID ${idReserva} no existe.`);
     if (reserva.estado === 'CANCELADA') throw new BadRequestException('Esta reserva ya se encuentra cancelada.');
 
+    // Verificación: No permitir cancelar si la función ya pasó
     const ahora = new Date();
     const horaFuncion = new Date(reserva.funciones.fecha_hora);
-    const diferenciaHoras = (horaFuncion.getTime() - ahora.getTime()) / (1000 * 60 * 60);
-
-    if (diferenciaHoras < 2) {
-      throw new BadRequestException(
-        'Política de cancelación infringida: No se admiten cancelaciones con menos de 2 horas de anticipación.',
-      );
+    if (ahora >= horaFuncion) {
+      throw new BadRequestException('No se puede cancelar una reserva de una función que ya comenzó.');
     }
+
+    let reembolsoCreado: any = null;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.reservas.update({
@@ -201,7 +200,7 @@ export class ReservasService {
         const calculo = await this.reembolsosService.calcularReembolso({ id_pago: Number(pago.id) });
         
         if (Number(calculo.monto_a_reembolsar) > 0) {
-            await tx.reembolsos.create({
+            reembolsoCreado = await tx.reembolsos.create({
                 data: {
                     id_pago: pago.id,
                     monto: calculo.monto_a_reembolsar,
@@ -221,25 +220,25 @@ export class ReservasService {
           id_usuario: reserva.id_usuario,
           id_auditor: BigInt(userId),
           accion: 'RESERVA_CANCELADA',
-          detalle: `Reserva ${idReserva} cancelada y reembolso procesado automáticamente`,
+          detalle: `Reserva ${idReserva} cancelada. Reembolso procesado: ${reembolsoCreado ? 'Sí' : 'No'}`,
         },
       });
     });
 
-    await this.notifyReservationCancellation(reserva);
+    await this.notifyReservationCancellation(reserva, reembolsoCreado);
 
     return {
-      message: 'Reserva cancelada exitosamente y reembolso procesado.',
+      message: 'Reserva cancelada exitosamente.',
       idReserva,
       nuevoEstado: 'CANCELADA',
+      reembolso_procesado: !!reembolsoCreado,
     };
   }
 
-  private async notifyReservationCancellation(reserva: any) {
+  private async notifyReservationCancellation(reserva: any, reembolso: any) {
     try {
       const pago = reserva.pagos?.[0];
-      const reembolso = pago?.reembolsos?.[0];
-      const refundStatus = reembolso?.estado ?? (pago ? 'Pendiente de procesamiento' : 'No aplica');
+      const refundStatus = reembolso ? `Procesando: L ${reembolso.monto}` : 'No aplica (según política de cancelación)';
 
       await this.mailService.sendEmail({
         to: reserva.usuarios.email,
@@ -252,8 +251,23 @@ export class ReservasService {
           refundAmount: reembolso?.monto,
         }),
       });
+
+      if (reembolso && pago) {
+        await this.mailService.sendEmail({
+            to: reserva.usuarios.email,
+            subject: 'Notificación de Reembolso',
+            html: buildCashRefundNotificationTemplate({
+              paymentId: pago.id.toString(),
+              reservationNumber: reserva.numero_reserva,
+              customerName: reserva.usuarios.nombre,
+              customerEmail: reserva.usuarios.email,
+              amount: reembolso.monto.toString(),
+              note: 'Reembolso automático procesado por cancelación de reserva.'
+            }),
+        });
+      }
     } catch (error) {
-      console.error('No se pudo enviar el correo de cancelacion de reserva.', error);
+      throw new BadRequestException('No se pudo enviar el correo de cancelacion o reembolso.');
     }
   }
 }

@@ -16,9 +16,4 @@ export class CreateFuncionDto {
   @IsDateString()
   @IsNotEmpty()
   fecha_hora!: string;
-
-  @ApiProperty({ example: 'DISPONIBLE', default: 'DISPONIBLE', required: false })
-  @IsOptional()
-  @IsString()
-  estado?: string;
 }
