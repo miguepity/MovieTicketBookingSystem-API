@@ -7,6 +7,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ClientesFilterDto } from './dto/clientes-filter.dto';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -16,8 +18,7 @@ export class UsuariosService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async updateUserEmail(userId: number, newEmail: string) {
-    // Verificar que el usuario existe
+  async updateProfile(userId: number, dto: UpdateProfileDto) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(userId) },
     });
@@ -26,25 +27,34 @@ export class UsuariosService {
       throw new NotFoundException('El usuario no existe');
     }
 
-    // Verificar que el nuevo email sea diferente al actual
-    if (usuario.email === newEmail) {
-      throw new BadRequestException('El nuevo email es igual al actual');
+    if (dto.email && dto.email !== usuario.email) {
+      const emailExistente = await this.prisma.usuarios.findUnique({
+        where: { email: dto.email },
+      });
+
+      if (emailExistente) {
+        throw new BadRequestException('El email ya está en uso por otro usuario');
+      }
     }
 
-    // Verificar que el email no esté ya en uso
-    const emailExistente = await this.prisma.usuarios.findUnique({
-      where: { email: newEmail },
-    });
-
-    if (emailExistente) {
-      throw new BadRequestException('El email ya está en uso por otro usuario');
-    }
-
-    // Actualizar el email
-    return await this.prisma.usuarios.update({
+    const actualizado = await this.prisma.usuarios.update({
       where: { id: BigInt(userId) },
-      data: { email: newEmail },
+      data: {
+        ...(dto.nombre !== undefined && { nombre: dto.nombre }),
+        ...(dto.email !== undefined && { email: dto.email }),
+        ...(dto.telefono !== undefined && { telefono: dto.telefono }),
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        notificaciones_activas: true,
+        estado: true,
+      },
     });
+
+    return { ...actualizado, id: actualizado.id.toString() };
   }
 
   async updateStatus(id: number, dto: UpdateStatusDto) {
@@ -101,33 +111,50 @@ export class UsuariosService {
     return { message: 'Contraseña actualizada exitosamente.' };
   }
 
-  async findAllClientes() {
-    // Se buscan todos los usuarios cuyo rol sea 'usuario'
-    const clientes = await this.prisma.usuarios.findMany({
-      where: {
-        roles: {
-          nombre: 'cliente',
-        },
-      },
-      select: {
-        id: true,
-        nombre: true,
-        email: true,
-        telefono: true,
-        estado: true,
-        created_at: true,
-        roles: {
-          select: {
-            nombre: true,
-          },
-        },
-      },
-    });
+  async findAllClientes(filtro: ClientesFilterDto = {} as ClientesFilterDto) {
+    const page = Number(filtro.page) || 1;
+    const limit = Number(filtro.limit) || 10;
 
-    return clientes.map((cliente) => ({
-      ...cliente,
-      id: cliente.id.toString(),
-    }));
+    const where = {
+      roles: { nombre: 'cliente' },
+      ...(filtro.estado && { estado: filtro.estado }),
+      ...(filtro.q && {
+        OR: [
+          { nombre: { contains: filtro.q, mode: 'insensitive' as const } },
+          { email: { contains: filtro.q, mode: 'insensitive' as const } },
+          { telefono: { contains: filtro.q, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
+
+    const [clientes, total] = await this.prisma.$transaction([
+      this.prisma.usuarios.findMany({
+        where,
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          telefono: true,
+          estado: true,
+          created_at: true,
+          roles: { select: { nombre: true } },
+          _count: { select: { reservas: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.usuarios.count({ where }),
+    ]);
+
+    return {
+      data: clientes.map(({ id, _count, ...cliente }) => ({
+        ...cliente,
+        id: id.toString(),
+        reservas_count: _count.reservas,
+      })),
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async searchClientes(q?: string) {
@@ -157,6 +184,26 @@ export class UsuariosService {
       ...cliente,
       id: cliente.id.toString(),
     }));
+  }
+
+  async findOne(id: number) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        notificaciones_activas: true,
+        estado: true,
+      },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado.`);
+    }
+
+    return { ...usuario, id: usuario.id.toString() };
   }
 
   async toggleNotifications(id: number) {
