@@ -3,6 +3,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { UpdateEmailDto } from "./dto/update-email.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdatePasswordDto } from "./dto/update-password.dto";
+import { CreateUserDto } from "../admin/users/dto/create-user.dto";
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

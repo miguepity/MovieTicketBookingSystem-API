@@ -1,9 +1,10 @@
-import { Controller, Get, Patch, Param, ParseIntPipe, Req, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, ParseIntPipe, Req, Put, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiBearerAuth, ApiParam, ApiOperation } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { CreateUserDto } from '../admin/users/dto/create-user.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Usuarios')
