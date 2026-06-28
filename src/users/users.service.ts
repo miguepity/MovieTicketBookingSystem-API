@@ -116,11 +116,11 @@ export class UsersService {
     if (dto.estado) {
       where.estado = dto.estado;
     }
-    where.roles = { nombre: 'Cliente' };
+    where.id_rol = BigInt(2); // Solo usuarios con rol 'client'
 
     return await this.prismaService.usuarios.findMany({
       where,
-      take: Number(dto.resultados),
+      ...(dto.resultados ? { take: Number(dto.resultados) } : {}),
     });
   }
 
