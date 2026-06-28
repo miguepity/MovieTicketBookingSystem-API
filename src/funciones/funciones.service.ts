@@ -6,6 +6,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { BloquearAsientosDto } from './bloquear-asientos.dto';
 import { MailService } from '../mail/mail.service';
 import { buildCancelledFunctionTemplate } from '../mail/templates/cancelled-function.template';
+import { buildCashRefundNotificationTemplate } from '../mail/templates/cash-refund-notification.template';
 
 @Injectable()
 export class FuncionesService {
@@ -25,10 +26,16 @@ export class FuncionesService {
 
   async create(createFuncionDto: CreateFuncionDto, auditorId: number) {
     const fechaInicioNueva = new Date(createFuncionDto.fecha_hora);
+    const ahora = new Date();
+
+    // 🌟 NUEVA VALIDACIÓN: Impedir la creación de funciones en fechas/horas pasadas
+    if (fechaInicioNueva <= ahora) {
+      throw new BadRequestException(
+        'No puedes programar una función en una fecha u hora pasada. Debe ser una fecha futura.',
+      );
+    }
 
     const DURACION_PELICULA_MS = 120 * 60 * 1000;
-    const fechaFinNueva = new Date(fechaInicioNueva.getTime() + DURACION_PELICULA_MS);
-
     const margenInicioBusqueda = new Date(fechaInicioNueva.getTime() - DURACION_PELICULA_MS);
     const margenFinBusqueda = new Date(fechaInicioNueva.getTime() + DURACION_PELICULA_MS);
 
@@ -64,7 +71,7 @@ export class FuncionesService {
           id_pelicula: BigInt(createFuncionDto.id_pelicula),
           id_sala: BigInt(createFuncionDto.id_sala),
           fecha_hora: fechaInicioNueva,
-          estado: createFuncionDto.estado || 'DISPONIBLE',
+          estado: 'DISPONIBLE', // 🌟 CAMBIO: Forzado a nacer por defecto como 'DISPONIBLE'
         },
       });
 
@@ -99,7 +106,14 @@ export class FuncionesService {
 
   async findAll() {
     const funciones = await this.prisma.funciones.findMany({
-      include: { peliculas: true, salas: true },
+      include: { 
+        peliculas: true, 
+        salas: {
+          include: {
+            cines: true
+          }
+        } 
+      },
     });
     return funciones.map((f) => this.serializeFuncion(f));
   }
@@ -114,7 +128,22 @@ export class FuncionesService {
   }
 
   async update(id: number, updateFuncionDto: UpdateFuncionDto, auditorId: number) {
-    await this.findOne(id);
+    const fActual = await this.prisma.funciones.findUnique({ where: { id: BigInt(id) } });
+    if (!fActual) throw new NotFoundException(`La función con ID ${id} no existe.`);
+
+    // 🌟 NUEVA VALIDACIÓN: Si la función ya está CANCELADA, congelarla por completo
+    if (fActual.estado === 'CANCELADA') {
+      throw new BadRequestException('Esta función ya está cancelada y no se permite ninguna modificación.');
+    }
+
+    // 🌟 NUEVA VALIDACIÓN: Si envían una nueva fecha, asegurar que sea en el futuro
+    const ahora = new Date();
+    if (updateFuncionDto.fecha_hora) {
+      const nuevaFechaSolicitada = new Date(updateFuncionDto.fecha_hora);
+      if (nuevaFechaSolicitada <= ahora) {
+        throw new BadRequestException('No puedes actualizar una función a una fecha u hora pasada.');
+      }
+    }
 
     const tieneReservas = await this.prisma.reservas.findFirst({
       where: {
@@ -129,9 +158,8 @@ export class FuncionesService {
       );
     }
 
-    const fActual = await this.prisma.funciones.findUnique({ where: { id: BigInt(id) } });
-    const nuevaSalaId = updateFuncionDto.id_sala ? BigInt(updateFuncionDto.id_sala) : fActual!.id_sala;
-    const nuevaFecha = updateFuncionDto.fecha_hora ? new Date(updateFuncionDto.fecha_hora) : fActual!.fecha_hora;
+    const nuevaSalaId = updateFuncionDto.id_sala ? BigInt(updateFuncionDto.id_sala) : fActual.id_sala;
+    const nuevaFecha = updateFuncionDto.fecha_hora ? new Date(updateFuncionDto.fecha_hora) : fActual.fecha_hora;
 
     const DURACION_PELICULA_MS = 120 * 60 * 1000;
     const conflicto = await this.prisma.funciones.findFirst({
@@ -151,7 +179,7 @@ export class FuncionesService {
     }
 
     const actualizada = await this.prisma.$transaction(async (tx) => {
-      if (updateFuncionDto.id_sala && BigInt(updateFuncionDto.id_sala) !== fActual!.id_sala) {
+      if (updateFuncionDto.id_sala && BigInt(updateFuncionDto.id_sala) !== fActual.id_sala) {
         const nuevaSalaConAsientos = await tx.salas.findUnique({
           where: { id: BigInt(updateFuncionDto.id_sala) },
           include: { asientos: true },
@@ -186,7 +214,6 @@ export class FuncionesService {
           id_pelicula: updateFuncionDto.id_pelicula ? BigInt(updateFuncionDto.id_pelicula) : undefined,
           id_sala: updateFuncionDto.id_sala ? BigInt(updateFuncionDto.id_sala) : undefined,
           fecha_hora: updateFuncionDto.fecha_hora ? new Date(updateFuncionDto.fecha_hora) : undefined,
-          estado: updateFuncionDto.estado,
         },
       });
 
@@ -209,23 +236,98 @@ export class FuncionesService {
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(id) },
       include: {
+        peliculas: true,
+        salas: { include: { cines: true } },
         reservas: {
-          where: {
-            estado: { not: 'CANCELADA' },
-          },
+          where: { estado: { not: 'CANCELADA' } },
+          include: { usuarios: true, pagos: true },
         },
       },
     });
 
     if (!funcion) {
-      throw new NotFoundException(`La funciÃ³n con ID ${id} no existe.`);
+      throw new NotFoundException(`La función con ID ${id} no existe.`);
     }
 
     if (funcion.estado === 'CANCELADA') {
-      throw new BadRequestException('La funciÃ³n ya se encuentra cancelada.');
+      throw new BadRequestException('La función ya se encuentra cancelada.');
     }
 
-    const notificaciones = await this.notifyCancelledFunctionReservations(id);
+    // 🌟 NUEVA VALIDACIÓN: Impedir cancelación si la función ya pasó
+    const ahora = new Date();
+    const fechaFuncion = new Date(funcion.fecha_hora);
+    if (ahora >= fechaFuncion) {
+      throw new BadRequestException('No se puede cancelar una función que ya comenzó o finalizó.');
+    }
+
+    // Procesar reembolsos automáticos y notificar
+    let reembolsados = 0;
+    let notificados = 0;
+
+    for (const reserva of funcion.reservas) {
+      // Tomamos el primer pago si existe, asumiendo una relación 1:1 o que el primero es el válido
+      const pago = reserva.pagos && reserva.pagos.length > 0 ? reserva.pagos[0] : null;
+      let reembolsoRealizado: any = null; // Cambio a any para permitir la asignación
+
+      if (pago && pago.estado === 'APROBADO') {
+        try {
+          // Registrar reembolso automático
+          reembolsoRealizado = await this.prisma.reembolsos.create({
+            data: {
+              id_pago: pago.id,
+              monto: pago.monto_final,
+              estado: 'PROCESADO',
+              fecha_procesado: new Date(),
+            },
+          });
+          await this.prisma.pagos.update({
+            where: { id: pago.id },
+            data: { estado: 'REEMBOLSADO' },
+          });
+          reembolsados++;
+        } catch (error) {
+          console.error(`Error al procesar reembolso automático para reserva ${reserva.id}:`, error);
+        }
+      }
+
+      // Notificar al usuario sobre la cancelación
+      try {
+        await this.mailService.sendEmail({
+          to: reserva.usuarios.email,
+          subject: 'Funcion cancelada',
+          html: buildCancelledFunctionTemplate({
+            reservationNumber: reserva.numero_reserva,
+            movieTitle: funcion.peliculas.titulo,
+            cinemaName: funcion.salas.cines.nombre,
+            functionDate: funcion.fecha_hora,
+            refundInstructions: reembolsoRealizado ? 'Espera a que se procese tu reembolso de acuerdo con las políticas del cine.' : 'Espera a que el personal del cine procese tu reembolso.',
+          }),
+        });
+        notificados++;
+      } catch (error) {
+        console.error(`No se pudo enviar email de funcion cancelada a reserva ${reserva.id}.`, error);
+      }
+
+      // Notificar reembolso si se realizó
+      if (reembolsoRealizado && pago) { // Verificación segura de pago
+        try {
+          await this.mailService.sendEmail({
+            to: reserva.usuarios.email,
+            subject: 'Notificación de Reembolso',
+            html: buildCashRefundNotificationTemplate({
+              paymentId: pago.id.toString(),
+              reservationNumber: reserva.numero_reserva,
+              customerName: reserva.usuarios.nombre,
+              customerEmail: reserva.usuarios.email,
+              amount: reembolsoRealizado.monto.toString(),
+              note: 'Reembolso generado por cancelación de función.'
+            }),
+          });
+        } catch (error) {
+          console.error(`No se pudo enviar email de reembolso para la reserva ${reserva.id}.`, error);
+        }
+      }
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.funciones.update({
@@ -234,36 +336,31 @@ export class FuncionesService {
       });
 
       await tx.reservas.updateMany({
-        where: {
-          id_funcion: BigInt(id),
-          estado: { not: 'CANCELADA' },
-        },
+        where: { id_funcion: BigInt(id), estado: { not: 'CANCELADA' } },
         data: { estado: 'CANCELADA' },
       });
 
       await tx.asientosFuncion.updateMany({
         where: { id_funcion: BigInt(id) },
-        data: {
-          estado: 'DISPONIBLE',
-          id_usuario: null,
-        },
+        data: { estado: 'DISPONIBLE', id_usuario: null },
       });
 
       await tx.auditLog.create({
         data: {
           id_usuario: BigInt(auditorId),
           id_auditor: BigInt(auditorId),
-          accion: 'FUNCION_CANCELADA',
-          detalle: `Función ${id} cancelada. Reservas afectadas: ${funcion.reservas.length}`,
+          accion: 'FUNCION_CANCELADA_Y_REEMBOLSADA',
+          detalle: `Función ${id} cancelada. Reservas afectadas: ${funcion.reservas.length}. Reembolsos automáticos: ${reembolsados}`,
         },
       });
     });
 
     return {
-      message: 'FunciÃ³n cancelada exitosamente. Reservas afectadas notificadas.',
+      message: 'Función cancelada y reembolsos procesados exitosamente.',
       idFuncion: id,
       reservas_afectadas: funcion.reservas.length,
-      emails_enviados: notificaciones.emails_enviados,
+      reembolsos_automaticos: reembolsados,
+      emails_enviados: notificados,
     };
   }
 
@@ -289,7 +386,7 @@ export class FuncionesService {
     });
 
     if (!funcion) {
-      throw new NotFoundException(`La funciÃ³n con ID ${id} no existe.`);
+      throw new NotFoundException(`La función con ID ${id} no existe.`);
     }
 
     let enviados = 0;
@@ -395,7 +492,7 @@ export class FuncionesService {
         }
 
         if (af.estado === 'MANTENIMIENTO' || af.estado === 'NO_DISPONIBLE') {
-        throw new ConflictException(`El asiento con ID ${afId} está temporalmente fuera de servicio por mantenimiento.`);
+          throw new ConflictException(`El asiento con ID ${afId} está temporalmente fuera de servicio por mantenimiento.`);
         }
 
         if (Number(af.id_funcion) !== idFuncion) {

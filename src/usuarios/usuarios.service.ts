@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { UpdateEmailDto } from "./dto/update-email.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdatePasswordDto } from "./dto/update-password.dto";
 import * as bcrypt from 'bcrypt';
 
@@ -59,6 +60,46 @@ export class UsuariosService {
             where: { id },
             data: { notificaciones_activas: !user.notificaciones_activas },
         });
+    }
+
+    async updateProfile(userId: number, updateProfileDto: UpdateProfileDto) {
+      const userIdBigInt = BigInt(userId);
+  
+      if (updateProfileDto.email) {
+        const emailEnUso = await this.prisma.usuarios.findFirst({
+          where: {
+            email: updateProfileDto.email,
+            NOT: { id: userIdBigInt },
+          },
+        });
+        if (emailEnUso) {
+          throw new ConflictException('El correo electrónico ya se encuentra registrado por otro usuario.');
+        }
+      }
+  
+      const usuario = await this.prisma.usuarios.findUnique({ where: { id: userIdBigInt } });
+      if (!usuario) {
+        throw new NotFoundException(`Usuario con ID ${userId} no encontrado.`);
+      }
+  
+      const usuarioActualizado = await this.prisma.usuarios.update({
+        where: { id: userIdBigInt },
+        data: {
+          nombre: updateProfileDto.nombre,
+          email: updateProfileDto.email,
+          telefono: updateProfileDto.telefono,
+        },
+      });
+  
+      return {
+        message: 'Perfil actualizado con éxito.',
+        user: {
+          id: Number(usuarioActualizado.id),
+          nombre: usuarioActualizado.nombre,
+          email: usuarioActualizado.email,
+          telefono: usuarioActualizado.telefono,
+        },
+      };
     }
 
     async cambiarEmail(userId: number, updateEmailDto: UpdateEmailDto) {
