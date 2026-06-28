@@ -144,7 +144,6 @@ export class CinesService {
 
   async getCines() {
     return await this.prisma.cines.findMany({
-      where: { activo: true },
       select: {
         id: true,
         nombre: true,
