@@ -36,17 +36,29 @@ export class UsersService {
       };
     }
 
-  async create(createUserDto: CreateUserDto) {
-        const { name, email, password, phone, roleId } = createUserDto;
-  
+  async create(createUserDto: CreateUserDto, requesterRole?: string) {
+        const { name, email, password, phone } = createUserDto;
+        let { roleId } = createUserDto;
+
+        // Un recepcionista solo puede crear clientes, sin importar el rol que envíe.
+        if (requesterRole === 'RECEPCIONISTA') {
+          const clienteRole = await this.prisma.roles.findUnique({
+            where: { nombre: 'CLIENTE' },
+          });
+          if (!clienteRole) {
+            throw new NotFoundException('Rol CLIENTE no encontrado.');
+          }
+          roleId = Number(clienteRole.id);
+        }
+
         const emailEnUso = await this.prisma.usuarios.findUnique({
           where: { email },
         });
-  
+
         if (emailEnUso) {
           throw new ConflictException('El correo electrónico ya se encuentra registrado.');
         }
-  
+
         const rol = await this.prisma.roles.findUnique({
           where: { id: BigInt(roleId) },
         });
@@ -83,13 +95,7 @@ export class UsersService {
 
     const usuarios = await this.prisma.usuarios.findMany({
       where: {
-        roles: { nombre: 'CLIENTE' },
-        ...(search && {
-          OR: [
-            { nombre: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-          ],
-        }),
+        id_rol: BigInt(2)
       },
       select: {
         id: true,

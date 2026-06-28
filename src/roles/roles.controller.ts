@@ -26,6 +26,7 @@ export class RolesController {
   }
 
   @Get()
+  @Roles('ADMIN', 'RECEPCIONISTA')
   @ApiOperation({ summary: 'Obtener todos los roles registrados' })
   @ApiResponse({ status: 200, description: 'Lista de roles retornada.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })

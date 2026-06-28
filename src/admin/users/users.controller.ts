@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards, ParseIntPipe, Put, Delete } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards, ParseIntPipe, Put, Delete, Post } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
 import { QueryUsuariosDto } from './dto/query-usuarios.dto.js';
@@ -12,7 +12,7 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator.js';
 @ApiTags('Usuarios')
 @ApiBearerAuth('token')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'RECEPCIONISTA')
 @Controller('admin/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -26,8 +26,12 @@ export class UsersController {
       @ApiResponse({ status: 401, description: 'No autorizado' })
       @ApiResponse({ status: 404, description: 'Rol no encontrado' })
       @ApiResponse({ status: 409, description: 'Correo electrónico ya en uso' })
-      async create(@Body() createUserDto: CreateUserDto) {
-          return await this.usersService.create(createUserDto);
+      @Roles('ADMIN', 'RECEPCIONISTA')
+      async create(
+          @Body() createUserDto: CreateUserDto,
+          @CurrentUser('role') requesterRole: string,
+      ) {
+          return await this.usersService.create(createUserDto, requesterRole);
       }
   
 
@@ -36,7 +40,7 @@ export class UsersController {
   @ApiQuery({ name: 'search', required: false, description: 'Búsqueda parcial por nombre o email', example: 'juan' })
   @ApiResponse({ status: 200, description: 'Lista de clientes retornada exitosamente.' })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
-  @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN o RECEPCIONISTA.' })
   buscarClientes(@Query() query: QueryUsuariosDto) {
     return this.usersService.buscarClientes(query);
   }
