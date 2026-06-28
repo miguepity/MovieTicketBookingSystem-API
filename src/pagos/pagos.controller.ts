@@ -1,10 +1,11 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PagosService } from './pagos.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreatePagoEfectivoDto } from './dto/create-pago-efectivo.dto';
 import { IsRecepcionistaGuard } from '../roles/recepcionista.guard';
+import { IsAdminGuard } from '../roles/admin.guard';
 
 @ApiTags('Pagos')
 @Controller('pagos')
@@ -79,5 +80,71 @@ export class PagosController {
   })
   async pagoEfectivo(@Body() dto: CreatePagoEfectivoDto) {
     return this.pagosService.procesarPagoEfectivo(dto);
+  }
+
+  @Get('historial')
+  @UseGuards(AuthGuard, IsAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    description: 'Historial de pagos y reembolsos con filtros - Solo admin',
+    responses: {
+      200: {
+        description: 'Historial obtenido exitosamente',
+        content: {
+          'application/json': {
+            example: {
+              total: 25,
+              pagina: 1,
+              limite: 10,
+              total_paginas: 3,
+              data: [
+                {
+                  id: '1',
+                  monto_original: '300.00',
+                  monto_descuento: '0.00',
+                  monto_final: '300.00',
+                  metodo: 'tarjeta',
+                  estado: 'completado',
+                  referencia_externa: null,
+                  created_at: '2026-06-09T00:00:00.000Z',
+                  reserva: {
+                    id: '1',
+                    numero_reserva: 'RES-ABC123',
+                    usuario: {
+                      id: '1',
+                      nombre: 'Juan Perez',
+                      email: 'juan@test.com',
+                    },
+                  },
+                  reembolso: null,
+                },
+              ],
+            },
+          },
+        },
+      },
+      401: { description: 'No autorizado' },
+      403: { description: 'Acceso denegado: Solo administradores' },
+      500: { description: 'Error interno del servidor' },
+    },
+  })
+  async getHistorial(
+    @Query('estado') estado?: string,
+    @Query('metodo') metodo?: string,
+    @Query('cliente') cliente?: string,
+    @Query('fecha_inicio') fecha_inicio?: string,
+    @Query('fecha_fin') fecha_fin?: string,
+    @Query('pagina') pagina?: number,
+    @Query('limite') limite?: number,
+  ) {
+    return this.pagosService.getHistorial({
+      estado,
+      metodo,
+      fecha_inicio,
+      fecha_fin,
+      cliente,
+      pagina,
+      limite,
+    });
   }
 }
