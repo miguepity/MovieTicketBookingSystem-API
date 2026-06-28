@@ -207,43 +207,49 @@ export class FuncionesService {
 
     const bloqueado_hasta = new Date(Date.now() + dto.minutos * 60 * 1000);
 
-    // Verificar que todos los asientos existen y pertenecen a la función
-    const asientos = await this.prisma.asientosFuncion.findMany({
-      where: {
-        id: { in: dto.ids_asientos_funcion.map(BigInt) },
-        id_funcion: BigInt(id_funcion),
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      // Verificar que todos los asientos existen y pertenecen a la función
+      const asientos = await tx.asientosFuncion.findMany({
+        where: {
+          id: { in: dto.ids_asientos_funcion.map(BigInt) },
+          id_funcion: BigInt(id_funcion),
+        },
+      });
 
-    if (asientos.length !== dto.ids_asientos_funcion.length) {
-      throw new BadRequestException(
-        'Uno o más asientos no existen o no pertenecen a esta función',
-      );
-    }
+      if (asientos.length !== dto.ids_asientos_funcion.length) {
+        throw new BadRequestException(
+          'Uno o más asientos no existen o no pertenecen a esta función',
+        );
+      }
 
-    // Verificar que todos estén disponibles
-    const noDisponibles = asientos.filter((a) => a.estado !== 'disponible');
-    if (noDisponibles.length > 0) {
-      throw new ConflictException(
-        `Los siguientes asientos no están disponibles: ${noDisponibles.map((a) => a.id).join(', ')}`,
-      );
-    }
+      // Bloqueo optimista: el WHERE exige estado='disponible' en el momento
+      // de escribir (no solo en una lectura previa), así que si otra
+      // solicitud concurrente ya bloqueó alguno de estos asientos, count
+      // será menor al esperado y se revierte toda la operación.
+      const resultado = await tx.asientosFuncion.updateMany({
+        where: {
+          id: { in: dto.ids_asientos_funcion.map(BigInt) },
+          id_funcion: BigInt(id_funcion),
+          estado: 'disponible',
+        },
+        data: {
+          estado: 'bloqueado',
+          bloqueado_hasta,
+          id_usuario: BigInt(dto.id_usuario),
+          version: { increment: 1 },
+        },
+      });
 
-    // Bloquear todos en una sola operación
-    await this.prisma.asientosFuncion.updateMany({
-      where: {
-        id: { in: dto.ids_asientos_funcion.map(BigInt) },
-        id_funcion: BigInt(id_funcion),
-      },
-      data: {
-        estado: 'bloqueado',
+      if (resultado.count !== dto.ids_asientos_funcion.length) {
+        throw new ConflictException(
+          'Uno o más asientos ya no están disponibles',
+        );
+      }
+
+      return {
+        message: `${dto.ids_asientos_funcion.length} asiento(s) bloqueados por ${dto.minutos} minuto(s)`,
         bloqueado_hasta,
-      },
+      };
     });
-
-    return {
-      message: `${dto.ids_asientos_funcion.length} asiento(s) bloqueados por ${dto.minutos} minuto(s)`,
-      bloqueado_hasta,
-    };
   }
 }

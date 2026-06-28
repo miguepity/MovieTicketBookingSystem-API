@@ -18,4 +18,12 @@ export class BloquearAsientoDto {
   @IsInt()
   @Min(1)
   minutos!: number;
+
+  @ApiProperty({
+    example: 1,
+    description: 'ID del usuario que bloquea los asientos',
+  })
+  @IsInt()
+  @Min(1)
+  id_usuario!: number;
 }

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReservasBodyDto } from './dto/reservas.body.dto';
@@ -65,10 +66,30 @@ export class ReservasService {
         })),
       });
 
-      await tx.asientosFuncion.updateMany({
-        where: { id: { in: dto.id_asientos.map(BigInt) } },
-        data: { estado: 'reservado', id_usuario: BigInt(dto.id_usuario) },
+      // Re-afirmar atómicamente la misma condición validada arriba: si otra
+      // solicitud concurrente tomó alguno de estos asientos entre la lectura
+      // y esta escritura, count será menor al esperado y se revierte todo.
+      const resultado = await tx.asientosFuncion.updateMany({
+        where: {
+          id: { in: dto.id_asientos.map(BigInt) },
+          id_funcion: dto.id_funcion,
+          OR: [
+            { estado: 'disponible' },
+            { estado: 'bloqueado', id_usuario: BigInt(dto.id_usuario) },
+          ],
+        },
+        data: {
+          estado: 'reservado',
+          id_usuario: BigInt(dto.id_usuario),
+          version: { increment: 1 },
+        },
       });
+
+      if (resultado.count !== dto.id_asientos.length) {
+        throw new ConflictException(
+          'Uno o más asientos no están disponibles',
+        );
+      }
 
       return newReserva;
     });
