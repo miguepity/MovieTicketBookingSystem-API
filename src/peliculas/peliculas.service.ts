@@ -158,9 +158,12 @@ export class PeliculasService {
     const pelicula = await this.prisma.peliculas.findUnique({ where: { id } });
     if (!pelicula) throw new NotFoundException('Película no encontrada');
 
+    const apiUrl =
+      process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 3001}`;
+
     return this.prisma.peliculas.update({
       where: { id },
-      data: { poster_url: `/uploads/posters/${file.filename}` },
+      data: { poster_url: `${apiUrl}/uploads/posters/${file.filename}` },
     });
   }
 
