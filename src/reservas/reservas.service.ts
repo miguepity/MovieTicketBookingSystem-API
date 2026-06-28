@@ -103,11 +103,22 @@ export class ReservasService {
   async findAll(userId: number, userRole: string) {
     const filtro = userRole === 'ADMIN' ? {} : { id_usuario: BigInt(userId) };
 
-    return await this.prisma.reservas.findMany({
+    const reservas = await this.prisma.reservas.findMany({
       where: filtro,
       include: {
+        usuarios: {
+          select: { id: true, nombre: true, email: true, telefono: true }
+        },
+        pagos: true,
         funciones: {
-          include: { peliculas: true },
+          include: {
+            peliculas: true,
+            salas: {
+              include: {
+                cines: true,
+              },
+            },
+          },
         },
         reservaAsientos: {
           include: {
@@ -118,6 +129,22 @@ export class ReservasService {
         },
       },
       orderBy: { created_at: 'desc' },
+    });
+
+    return reservas.map((reserva) => {
+      const { usuarios, pagos, funciones, ...reservaOriginal } = reserva;
+      
+      return {
+        ...reservaOriginal,
+        usuario: usuarios,
+        total: pagos.length > 0 ? Number(pagos[0].monto_final) : 0,
+        funciones: {
+          ...funciones,
+          cine: funciones.salas.cines.nombre,
+          ubicacion: funciones.salas.cines.direccion,
+        },
+        reservaAsientos: reserva.reservaAsientos,
+      };
     });
   }
 
