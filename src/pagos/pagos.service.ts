@@ -262,4 +262,135 @@ export class PagosService {
       };
     });
   }
+
+  async getHistorial(filters: {
+    estado?: string;
+    metodo?: string;
+    cliente?: string;
+    fecha_inicio?: string;
+    fecha_fin?: string;
+    pagina?: number;
+    limite?: number;
+  }) {
+    if (
+      filters.fecha_inicio &&
+      isNaN(new Date(filters.fecha_inicio).getTime())
+    ) {
+      throw new BadRequestException('La fecha de inicio no es válida');
+    }
+
+    if (filters.fecha_fin && isNaN(new Date(filters.fecha_fin).getTime())) {
+      throw new BadRequestException('La fecha final no es válida');
+    }
+
+    if (filters.fecha_inicio && filters.fecha_fin) {
+      if (new Date(filters.fecha_inicio) > new Date(filters.fecha_fin)) {
+        throw new BadRequestException(
+          'La fecha de inicio no puede ser mayor que la fecha final',
+        );
+      }
+    }
+    const pagina = Number(filters.pagina ?? 1);
+    const limite = Number(filters.limite ?? 10);
+    const skip = (pagina - 1) * limite;
+
+    const where: Record<string, unknown> = {};
+
+    if (filters.estado) {
+      where.estado = filters.estado;
+    }
+
+    if (filters.metodo) {
+      where.metodo = filters.metodo;
+    }
+
+    if (filters.fecha_inicio || filters.fecha_fin) {
+      where.created_at = {
+        ...(filters.fecha_inicio && { gte: new Date(filters.fecha_inicio) }),
+        ...(filters.fecha_fin && {
+          lte: new Date(filters.fecha_fin + 'T23:59:59Z'),
+        }),
+      };
+    }
+
+    if (filters.cliente) {
+      where.reservas = {
+        usuarios: {
+          OR: [
+            { nombre: { contains: filters.cliente, mode: 'insensitive' } },
+            { email: { contains: filters.cliente, mode: 'insensitive' } },
+          ],
+        },
+      };
+    }
+
+    const [total, pagos] = await Promise.all([
+      this.prisma.pagos.count({ where }),
+      this.prisma.pagos.findMany({
+        where,
+        skip,
+        take: limite,
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          monto_original: true,
+          monto_descuento: true,
+          monto_final: true,
+          metodo: true,
+          estado: true,
+          referencia_externa: true,
+          created_at: true,
+          reservas: {
+            select: {
+              id: true,
+              numero_reserva: true,
+              usuarios: { select: { id: true, nombre: true, email: true } },
+            },
+          },
+          reembolsos: {
+            select: {
+              id: true,
+              monto: true,
+              estado: true,
+              fecha_procesado: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      total,
+      pagina,
+      limite,
+      total_paginas: Math.ceil(total / limite),
+      data: pagos.map((p) => ({
+        id: p.id.toString(),
+        monto_original: p.monto_original.toString(),
+        monto_descuento: p.monto_descuento.toString(),
+        monto_final: p.monto_final.toString(),
+        metodo: p.metodo,
+        estado: p.estado,
+        referencia_externa: p.referencia_externa,
+        created_at: p.created_at,
+        reserva: {
+          id: p.reservas.id.toString(),
+          numero_reserva: p.reservas.numero_reserva,
+          usuario: {
+            id: p.reservas.usuarios.id.toString(),
+            nombre: p.reservas.usuarios.nombre,
+            email: p.reservas.usuarios.email,
+          },
+        },
+        reembolso: p.reembolsos[0]
+          ? {
+              id: p.reembolsos[0].id.toString(),
+              monto: p.reembolsos[0].monto.toString(),
+              estado: p.reembolsos[0].estado,
+              fecha_procesado: p.reembolsos[0].fecha_procesado,
+            }
+          : null,
+      })),
+    };
+  }
 }
