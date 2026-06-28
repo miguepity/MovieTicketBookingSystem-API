@@ -42,6 +42,15 @@ export class AdminReservasController {
     return this.reservas.findAdminPaginated(q);
   }
 
+  @Get('by-numero/:numero/cobrar')
+  @ApiOperation({ summary: 'Detalle de reserva por número para cobro en taquilla (admin)' })
+  @ApiParam({ name: 'numero', description: 'Número de reserva (ej. RES-20240101-ABCDE)' })
+  @ApiOkResponse({ description: 'Detalle de la reserva con precios por asiento' })
+  @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
+  getByNumeroCobrar(@Param('numero') numero: string) {
+    return this.reservas.findByNumeroForCobrar(numero);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Detalle de una reserva por ID (admin)' })
   @ApiParam({ name: 'id', description: 'ID numérico de la reserva' })

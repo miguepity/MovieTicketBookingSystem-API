@@ -855,6 +855,91 @@ export class ReservasService {
     };
   }
 
+  async findByNumeroForCobrar(numero: string) {
+    const r = await this.prisma.reservas.findFirst({
+      where: { numero_reserva: numero },
+      include: {
+        usuarios: { select: { id: true, nombre: true, email: true, telefono: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { id: true, titulo: true } },
+            salas: {
+              include: { cines: { select: { id: true, nombre: true } } },
+            },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: {
+                asientos: {
+                  include: { tipoAsiento: { select: { nombre: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!r) {
+      throw new NotFoundException({
+        code: 'RESERVA_NO_ENCONTRADA',
+        message: 'Reserva no encontrada',
+      });
+    }
+
+    const preciosPorTipo = await this.buildPreciosPorTipo([r]);
+
+    const asientos = r.reservaAsientos.map((ra: any) => {
+      const precio = preciosPorTipo.get(ra.asientosfuncion.asientos.id_tipo_asiento) ?? '0';
+      return {
+        id: ra.asientosfuncion.id.toString(),
+        codigo: ra.asientosfuncion.asientos.codigo,
+        tipo: ra.asientosfuncion.asientos.tipoAsiento?.nombre ?? 'Estándar',
+        precio,
+      };
+    });
+
+    const montoTotal = asientos.reduce(
+      (sum: number, a: any) => sum + Number(a.precio),
+      0,
+    );
+
+    return {
+      id: r.id.toString(),
+      numero_reserva: r.numero_reserva,
+      estado: r.estado,
+      created_at: r.created_at,
+      expira_en: r.expira_en ?? null,
+      cliente: {
+        id: r.usuarios.id.toString(),
+        nombre: r.usuarios.nombre,
+        email: r.usuarios.email,
+        telefono: r.usuarios.telefono ?? null,
+      },
+      pelicula: {
+        id: r.funciones.peliculas.id.toString(),
+        titulo: r.funciones.peliculas.titulo,
+      },
+      funcion: {
+        id: r.funciones.id.toString(),
+        fecha_hora: r.funciones.fecha_hora,
+      },
+      sala: {
+        id: r.funciones.salas.id.toString(),
+        nombre: r.funciones.salas.nombre,
+      },
+      cine: {
+        id: r.funciones.salas.cines.id.toString(),
+        nombre: r.funciones.salas.cines.nombre,
+      },
+      asientos,
+      num_asientos: asientos.length,
+      monto_total: montoTotal.toFixed(2),
+    };
+  }
+
   // ──── Private helpers ───────────────────────────────────────────────────────
 
   private async generarNumeroUnico(tx: {
