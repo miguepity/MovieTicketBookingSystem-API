@@ -136,6 +136,7 @@ export class SalasController {
       ...sala,
       id: sala.id.toString(),
       id_cine: sala.id_cine.toString(),
+      funciones_activas: sala.funciones_activas,
       asientos: sala.asientos.map((asiento) => ({
         ...asiento,
         id: asiento.id.toString(),
@@ -183,6 +184,7 @@ export class SalasController {
       ...s,
       id: s.id.toString(),
       id_cine: s.id_cine.toString(),
+      funciones_activas: s.funciones_activas,
     }));
   }
 
@@ -224,6 +226,7 @@ export class SalasController {
       ...sala,
       id: sala.id.toString(),
       id_cine: sala.id_cine.toString(),
+      funciones_activas: sala.funciones_activas,
     };
   }
 

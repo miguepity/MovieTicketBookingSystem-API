@@ -52,9 +52,9 @@ export class SalasService {
       );
     }
 
-    if (dto.columnas < 1 || dto.columnas > 26) {
+    if (dto.columnas < 1 || dto.columnas > 30) {
       throw new UnprocessableEntityException(
-        'El número de columnas debe ser entre 1 y 26',
+        'El número de columnas debe ser entre 1 y 30',
       );
     }
 
@@ -130,11 +130,21 @@ export class SalasService {
       throw new NotFoundException(`Sala con id ${id} no encontrada`);
     }
 
-    return sala;
+    const funcionesActivas = await this.prisma.funciones.count({
+      where: {
+        id_sala: BigInt(id),
+        estado: 'active',
+      },
+    });
+
+    return {
+      ...sala,
+      funciones_activas: funcionesActivas,
+    };
   }
 
   async getSalas(idCine?: number) {
-    return await this.prisma.salas.findMany({
+    const salas = await this.prisma.salas.findMany({
       where: idCine ? { id_cine: BigInt(idCine) } : {},
       select: {
         id: true,
@@ -145,6 +155,18 @@ export class SalasService {
       },
       orderBy: { nombre: 'asc' },
     });
+
+    return await Promise.all(
+      salas.map(async (sala) => ({
+        ...sala,
+        funciones_activas: await this.prisma.funciones.count({
+          where: {
+            id_sala: sala.id,
+            estado: 'active',
+          },
+        }),
+      })),
+    );
   }
 
   async update(id: number, dto: UpdateSalaDto) {
@@ -172,7 +194,14 @@ export class SalasService {
       }
     }
 
-    return await this.prisma.salas.update({
+    const funcionesActivas = await this.prisma.funciones.count({
+      where: {
+        id_sala: BigInt(id),
+        estado: 'active',
+      },
+    });
+
+    const salaActualizada = await this.prisma.salas.update({
       where: { id: BigInt(id) },
       data: {
         nombre: dto.nombre,
@@ -185,6 +214,14 @@ export class SalasService {
         id_cine: true,
       },
     });
+
+    return {
+      ...salaActualizada,
+      funciones_activas: funcionesActivas,
+      ...(funcionesActivas > 0 && {
+        advertencia: `Esta sala tiene ${funcionesActivas} funcion(es) activa(s)`,
+      }),
+    };
   }
 
   async delete(id: number) {
