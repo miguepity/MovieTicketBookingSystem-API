@@ -99,6 +99,11 @@ export class UsersController {
 
     return {
       id: usuario.id.toString(),
+      nombre: usuario.nombre,
+      email: usuario.email,
+      telefono: usuario.telefono,
+      id_rol: usuario.id_rol.toString(),
+      estado: usuario.estado,
       notificaciones_activas: usuario.notificaciones_activas,
     };
   }
