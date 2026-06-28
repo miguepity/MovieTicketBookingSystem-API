@@ -17,6 +17,7 @@ model Cines {
   id         BigInt   @id @default(autoincrement())
   nombre     String   @db.VarChar(150)
   direccion  String?  @db.VarChar(255)
+  activo     Boolean  @default(true)
   id_ciudad  BigInt
   ciudades   Ciudades @relation(fields: [id_ciudad], references: [id])
   created_at DateTime @default(now()) @db.Timestamptz
@@ -30,7 +31,7 @@ model Ciudades {
   nombre     String   @unique @db.VarChar(100)
   created_at DateTime @default(now()) @db.Timestamptz
   cines      Cines[]
-
+  activo     Boolean  @default(true)
   @@map("ciudades")
 }
 

@@ -7,6 +7,7 @@ import {
   Patch,
   Param,
   ParseIntPipe,
+  Delete,
 } from '@nestjs/common';
 import { CiudadesService } from './ciudades.service';
 import { CreateCiudadeDto } from './dto/create-ciudade.dto';
@@ -88,5 +89,34 @@ export class CiudadesController {
       ...city,
       id: city.id.toString(),
     };
+  }
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Desactivar una ciudad por ID (soft delete)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Ciudad desactivada exitosamente',
+    schema: {
+      example: { message: 'Ciudad con id 1 desactivada exitosamente' },
+    },
+  })
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    return this.ciudadesService.delete(id);
+  }
+
+  @Patch(':id/reactivar')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reactivar una ciudad desactivada' })
+  @ApiResponse({
+    status: 200,
+    description: 'Ciudad reactivada exitosamente',
+    schema: {
+      example: { message: 'Ciudad con id 1 reactivada exitosamente' },
+    },
+  })
+  async reactivar(@Param('id', ParseIntPipe) id: number) {
+    return this.ciudadesService.reactivar(id);
   }
 }
