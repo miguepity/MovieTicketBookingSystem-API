@@ -1,5 +1,8 @@
 import 'dotenv/config';
+import { mkdirSync } from 'fs';
+import { join } from 'path';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -9,7 +12,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 };
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Asegura que exista la carpeta donde se guardan los posters subidos
+  mkdirSync(join(process.cwd(), 'uploads', 'posters'), { recursive: true });
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Servir los archivos subidos (posters) como archivos estáticos
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   // Habilitar validaciones globales (elimina campos que no estén en el DTO automáticamente)
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
