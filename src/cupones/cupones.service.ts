@@ -26,6 +26,7 @@ export class CuponesService {
       data: {
         ...createCuponDto,
         valor: parseFloat(String(createCuponDto.valor)),
+        fecha_expiracion: new Date(createCuponDto.fecha_expiracion),
       },
     });
   }
@@ -77,6 +78,9 @@ export class CuponesService {
         ...updateCuponDto,
         ...(updateCuponDto.valor && {
           valor: parseFloat(String(updateCuponDto.valor)),
+        }),
+        ...(updateCuponDto.fecha_expiracion && {
+          fecha_expiracion: new Date(updateCuponDto.fecha_expiracion),
         }),
       },
     });
