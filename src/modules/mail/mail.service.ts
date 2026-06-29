@@ -8,6 +8,7 @@ import { ConfirmacionEmailDto } from './dto/confirmacion-email.dto';
 import { CancelacionEmailDto } from './dto/cancelacion-email.dto';
 import { NuevaPeliculaEmailDto } from './dto/nueva-pelicula-email.dto';
 import { FuncionCanceladaEmailDto } from './dto/funcion-cancelada-email.dto';
+import { ReservaExpiradaEmailDto } from './dto/reserva-expirada-email.dto';
 
 export interface SendMailOptions {
   to: { email: string; name?: string };
@@ -426,6 +427,29 @@ export class MailService {
   </table>
 </body>
 </html>`,
+    });
+  }
+
+  async sendReservaExpiradaEmail(input: ReservaExpiradaEmailDto): Promise<void> {
+    const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #c8202b;">Tu reserva expiró</h2>
+      <p>Hola${input.to.name ? ' ' + this.esc(input.to.name) : ''},</p>
+      <p>
+        La reserva <strong>${this.esc(input.numeroReserva)}</strong> para
+        <strong>${this.esc(input.tituloPelicula)}</strong> en
+        <strong>${this.esc(input.nombreSala)}</strong>
+        expiró porque no se completó el pago a tiempo.
+      </p>
+      <p>Los asientos se liberaron y podés volver a reservar cuando quieras.</p>
+      <p style="color: #666; font-size: 12px;">Movie Ticket Booking</p>
+    </div>
+  `;
+
+    await this.sendEmail({
+      to: input.to,
+      subject: `Reserva ${input.numeroReserva} expirada`,
+      htmlContent: html,
     });
   }
 

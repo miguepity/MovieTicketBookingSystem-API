@@ -3,13 +3,15 @@ import { ReservasController } from './reservas.controller';
 import { MisReservasController } from './mis-reservas.controller';
 import { AdminReservasController } from './admin-reservas.controller';
 import { ReservasService } from './reservas.service';
+import { ReservasExpiracionService } from './reservas-expiracion.service';
 import { AsientosModule } from '../asientos/asientos.module';
 import { ReembolsosModule } from '../reembolsos/reembolsos.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
-  imports: [AsientosModule, ReembolsosModule],
+  imports: [AsientosModule, ReembolsosModule, MailModule],
   controllers: [ReservasController, MisReservasController, AdminReservasController],
-  providers: [ReservasService],
+  providers: [ReservasService, ReservasExpiracionService],
   exports: [ReservasService],
 })
 export class ReservasModule {}
