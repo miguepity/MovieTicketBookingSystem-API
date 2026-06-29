@@ -10,6 +10,14 @@ export class CreatePagoEfectivoDto {
   @IsNumber()
   precio_por_asiento: number;
 
+  @ApiPropertyOptional({
+    description: 'Código de cupón de descuento',
+    example: 'DESC20',
+  })
+  @IsOptional()
+  @IsString()
+  codigo_cupon?: string;
+
   @ApiPropertyOptional({ description: 'Referencia o numero de recibo' })
   @IsOptional()
   @IsString()

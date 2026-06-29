@@ -223,15 +223,54 @@ export class PagosService {
     }
 
     const totalAsientos = reserva.reservaAsientos.length;
-    const montoFinal = totalAsientos * dto.precio_por_asiento;
+    const precioPorAsiento = dto.precio_por_asiento;
+    const montoOriginal = totalAsientos * precioPorAsiento;
+    let montoDescuento = 0;
+    let idCupon: bigint | null = null;
+
+    if (dto.codigo_cupon) {
+      const cupon = await this.prisma.cupones.findUnique({
+        where: { codigo: dto.codigo_cupon },
+      });
+
+      if (!cupon) {
+        throw new NotFoundException(
+          `Cupon con codigo ${dto.codigo_cupon} no encontrado`,
+        );
+      }
+
+      if (!cupon.activo) {
+        throw new BadRequestException('El cupon no está activo');
+      }
+
+      if (cupon.fecha_expiracion < new Date()) {
+        throw new BadRequestException('El cupon ha expirado');
+      }
+
+      if (cupon.usos_maximos && cupon.usos_actuales >= cupon.usos_maximos) {
+        throw new BadRequestException(
+          'El cupon ha alcanzado el maximo de usos',
+        );
+      }
+
+      idCupon = cupon.id;
+
+      if (cupon.tipo === 'porcentaje') {
+        montoDescuento = montoOriginal * (Number(cupon.valor) / 100);
+      } else {
+        montoDescuento = Number(cupon.valor);
+      }
+    }
+
+    const montoFinal = Math.max(0, montoOriginal - montoDescuento);
 
     return await this.prisma.$transaction(async (tx) => {
       const pago = await tx.pagos.create({
         data: {
           id_reserva: BigInt(dto.id_reserva),
-          id_cupon: null,
-          monto_original: montoFinal,
-          monto_descuento: 0,
+          id_cupon: idCupon,
+          monto_original: montoOriginal,
+          monto_descuento: montoDescuento,
           monto_final: montoFinal,
           metodo: 'efectivo',
           estado: 'completado',
@@ -252,6 +291,13 @@ export class PagosService {
         where: { id: BigInt(dto.id_reserva) },
         data: { estado: 'pagada' },
       });
+
+      if (idCupon) {
+        await tx.cupones.update({
+          where: { id: idCupon },
+          data: { usos_actuales: { increment: 1 } },
+        });
+      }
 
       return {
         ...pago,

@@ -65,6 +65,10 @@ export class AuthService {
       throw new BadRequestException('Invalid credentials');
     }
 
+    if (user.estado !== 'active') {
+      throw new UnauthorizedException('Cuenta desactivada');
+    }
+
     const payload = {
       userId: user.id.toString(),
       email: user.email,
