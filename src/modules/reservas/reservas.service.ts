@@ -3,7 +3,9 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import { MailService } from 'src/modules/mail/mail.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
@@ -56,6 +58,7 @@ export class ReservasService {
     private readonly reembolsosService: ReembolsosService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditLog: AuditLogService,
+    private readonly mail: MailService,
   ) {}
 
   async crear(
@@ -1096,5 +1099,82 @@ export class ReservasService {
     throw new Error(
       'No se pudo generar numero_reserva único después de 3 intentos',
     );
+  }
+
+  private readonly REENVIO_COOLDOWN_S = 60;
+
+  async reenviarBoletoUsuario(
+    numeroReserva: string,
+    userId: bigint,
+  ): Promise<{ ok: true } | { ok: false; retry_after: number }> {
+    const reserva = await this.prisma.reservas.findFirst({
+      where: { numero_reserva: numeroReserva, id_usuario: userId },
+      select: {
+        id: true, numero_reserva: true, estado: true, id_usuario: true, ultimo_reenvio_at: true,
+      },
+    });
+    if (!reserva) throw new NotFoundException('Reserva no encontrada');
+    if (reserva.estado !== EstadoReserva.PAGADA) {
+      throw new BadRequestException('Solo se pueden reenviar boletos pagados');
+    }
+
+    if (reserva.ultimo_reenvio_at) {
+      const elapsed = (Date.now() - reserva.ultimo_reenvio_at.getTime()) / 1000;
+      if (elapsed < this.REENVIO_COOLDOWN_S) {
+        return { ok: false, retry_after: Math.ceil(this.REENVIO_COOLDOWN_S - elapsed) };
+      }
+    }
+
+    await this.enviarConfirmacionPorReserva(reserva.id);
+    await this.prisma.reservas.update({
+      where: { id: reserva.id },
+      data: { ultimo_reenvio_at: new Date() },
+    });
+    return { ok: true };
+  }
+
+  private async enviarConfirmacionPorReserva(idReserva: bigint): Promise<void> {
+    const reserva = await this.prisma.reservas.findUniqueOrThrow({
+      where: { id: idReserva },
+      include: {
+        usuarios: { select: { nombre: true, email: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { titulo: true } },
+            salas: { include: { cines: { select: { nombre: true } } } },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: { asientos: { include: { tipoAsiento: { select: { nombre: true } } } } },
+            },
+          },
+        },
+        pagos: { where: { estado: 'exitoso' }, orderBy: { created_at: 'desc' }, take: 1 },
+      },
+    });
+
+    const pago = reserva.pagos[0];
+    const fechaFuncion = new Intl.DateTimeFormat('es', {
+      dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Tegucigalpa',
+    }).format(reserva.funciones.fecha_hora);
+
+    await this.mail.sendConfirmacionEmail({
+      nombre: reserva.usuarios.nombre,
+      email: reserva.usuarios.email,
+      numeroReserva: reserva.numero_reserva,
+      pelicula: reserva.funciones.peliculas.titulo,
+      cine: `${reserva.funciones.salas.cines.nombre} — Sala ${reserva.funciones.salas.nombre}`,
+      fechaFuncion,
+      asientos: reserva.reservaAsientos.map((ra) => ({
+        codigo: ra.asientosfuncion.asientos.codigo,
+        tipo: ra.asientosfuncion.asientos.tipoAsiento.nombre,
+      })),
+      montoOriginal: pago ? pago.monto_original.toFixed(2) : '0.00',
+      montoDescuento: pago ? pago.monto_descuento.toFixed(2) : '0.00',
+      montoFinal: pago ? pago.monto_final.toFixed(2) : '0.00',
+      metodo: pago?.metodo ?? 'efectivo',
+    });
   }
 }

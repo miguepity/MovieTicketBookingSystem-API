@@ -1,8 +1,11 @@
 import {
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -24,6 +27,7 @@ import { BoletoResponseDto } from './dto/boleto.response.dto';
 import { CancelarPorClienteResponseDto } from './dto/cancelar-por-cliente.response.dto';
 import { ListMisReservasQueryDto } from './dto/list-mis-reservas-query.dto';
 import { MisReservasPageResponseDto } from './dto/mis-reservas-page.response.dto';
+import { ReenviarBoletoResponseDto } from './dto/reenviar-boleto.response.dto';
 
 @ApiTags('me/reservas')
 @ApiBearerAuth()
@@ -82,5 +86,20 @@ export class MisReservasController {
     @Param('numero') numero: string,
   ) {
     return this.reservas.cancelarPorCliente(numero, user.userId);
+  }
+
+  @Post(':numero/reenviar-boleto')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reenviar boleto al email del usuario (cooldown 60s)' })
+  @ApiOkResponse({ type: ReenviarBoletoResponseDto })
+  async reenviarBoleto(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('numero') numero: string,
+  ): Promise<ReenviarBoletoResponseDto> {
+    const out = await this.reservas.reenviarBoletoUsuario(numero, BigInt(user.userId));
+    if (!out.ok) {
+      return { ok: false, retry_after: out.retry_after };
+    }
+    return { ok: true };
   }
 }

@@ -4,6 +4,7 @@ import { ReservasService } from './reservas.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { ReembolsosService } from '../reembolsos/reembolsos.service';
+import { MailService } from '../mail/mail.service';
 
 describe('ReservasService.crear', () => {
   let service: ReservasService;
@@ -93,6 +94,7 @@ describe('ReservasService.crear', () => {
         { provide: AuditLogService, useValue: auditLog },
         { provide: ReembolsosService, useValue: reembolsos },
         { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: MailService, useValue: { sendConfirmacionEmail: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(ReservasService);
@@ -142,6 +144,7 @@ describe('ReservasService.cancelar', () => {
         { provide: AuditLogService, useValue: auditLog },
         { provide: ReembolsosService, useValue: reembolsos },
         { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: MailService, useValue: { sendConfirmacionEmail: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(ReservasService);
@@ -202,5 +205,83 @@ describe('ReservasService.cancelar', () => {
         }),
       }),
     );
+  });
+});
+
+describe('ReservasService.reenviarBoletoUsuario', () => {
+  let service: ReservasService;
+  let prisma: any;
+  let mail: { sendConfirmacionEmail: jest.Mock };
+  let reembolsos: { calcularMonto: jest.Mock; crearReembolso: jest.Mock };
+  let eventEmitter: { emit: jest.Mock };
+  let auditLog: { registrar: jest.Mock };
+
+  beforeEach(async () => {
+    prisma = {
+      reservas: {
+        findFirst: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    mail = { sendConfirmacionEmail: jest.fn().mockResolvedValue(undefined) };
+    reembolsos = { calcularMonto: jest.fn(), crearReembolso: jest.fn() };
+    eventEmitter = { emit: jest.fn() };
+    auditLog = { registrar: jest.fn().mockResolvedValue(undefined) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReservasService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ReembolsosService, useValue: reembolsos },
+        { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: AuditLogService, useValue: auditLog },
+        { provide: MailService, useValue: mail },
+      ],
+    }).compile();
+    service = moduleRef.get(ReservasService);
+  });
+
+  it('envía email y actualiza ultimo_reenvio_at cuando hay cooldown vencido', async () => {
+    const reservaRow = {
+      id: 1n, numero_reserva: 'RES-1', estado: 'pagada', id_usuario: 7n,
+      ultimo_reenvio_at: new Date(Date.now() - 120_000),
+    };
+    prisma.reservas.findFirst.mockResolvedValue(reservaRow);
+    prisma.reservas.findUniqueOrThrow.mockResolvedValue({
+      ...reservaRow,
+      usuarios: { nombre: 'Test', email: 'test@example.com' },
+      funciones: {
+        fecha_hora: new Date('2026-07-01T20:00:00Z'),
+        peliculas: { titulo: 'Pelicula Test' },
+        salas: { nombre: 'Sala 1', cines: { nombre: 'Cine Test' } },
+      },
+      reservaAsientos: [
+        {
+          asientosfuncion: {
+            asientos: { codigo: 'A01', tipoAsiento: { nombre: 'General' } },
+          },
+        },
+      ],
+      pagos: [],
+    });
+
+    const out = await service.reenviarBoletoUsuario('RES-1', 7n);
+    expect(out).toEqual({ ok: true });
+    expect(prisma.reservas.update).toHaveBeenCalled();
+    expect(mail.sendConfirmacionEmail).toHaveBeenCalled();
+  });
+
+  it('retorna 429 con retry_after cuando cooldown activo', async () => {
+    const recent = new Date(Date.now() - 10_000);
+    prisma.reservas.findFirst.mockResolvedValue({
+      id: 1n, numero_reserva: 'RES-1', estado: 'pagada', id_usuario: 7n,
+      ultimo_reenvio_at: recent,
+    });
+
+    const out = await service.reenviarBoletoUsuario('RES-1', 7n);
+    expect(out.ok).toBe(false);
+    expect((out as any).retry_after).toBeGreaterThan(40);
+    expect((out as any).retry_after).toBeLessThanOrEqual(60);
+    expect(mail.sendConfirmacionEmail).not.toHaveBeenCalled();
   });
 });
