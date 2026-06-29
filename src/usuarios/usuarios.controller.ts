@@ -99,6 +99,12 @@ export class UsuariosController {
     return this.usuariosService.findAllUsuarios(filtro);
   }
 
+  @Get('todos/simple')
+  @ApiOperation({ summary: 'Listar todos los usuarios con sus roles (paginado)' })
+  async findAllClientesSimple() {
+    return this.usuariosService.findAll();
+  }
+
   @Get('search')
   @ApiOperation({ summary: 'Buscar clientes por nombre, correo o teléfono' })
   @ApiQuery({ name: 'q', required: false, description: 'Texto a buscar' })

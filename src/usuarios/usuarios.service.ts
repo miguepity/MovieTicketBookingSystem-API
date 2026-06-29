@@ -169,6 +169,13 @@ export class UsuariosService {
     };
   }
 
+  findAll(){
+    const usuarios = this.prisma.usuarios.findMany({
+      where: { roles: {nombre: 'cliente'} }
+    })
+    return usuarios;
+  }
+
   async searchClientes(q?: string) {
     const clientes = await this.prisma.usuarios.findMany({
       where: {

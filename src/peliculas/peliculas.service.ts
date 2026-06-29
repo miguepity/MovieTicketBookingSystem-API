@@ -66,12 +66,18 @@ export class PeliculasService {
             fecha_hora: true,
             estado: true,
             formato: true,
+            asientosFuncions: {
+              select: {
+                id: true,
+              }
+            },
             salas: {
               select: {
                 id: true,
                 nombre: true,
                 cines: {
                   select: {
+                    id: true,
                     nombre: true,
                     ciudades: { select: {nombre: true} }
                   }
