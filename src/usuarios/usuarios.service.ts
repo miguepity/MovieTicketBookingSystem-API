@@ -233,16 +233,19 @@ export class UsuariosService {
       throw new NotFoundException(`Usuario no encontrado.`);
     }
 
+    const notificacionesActivas = !findUsuario.notificaciones_activas;
+
     await this.prisma.usuarios.update({
       where: { id: BigInt(id) },
-      data: { notificaciones_activas: !findUsuario.notificaciones_activas },
+      data: { notificaciones_activas: notificacionesActivas },
     });
 
-    if (findUsuario.notificaciones_activas) {
-      return { message: 'Notificaciones desactivadas'};
-    } else {
-      return  { message: 'Notificaciones activadas'};
-    }
+    return {
+      message: notificacionesActivas
+        ? 'Notificaciones activadas'
+        : 'Notificaciones desactivadas',
+      notificaciones_activas: notificacionesActivas,
+    };
   }
 
   async findClientesSuscritos() {
