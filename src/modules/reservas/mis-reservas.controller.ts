@@ -93,13 +93,15 @@ export class MisReservasController {
   }
 
   @Get(':numero/codigo-firmado')
-  @ApiOperation({ summary: 'Código firmado para construir la URL pública del PDF del boleto' })
+  @ApiOperation({ summary: 'Código firmado y URL pública del PDF del boleto (para descarga + QR)' })
   async codigoFirmado(
     @CurrentUser() user: CurrentUserPayload,
     @Param('numero') numero: string,
-  ): Promise<{ codigo: string }> {
+  ): Promise<{ codigo: string; url: string }> {
     const reserva = await this.reservas.assertOwnership(numero, BigInt(user.userId));
-    return { codigo: this.codes.firmar(reserva.numero_reserva) };
+    const codigo = this.codes.firmar(reserva.numero_reserva);
+    const base = process.env.PDF_PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    return { codigo, url: `${base}/boletos/${codigo}.pdf` };
   }
 
   @Post(':numero/reenviar-boleto')
