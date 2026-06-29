@@ -34,10 +34,13 @@ export class PagosService {
     if (reserva.estado === 'cancelada')
       throw new BadRequestException('La reserva está cancelada');
 
+    const idCupon = await this.validarCuponParaPago(dto.id_cupon);
+
     const [pago] = await this.prisma.$transaction([
       this.prisma.pagos.create({
         data: {
           id_reserva: BigInt(dto.id_reserva),
+          id_cupon: idCupon,
           monto_original: dto.monto_original,
           monto_descuento: dto.monto_descuento,
           monto_final: dto.monto_final,
@@ -49,6 +52,14 @@ export class PagosService {
         where: { id: BigInt(dto.id_reserva) },
         data: { estado: 'pagada' },
       }),
+      ...(idCupon
+        ? [
+            this.prisma.cupones.update({
+              where: { id: idCupon },
+              data: { usos_actuales: { increment: 1 } },
+            }),
+          ]
+        : []),
     ]);
 
     // Trigger email — Promise sin await para no bloquear la respuesta
@@ -84,10 +95,13 @@ export class PagosService {
     if (reserva.estado === 'cancelada')
       throw new BadRequestException('La reserva está cancelada');
 
+    const idCupon = await this.validarCuponParaPago(dto.id_cupon);
+
     const [pago] = await this.prisma.$transaction([
       this.prisma.pagos.create({
         data: {
           id_reserva: BigInt(dto.id_reserva),
+          id_cupon: idCupon,
           monto_original: dto.monto_original,
           monto_descuento: dto.monto_descuento,
           monto_final: dto.monto_final,
@@ -99,11 +113,43 @@ export class PagosService {
         where: { id: BigInt(dto.id_reserva) },
         data: { estado: 'Confirmada' },
       }),
+      ...(idCupon
+        ? [
+            this.prisma.cupones.update({
+              where: { id: idCupon },
+              data: { usos_actuales: { increment: 1 } },
+            }),
+          ]
+        : []),
     ]);
 
     return pago;
   }
 
+  // Re-valida el cupón al momento del pago (no solo al momento de aplicarlo
+  // en el carrito) para no incrementar usos_actuales sobre un cupón que ya
+  // expiró/se agotó entre que el cliente lo aplicó y confirmó el pago.
+  private async validarCuponParaPago(
+    idCupon: number | undefined,
+  ): Promise<bigint | null> {
+    if (idCupon === undefined) return null;
+
+    const cupon = await this.prisma.cupones.findUnique({
+      where: { id: BigInt(idCupon) },
+    });
+    if (!cupon) throw new NotFoundException('El cupón no existe');
+    if (!cupon.activo) throw new BadRequestException('El cupón está inactivo');
+    if (cupon.fecha_expiracion < new Date())
+      throw new BadRequestException('El cupón ha expirado');
+    if (
+      cupon.usos_maximos !== null &&
+      cupon.usos_actuales >= cupon.usos_maximos
+    ) {
+      throw new BadRequestException('El cupón ha alcanzado su límite de usos');
+    }
+
+    return cupon.id;
+  }
 
   async findAll() {
     return await this.prisma.pagos.findMany({
@@ -112,12 +158,12 @@ export class PagosService {
           select: {
             usuarios: {
               select: {
-                email: true
-              }
-            }
-          }
-        }
-      }
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -135,13 +181,13 @@ export class PagosService {
     const pago = await this.prisma.pagos.findUnique({
       where: { id: BigInt(id) },
     });
-    
+
     if (!pago) throw new NotFoundException(`Pago #${id} no encontrado`);
 
     await this.prisma.pagos.update({
-      where: {id: BigInt(id)},
-      data: {estado}
+      where: { id: BigInt(id) },
+      data: { estado },
     });
-    return {message: 'Pago actualizado con exito.'};
+    return { message: 'Pago actualizado con exito.' };
   }
 }

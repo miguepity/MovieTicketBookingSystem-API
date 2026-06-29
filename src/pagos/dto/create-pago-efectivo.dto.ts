@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsDecimal, Min } from 'class-validator';
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsDecimal, Min, IsOptional } from 'class-validator';
 
 export class CreatePagoEfectivoDto {
   @ApiProperty({ example: 1, description: 'ID de la reserva a confirmar' })
@@ -24,4 +24,13 @@ export class CreatePagoEfectivoDto {
   })
   @IsDecimal()
   monto_final!: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'ID del cupón aplicado, si se usó uno',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  id_cupon?: number;
 }

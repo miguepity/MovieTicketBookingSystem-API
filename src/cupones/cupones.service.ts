@@ -160,6 +160,7 @@ export class CuponesService {
       valido: true,
       mensaje: 'El cupón es válido',
       cupon: {
+        id: cupon.id,
         codigo: cupon.codigo,
         tipo: cupon.tipo,
         valor: cupon.valor,
