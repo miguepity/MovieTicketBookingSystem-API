@@ -57,7 +57,7 @@ export class ReservasService {
           numero_reserva,
           id_usuario: dto.id_usuario,
           id_funcion: dto.id_funcion,
-          estado: 'activa',
+          estado: 'Confirmada',
         },
       });
 
@@ -128,52 +128,56 @@ export class ReservasService {
       throw new BadRequestException('La reserva ya está cancelada');
     }
 
-    // Solo las reservas pagadas generan un reembolso; una reserva que
-    // todavía no se pagó simplemente se cancela y libera sus asientos.
     const findPago = await this.prisma.pagos.findFirst({
       where: { id_reserva: BigInt(id), estado: 'Completado' },
     });
 
     let reembolsoInfo: { porcentaje: number; monto: number } | null = null;
-
+    let calculo: { monto_de_reembolso: number; porcentaje_de_reembolso: number } | null = null;
     if (findPago) {
-      const calculo = await this.reembolsosService.calcularReembolso(id);
-      const monto = calculo.monto_de_reembolso;
-      const porcentaje = Number(calculo.porcentaje_de_reembolso);
-
-      await this.prisma.pagos.update({
-        where: { id: findPago.id },
-        data: { estado: 'Reembolsado' },
-      });
-
-      await this.prisma.reembolsos.create({
-        data: {
-          id_pago: BigInt(findPago.id),
-          monto,
-          estado: 'Pendiente',
-          fecha_procesado: null,
-        },
-      });
-
-      reembolsoInfo = { porcentaje, monto };
+      calculo = await this.reembolsosService.calcularReembolso(id);
     }
 
     const asientosReservados = await this.prisma.reservaAsientos.findMany({
       where: { id_reserva: BigInt(id) },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.asientosFuncion.updateMany({
+    await this.prisma.$transaction(async (tx) => {
+      if (findPago && calculo) {
+        await tx.pagos.update({
+          where: { id: findPago.id },
+          data: { estado: 'Reembolsado' },
+        });
+
+        await tx.reembolsos.create({
+          data: {
+            id_pago: BigInt(findPago.id),
+            monto: calculo.monto_de_reembolso,
+            estado: 'Pendiente',
+            fecha_procesado: null,
+          },
+        });
+      }
+
+      await tx.asientosFuncion.updateMany({
         where: {
           id: { in: asientosReservados.map((ar) => ar.id_asiento_funcion) },
         },
         data: { estado: 'disponible', id_usuario: null },
-      }),
-      this.prisma.reservas.update({
+      });
+
+      await tx.reservas.update({
         where: { id: BigInt(id) },
-        data: { estado: 'cancelada' },
-      }),
-    ]);
+        data: { estado: 'Cancelada' },
+      });
+    });
+
+    if (findPago && calculo) {
+      reembolsoInfo = {
+        porcentaje: Number(calculo.porcentaje_de_reembolso),
+        monto: calculo.monto_de_reembolso,
+      };
+    }
 
     return {
       message: 'Reserva cancelada con exito.',
@@ -202,65 +206,57 @@ export class ReservasService {
       }
     }
 
-    const reservasNumber = await this.prisma.reservas.findMany();
-
     const page = dto.page ?? 1;
     const limit = dto.limit ?? 10;
-    const total = reservasNumber.length
 
-    const reservas = await this.prisma.reservas.findMany({
-      where: {
-        ...(dto.id_usuario && { id_usuario: BigInt(dto.id_usuario) }),
-        ...(dto.estado && { estado: dto.estado }),
-        ...(dto.numero_reserva && { numero_reserva: dto.numero_reserva }),
-        ...(dto.id_pelicula && {
-          funciones: { id_pelicula: BigInt(dto.id_pelicula) },
-        }),
-        ...(dto.id_cine && {
-          funciones: { salas: { id_cine: BigInt(dto.id_cine) } },
-        }),
-        ...((dto.fecha_inicio || dto.fecha_final) && {
-          funciones: {
-            fecha_hora: {
-              ...(dto.fecha_inicio && { gte: new Date(dto.fecha_inicio) }),
-              ...(dto.fecha_final && { lte: new Date(dto.fecha_final) }),
-            },
-          },
-        }),
-      },
-      include: {
-        usuarios: { select: { nombre: true, email: true } },
+    const where = {
+      estado: dto.estado ? dto.estado : { not: 'Eliminada' },
+      ...(dto.id_usuario && { id_usuario: BigInt(dto.id_usuario) }),
+      ...(dto.numero_reserva && { numero_reserva: dto.numero_reserva }),
+      ...(dto.id_pelicula && {
+        funciones: { id_pelicula: BigInt(dto.id_pelicula) },
+      }),
+      ...(dto.id_cine && {
+        funciones: { salas: { id_cine: BigInt(dto.id_cine) } },
+      }),
+      ...((dto.fecha_inicio || dto.fecha_final) && {
         funciones: {
-          select: {
-            fecha_hora: true,
-            formato: true,
-            peliculas: true,
-            salas: {
-              include: {
-                cines: true,
-              },
-            },
+          fecha_hora: {
+            ...(dto.fecha_inicio && { gte: new Date(dto.fecha_inicio) }),
+            ...(dto.fecha_final && { lte: new Date(dto.fecha_final) }),
           },
         },
-        reservaAsientos: {
-          include: {
-            asientosfuncion: {
-              include: {
-                asientos: true,
-              },
+      }),
+    };
+
+    const [reservas, total] = await this.prisma.$transaction([
+      this.prisma.reservas.findMany({
+        where,
+        include: {
+          usuarios: { select: { nombre: true, email: true } },
+          funciones: {
+            select: {
+              fecha_hora: true,
+              formato: true,
+              peliculas: true,
+              salas: { include: { cines: true } },
             },
           },
+          reservaAsientos: {
+            include: { asientosfuncion: { include: { asientos: true } } },
+          },
+          pagos: true,
         },
-        pagos: true,
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { created_at: 'desc' },
-    });
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.reservas.count({ where: {estado: {not: 'Eliminada'}} }),
+    ]);
 
     return {
       data: reservas,
-      meta: { page, limit , total},
+      meta: { page, limit, total },
     };
   }
 
@@ -304,5 +300,13 @@ export class ReservasService {
 
     // Fix: was `filas.join` (always identical rows), must be `f.join` (each row)
     return [columnas, ...filas.map((f) => f.join(', '))].join('\n');
+  }
+
+  async deleteReserva(id: number){
+    await this.prisma.reservas.update({
+      where: {id: BigInt(id)},
+      data: {estado: 'Eliminada'}
+    });
+    return {message: 'Reserva eliminada exitosamente.'}
   }
 }

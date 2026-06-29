@@ -239,9 +239,9 @@ export class UsuariosService {
     });
 
     if (findUsuario.notificaciones_activas) {
-      return 'Notificaciones desactivadas';
+      return { message: 'Notificaciones desactivadas'};
     } else {
-      return 'Notificaciones activadas';
+      return  { message: 'Notificaciones activadas'};
     }
   }
 

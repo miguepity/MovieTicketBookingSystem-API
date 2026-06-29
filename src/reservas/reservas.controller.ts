@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Query,
   Res,
+  Delete,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
@@ -56,5 +57,12 @@ export class ReservasController {
   @ApiParam({ name: 'id', description: 'ID de la reserva' })
   cancelReserva(@Param('id', ParseIntPipe) id: number) {
     return this.reservasService.cancelarReserva(id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Cancelar una reserva' })
+  @ApiParam({ name: 'id', description: 'ID de la reserva' })
+  deletReserva(@Param('id', ParseIntPipe) id: number) {
+    return this.reservasService.deleteReserva(id);
   }
 }
