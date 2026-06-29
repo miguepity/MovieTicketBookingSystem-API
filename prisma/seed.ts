@@ -310,10 +310,6 @@ async function main() {
   // 17. PoliticaCancelacion
   const politicasData = [
     { horas_antes_minimo: 24, porcentaje_reembolso: 50.0 },
-    { horas_antes_minimo: 48, porcentaje_reembolso: 75.0 },
-    { horas_antes_minimo: 72, porcentaje_reembolso: 100.0 },
-    { horas_antes_minimo: 12, porcentaje_reembolso: 25.0 },
-    { horas_antes_minimo: 6, porcentaje_reembolso: 10.0 },
   ];
   const countPoliticas = await prisma.politicaCancelacion.count();
   if (countPoliticas < politicasData.length) {
