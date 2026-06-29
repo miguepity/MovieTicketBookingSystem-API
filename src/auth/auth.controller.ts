@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -29,6 +29,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Activar cuenta de usuario' })
   activate(@Body() dto: ActivateDto) {
     return this.authService.activate(dto);
+  }
+
+  @Post('resend-activation')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reenviar correo de activación' })
+  resendActivation(@Body() body: { email: string }) {
+    if (!body.email) throw new BadRequestException('El correo es requerido.');
+    return this.authService.resendActivation(body.email);
   }
 
   @Post('logout')

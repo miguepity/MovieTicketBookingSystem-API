@@ -115,6 +115,21 @@ export class AuthService {
     };
   }
 
+  async resendActivation(email: string) {
+    const user = await this.prisma.usuarios.findUnique({ where: { email } });
+    if (!user || user.estado === 'activo') {
+      return { message: 'Si la cuenta existe y está pendiente, se reenvió el correo.' };
+    }
+
+    const confirmationToken = await this.jwtService.signAsync(
+      { sub: user.id.toString(), email: user.email },
+      { expiresIn: '24h' },
+    );
+
+    await this.emailService.sendActivationCode(user.email, confirmationToken);
+    return { message: 'Si la cuenta existe y está pendiente, se reenvió el correo.' };
+  }
+
   async activate(dto: { token: string }) {
     try {
       const payload = await this.jwtService.verifyAsync(dto.token);
