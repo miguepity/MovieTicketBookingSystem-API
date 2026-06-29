@@ -130,7 +130,6 @@ export class FuncionesService {
       include: {
         peliculas: true,
         salas: true,
-        // Asientos ocupados (reservados + vendidos) para calcular la ocupación.
         _count: {
           select: {
             asientosFuncions: {
