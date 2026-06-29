@@ -62,3 +62,4 @@ test-results/
 tests-results/
 playwright-report/
 .playwright/
+.pnpm-store/ 
