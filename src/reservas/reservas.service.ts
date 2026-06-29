@@ -7,10 +7,14 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReservasBodyDto } from './dto/reservas.body.dto';
 import { ReservasFilterDto } from './dto/reservas.filter.dto';
+import { ReembolsosService } from '../reembolsos/reembolsos.services';
 
 @Injectable()
 export class ReservasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reembolsosService: ReembolsosService,
+  ) {}
 
   async createReserva(dto: ReservasBodyDto) {
     const findUsuario = await this.prisma.usuarios.findFirst({
@@ -120,38 +124,39 @@ export class ReservasService {
     if (!findReserva) {
       throw new NotFoundException('Reserva no existe');
     }
-    if (findReserva.estado === 'Cancelada') {
+    if (findReserva.estado.toLowerCase() === 'cancelada') {
       throw new BadRequestException('La reserva ya está cancelada');
     }
-    if (findReserva.estado === 'Completada') {
-      throw new BadRequestException(
-        'No se puede cancelar una reserva pagada. Solicite un reembolso.',
-      );
-    }
 
-    const user_id = findReserva.id_usuario
+    // Solo las reservas pagadas generan un reembolso; una reserva que
+    // todavía no se pagó simplemente se cancela y libera sus asientos.
     const findPago = await this.prisma.pagos.findFirst({
-      where: { id_reserva: id, reservas: {
-        id_usuario: user_id
-      }},
+      where: { id_reserva: BigInt(id), estado: 'Completado' },
     });
-    if (!findPago) {
-      throw new NotFoundException('Pago no existe');
+
+    let reembolsoInfo: { porcentaje: number; monto: number } | null = null;
+
+    if (findPago) {
+      const calculo = await this.reembolsosService.calcularReembolso(id);
+      const monto = calculo.monto_de_reembolso;
+      const porcentaje = Number(calculo.porcentaje_de_reembolso);
+
+      await this.prisma.pagos.update({
+        where: { id: findPago.id },
+        data: { estado: 'Reembolsado' },
+      });
+
+      await this.prisma.reembolsos.create({
+        data: {
+          id_pago: BigInt(findPago.id),
+          monto,
+          estado: 'Pendiente',
+          fecha_procesado: null,
+        },
+      });
+
+      reembolsoInfo = { porcentaje, monto };
     }
-
-    await this.prisma.pagos.update({
-      where: { id: findPago.id },
-      data: { estado: 'Reembolsado' }
-    });
-
-    await this.prisma.reembolsos.create({
-      data: {
-        id_pago: BigInt(findPago.id),
-        monto: findPago.monto_final,
-        estado: 'Pendiente',
-        fecha_procesado: null,
-      },
-    })
 
     const asientosReservados = await this.prisma.reservaAsientos.findMany({
       where: { id_reserva: BigInt(id) },
@@ -166,11 +171,14 @@ export class ReservasService {
       }),
       this.prisma.reservas.update({
         where: { id: BigInt(id) },
-        data: { estado: 'Cancelada' },
+        data: { estado: 'cancelada' },
       }),
     ]);
 
-    return {message: 'Reserva cancelada con exito.'};
+    return {
+      message: 'Reserva cancelada con exito.',
+      reembolso: reembolsoInfo,
+    };
   }
 
   async getReservas(dto: ReservasFilterDto) {

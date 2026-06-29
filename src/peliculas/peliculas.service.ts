@@ -54,13 +54,13 @@ export class PeliculasService {
     return pelicula;
   }
 
-  findAll() {
-    return this.prisma.peliculas.findMany({
+  async findAll() {
+    const peliculas = await this.prisma.peliculas.findMany({
       include: {
         idiomas: { select: {nombre: true} },
         generos: { select: {nombre: true} },
-        funciones: { 
-          select: { 
+        funciones: {
+          select: {
             id: true,
             id_pelicula: true,
             fecha_hora: true,
@@ -69,19 +69,33 @@ export class PeliculasService {
             salas: {
               select: {
                 id: true,
-                nombre: true, 
+                nombre: true,
                 cines: {
                   select: {
                     nombre: true,
                     ciudades: { select: {nombre: true} }
                   }
                 }
-              } 
-            }
+              }
+            },
+            asientosFuncions: { select: { estado: true } },
           }
         }
       }
     });
+
+    // Cada función expone cuántos asientos quedan disponibles, para que el
+    // frontend pueda marcarla como "Función Llena" sin pedir el detalle de
+    // cada asiento.
+    return peliculas.map((pelicula) => ({
+      ...pelicula,
+      funciones: pelicula.funciones.map(({ asientosFuncions, ...funcion }) => ({
+        ...funcion,
+        asientos_disponibles: asientosFuncions.filter(
+          (a) => a.estado === 'disponible',
+        ).length,
+      })),
+    }));
   }
 
   findOne(id: number) {

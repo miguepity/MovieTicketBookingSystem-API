@@ -4,5 +4,6 @@ import { ReembolsosController } from './reembolsos.controller';
 @Module({
   controllers: [ReembolsosController],
   providers: [ReembolsosService],
+  exports: [ReembolsosService],
 })
 export class ReembolsosModule {}
