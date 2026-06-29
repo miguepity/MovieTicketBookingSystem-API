@@ -127,7 +127,6 @@ export class PeliculasController {
       500: { description: 'Error interno del servidor' },
     },
   })
-  @Post(':id/poster')
   async uploadPoster(@Param('id') id: string, @Body() dto: UploadPosterDto) {
     const newMovie = await this.peliculasService.uploadPoster(BigInt(id), dto);
     return {
@@ -216,5 +215,20 @@ export class PeliculasController {
     @Param('cineId', ParseIntPipe) cineId: number,
   ) {
     return this.peliculasService.getFuncionesPorCine(id, cineId);
+  }
+
+  @Get('all')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  async getAll() {
+    const movies = await this.peliculasService.getAll();
+
+    return movies.map((movie) => ({
+      ...movie,
+      id: movie.id.toString(),
+      id_genero: movie.id_genero?.toString() ?? null,
+      id_usuario: movie.id_usuario.toString(),
+      id_idioma: movie.id_idioma?.toString() ?? null,
+    }));
   }
 }
