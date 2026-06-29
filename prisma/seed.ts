@@ -6,15 +6,85 @@ import bcrypt from 'bcrypt';
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
+const SEED_ENV = process.env.SEED_ENV || 'prod';
+
 async function main() {
-  console.log('[Seeding] Starting idempotent seed...');
+  if (SEED_ENV === 'prod') {
+    await seedProd();
+  } else {
+    await seedDev();
+  }
+}
+
+async function seedProd() {
+  console.log('[Seeding PROD] Starting minimal seed...');
+  const email = process.env.ADMIN_EMAIL || 'admin@example.com';
+  const password = 'admin';
+  const SALT_ROUNDS = 10;
+  const hash = await bcrypt.hash(password, SALT_ROUNDS);
+
+  // Roles
+  console.log('[Seeding PROD] Upserting roles...');
+  const adminRole = await prisma.roles.upsert({
+    where: { nombre: 'admin' },
+    update: {},
+    create: { nombre: 'admin' },
+  });
+  await prisma.roles.upsert({
+    where: { nombre: 'client' },
+    update: {},
+    create: { nombre: 'client' },
+  });
+
+  // Admin user
+  console.log('[Seeding PROD] Upserting admin user...');
+  await prisma.usuarios.upsert({
+    where: { email },
+    update: {},
+    create: {
+      nombre: 'Admin System',
+      email,
+      id_rol: adminRole.id,
+      password_hash: hash,
+      estado: 'active',
+    },
+  });
+
+  // Ciudad
+  console.log('[Seeding PROD] Upserting city...');
+  const ciudad = await prisma.ciudades.upsert({
+    where: { nombre: 'San Pedro Sula' },
+    update: {},
+    create: { nombre: 'San Pedro Sula' },
+  });
+
+  // Cine
+  console.log('[Seeding PROD] Upserting cinema...');
+  const cine = await prisma.cines.findFirst({
+    where: { nombre: 'Cine 1' },
+  });
+  if (!cine) {
+    await prisma.cines.create({
+      data: {
+        nombre: 'Cine 1',
+        direccion: 'San Pedro Sula',
+        id_ciudad: ciudad.id,
+      },
+    });
+  }
+
+  console.log('[Seeding PROD] Completed!');
+}
+
+async function seedDev() {
+  console.log('[Seeding DEV] Starting idempotent seed...');
   const email = process.env.ADMIN_EMAIL || 'admin@example.com';
   const password = 'admin';
   const SALT_ROUNDS = 10;
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
 
   // 1. Roles
-  console.log('[Seeding] Upserting roles...');
+  console.log('[Seeding DEV] Upserting roles...');
   const adminRole = await prisma.roles.upsert({
     where: { nombre: 'admin' },
     update: {},
@@ -28,7 +98,7 @@ async function main() {
   });
 
   // 2. Usuarios
-  console.log('[Seeding] Upserting admin user...');
+  console.log('[Seeding DEV] Upserting admin user...');
   const adminUser = await prisma.usuarios.upsert({
     where: { email: email },
     update: {},
@@ -42,7 +112,7 @@ async function main() {
   });
 
   // 3. Ciudades
-  console.log('[Seeding] Upserting cities...');
+  console.log('[Seeding DEV] Upserting cities...');
   const ciudadesNombres = [
     'San Pedro Sula',
     'Guatemala City',
@@ -59,7 +129,7 @@ async function main() {
   }
 
   // 4. Cines, Salas and Asientos
-  console.log('[Seeding] Handling cinemas, rooms and seats...');
+  console.log('[Seeding DEV] Handling cinemas, rooms and seats...');
   const cinesData = [
     {
       nombre: 'Cine City Mall',
@@ -118,7 +188,7 @@ async function main() {
   }
 
   // 5. Idiomas
-  console.log('[Seeding] Upserting languages...');
+  console.log('[Seeding DEV] Upserting languages...');
   const idiomasNombres = ['Español', 'Inglés', 'Subtitulada'];
   const idiomas: { id: bigint; nombre: string }[] = [];
   for (const nombre of idiomasNombres) {
@@ -131,7 +201,7 @@ async function main() {
   }
 
   // 6. Generos
-  console.log('[Seeding] Upserting genres...');
+  console.log('[Seeding DEV] Upserting genres...');
   const generosNombres = [
     'Acción',
     'Comedia',
@@ -150,7 +220,7 @@ async function main() {
   }
 
   // 7. Peliculas
-  console.log('[Seeding] Handling movies...');
+  console.log('[Seeding DEV] Handling movies...');
   const peliculasData = [
     {
       titulo: 'The Matrix',
@@ -177,7 +247,7 @@ async function main() {
   }
 
   // 8. Politica de Cancelacion
-  console.log('[Seeding] Handling cancellation policies...');
+  console.log('[Seeding DEV] Handling cancellation policies...');
   const countPoliticas = await prisma.politicaCancelacion.count();
   if (countPoliticas === 0) {
     await prisma.politicaCancelacion.createMany({
@@ -186,7 +256,7 @@ async function main() {
   }
 
   // 9. Funciones and AsientosFuncion
-  console.log('[Seeding] Handling functions and seat instances...');
+  console.log('[Seeding DEV] Handling functions and seat instances...');
   const allPeliculas = await prisma.peliculas.findMany();
   const allSalas = await prisma.salas.findMany();
 
@@ -223,7 +293,7 @@ async function main() {
   }
 
   // 10. Sample Reservation
-  console.log('[Seeding] Creating sample reservation...');
+  console.log('[Seeding DEV] Creating sample reservation...');
   const firstUser = await prisma.usuarios.findFirst();
   const firstFuncion = await prisma.funciones.findFirst();
 
@@ -270,13 +340,13 @@ async function main() {
           },
         });
         console.log(
-          `[Seeding] Created reservation ${reservationNumber} with 2 seats.`,
+          `[Seeding DEV] Created reservation ${reservationNumber} with 2 seats.`,
         );
       }
     }
   }
 
-  console.log('[Seeding] Seed completed successfully!');
+  console.log('[Seeding DEV] Seed completed successfully!');
 }
 
 main()
