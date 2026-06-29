@@ -31,6 +31,10 @@
 $ pnpm install
 ```
 
+## Environment Variables
+
+- `PDF_PUBLIC_BASE_URL` — base URL pública desde donde se sirve el PDF del boleto. El QR del boleto codifica `${PDF_PUBLIC_BASE_URL}/boletos/<codigoFirmado>.pdf`. En desarrollo local típicamente `http://localhost:3000`; para probar el QR desde el celular, reemplazar por la IP LAN del dev (ej. `http://192.168.1.42:3000`).
+
 ## Compile and run the project
 
 ```bash
