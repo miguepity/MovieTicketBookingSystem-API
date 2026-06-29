@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { EstadoReembolso } from '../../common/enums/estado-reembolso.enum';
+import { EstadoReserva } from '../../common/enums/estado-reserva.enum';
 import { PagoEstado } from '../../../generated/prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotReembolso } from '../audit-log/snapshots';
@@ -152,6 +153,7 @@ export class ReembolsosService {
   async procesarEfectivo(idReembolso: string, auditorId: bigint) {
     const reembolso = await this.prisma.reembolsos.findUnique({
       where: { id: BigInt(idReembolso) },
+      include: { pagos: { select: { id_reserva: true } } },
     });
     if (!reembolso) {
       throw new NotFoundException({
@@ -160,22 +162,30 @@ export class ReembolsosService {
       });
     }
 
-    const claim = await this.prisma.reembolsos.updateMany({
-      where: { id: reembolso.id, estado: EstadoReembolso.PENDIENTE },
-      data: {
-        estado: EstadoReembolso.PROCESADO,
-        fecha_procesado: new Date(),
-      },
-    });
-    if (claim.count !== 1) {
-      throw new ConflictException({
-        code: 'REEMBOLSO_NO_PROCESABLE',
-        message: `El reembolso está en estado ${reembolso.estado}`,
+    const refreshed = await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.reembolsos.updateMany({
+        where: { id: reembolso.id, estado: EstadoReembolso.PENDIENTE },
+        data: {
+          estado: EstadoReembolso.PROCESADO,
+          fecha_procesado: new Date(),
+        },
       });
-    }
+      if (claim.count !== 1) {
+        throw new ConflictException({
+          code: 'REEMBOLSO_NO_PROCESABLE',
+          message: `El reembolso está en estado ${reembolso.estado}`,
+        });
+      }
 
-    const refreshed = await this.prisma.reembolsos.findUniqueOrThrow({
-      where: { id: reembolso.id },
+      await tx.reservas.updateMany({
+        where: {
+          id: reembolso.pagos.id_reserva,
+          estado: EstadoReserva.CANCELADA,
+        },
+        data: { estado: EstadoReserva.REEMBOLSADA },
+      });
+
+      return tx.reembolsos.findUniqueOrThrow({ where: { id: reembolso.id } });
     });
     await this.auditLog.registrar({
       id_usuario: auditorId,
@@ -341,7 +351,10 @@ export class ReembolsosService {
   }
 
   async procesar(id: bigint, dto: ProcesarReembolsoDto, actorId: bigint) {
-    const r = await this.prisma.reembolsos.findUnique({ where: { id } });
+    const r = await this.prisma.reembolsos.findUnique({
+      where: { id },
+      include: { pagos: { select: { id_reserva: true } } },
+    });
     if (!r) {
       throw new NotFoundException({
         code: 'REEMBOLSO_NO_ENCONTRADO',
@@ -355,13 +368,23 @@ export class ReembolsosService {
       });
     }
 
-    const updated = await this.prisma.reembolsos.update({
-      where: { id },
-      data: {
-        estado: EstadoReembolso.PROCESADO,
-        fecha_procesado: new Date(),
-        nota: dto.nota ?? null,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.reembolsos.update({
+        where: { id },
+        data: {
+          estado: EstadoReembolso.PROCESADO,
+          fecha_procesado: new Date(),
+          nota: dto.nota ?? null,
+        },
+      });
+      await tx.reservas.updateMany({
+        where: {
+          id: r.pagos.id_reserva,
+          estado: EstadoReserva.CANCELADA,
+        },
+        data: { estado: EstadoReserva.REEMBOLSADA },
+      });
+      return u;
     });
 
     await this.auditLog.registrar({
