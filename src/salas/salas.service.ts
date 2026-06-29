@@ -114,4 +114,27 @@ export class SalaService {
       message: 'Sala updated successfully',
     };
   }
+
+  async deleteSala(dto: ParamDto) {
+    const findSala = await this.prisma.salas.findFirst({
+      where: { id: BigInt(dto.id) },
+    });
+    if (!findSala) {
+      throw new NotFoundException('Sala not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.asientos.deleteMany({
+        where: { id_sala: BigInt(dto.id) },
+      });
+      await tx.salas.delete({
+        where: { id: BigInt(dto.id) },
+      });
+    });
+
+    return {
+      success: true,
+      message: 'Sala deleted successfully',
+    };
+  }
 }

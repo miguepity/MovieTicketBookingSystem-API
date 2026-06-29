@@ -4,6 +4,7 @@ import {
   Get,
   Put,
   Patch,
+  Delete,
   Param,
   Body,
   ParseIntPipe,
@@ -52,5 +53,12 @@ export class CineController {
     @Body() dtoB: UpdateCineDto,
   ) {
     return this.cineService.editCine({ id }, dtoB);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar un cine' })
+  @ApiParam({ name: 'id', description: 'ID del cine' })
+  deleteCine(@Param('id', ParseIntPipe) id: number) {
+    return this.cineService.deleteCine(id);
   }
 }
