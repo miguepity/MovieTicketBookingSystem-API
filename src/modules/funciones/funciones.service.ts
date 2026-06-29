@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { AdminMapaAsientosResponseDto } from './dto/admin-mapa-asientos.response.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
@@ -315,5 +316,97 @@ export class FuncionesService {
     );
 
     return updated;
+  }
+
+  async getMapaAdmin(idFuncion: bigint): Promise<AdminMapaAsientosResponseDto> {
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: idFuncion },
+      include: {
+        salas: { select: { filas: true, columnas: true, id_cine: true } },
+        asientosFuncions: {
+          include: {
+            asientos: {
+              include: {
+                tipoAsiento: { select: { id: true, nombre: true, color: true } },
+              },
+            },
+            usuarios: { select: { id: true, email: true } },
+          },
+          orderBy: [
+            { asientos: { fila: 'asc' } },
+            { asientos: { columna: 'asc' } },
+          ],
+        },
+      },
+    });
+
+    if (!funcion) {
+      throw new NotFoundException({
+        code: 'FUNCION_NO_ENCONTRADA',
+        message: 'La función no existe',
+      });
+    }
+
+    const idCine = funcion.salas.id_cine;
+    const tipos = Array.from(
+      new Set(funcion.asientosFuncions.map((af) => af.asientos.id_tipo_asiento.toString())),
+    ).map((s) => BigInt(s));
+
+    const preciosRows = tipos.length
+      ? await this.prisma.preciosCine.findMany({
+          where: {
+            id_tipo_asiento: { in: tipos },
+            OR: [{ id_cine: idCine }, { id_cine: null }],
+          },
+        })
+      : [];
+
+    const precioByTipo = new Map<string, number>();
+    for (const row of preciosRows) {
+      const key = row.id_tipo_asiento.toString();
+      const isOverride = row.id_cine === idCine;
+      if (!precioByTipo.has(key) || isOverride) {
+        precioByTipo.set(key, Number(row.precio.toString()));
+      }
+    }
+
+    const tiposSinPrecio = tipos.filter((t) => !precioByTipo.has(t.toString()));
+    if (tiposSinPrecio.length > 0) {
+      throw new ConflictException({
+        code: 'PRECIO_NO_CONFIGURADO',
+        message: 'Algún tipo de asiento no tiene precio configurado',
+        id_tipo_asiento: tiposSinPrecio.map((t) => t.toString()),
+      });
+    }
+
+    const now = new Date();
+
+    return {
+      funcion_id: funcion.id.toString(),
+      sala: { filas: funcion.salas.filas, columnas: funcion.salas.columnas },
+      asientos: funcion.asientosFuncions.map((af) => {
+        const expirado =
+          af.estado === 'bloqueado' && af.bloqueado_hasta < now;
+        const estado = expirado ? 'disponible' : af.estado;
+        const disponible = estado === 'disponible';
+
+        return {
+          id_asiento_funcion: af.id.toString(),
+          fila: af.asientos.fila,
+          columna: af.asientos.columna,
+          codigo: af.asientos.codigo,
+          tipo: af.asientos.tipoAsiento.nombre,
+          color: af.asientos.tipoAsiento.color,
+          estado,
+          precio: precioByTipo.get(af.asientos.id_tipo_asiento.toString())!,
+          usuario:
+            disponible || !af.usuarios
+              ? null
+              : { id: af.usuarios.id.toString(), email: af.usuarios.email },
+          bloqueado_hasta:
+            disponible ? null : af.bloqueado_hasta.toISOString(),
+        };
+      }),
+    };
   }
 }

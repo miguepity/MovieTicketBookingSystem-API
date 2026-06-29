@@ -215,3 +215,216 @@ describe('FuncionesService.update / cancelar', () => {
     );
   });
 });
+
+describe('getMapaAdmin', () => {
+  it('devuelve mapa con precio (override por cine), usuario y estado calculado', async () => {
+    const now = new Date('2026-06-29T12:00:00Z');
+    jest.useFakeTimers().setSystemTime(now);
+
+    const idFuncion = 10n;
+    const idCine = 1n;
+    const tipoPreferencial = 5n;
+    const tipoGeneral = 6n;
+
+    const prismaMock = {
+      funciones: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: idFuncion,
+          salas: { filas: 10, columnas: 14, id_cine: idCine },
+          asientosFuncions: [
+            {
+              id: 100n,
+              estado: 'disponible',
+              bloqueado_hasta: now,
+              id_usuario: null,
+              usuarios: null,
+              asientos: {
+                fila: 'A',
+                columna: 1,
+                codigo: 'A-01',
+                id_tipo_asiento: tipoPreferencial,
+                tipoAsiento: { id: tipoPreferencial, nombre: 'preferencial', color: '#F59E0B' },
+              },
+            },
+            {
+              id: 101n,
+              estado: 'bloqueado',
+              bloqueado_hasta: new Date('2026-06-29T11:00:00Z'), // expirado
+              id_usuario: 7n,
+              usuarios: { id: 7n, email: 'cliente@cinema.com' },
+              asientos: {
+                fila: 'A',
+                columna: 2,
+                codigo: 'A-02',
+                id_tipo_asiento: tipoGeneral,
+                tipoAsiento: { id: tipoGeneral, nombre: 'general', color: '#3B82F6' },
+              },
+            },
+            {
+              id: 102n,
+              estado: 'reservado',
+              bloqueado_hasta: new Date('2026-06-29T13:00:00Z'),
+              id_usuario: 7n,
+              usuarios: { id: 7n, email: 'cliente@cinema.com' },
+              asientos: {
+                fila: 'A',
+                columna: 3,
+                codigo: 'A-03',
+                id_tipo_asiento: tipoPreferencial,
+                tipoAsiento: { id: tipoPreferencial, nombre: 'preferencial', color: '#F59E0B' },
+              },
+            },
+          ],
+        }),
+      },
+      preciosCine: {
+        findMany: jest.fn().mockResolvedValue([
+          { id_cine: idCine, id_tipo_asiento: tipoPreferencial, precio: 100 },
+          { id_cine: null, id_tipo_asiento: tipoGeneral, precio: 50 },
+        ]),
+      },
+    };
+
+    const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
+    const result = await svc.getMapaAdmin(idFuncion);
+
+    expect(prismaMock.preciosCine.findMany).toHaveBeenCalledWith({
+      where: {
+        id_tipo_asiento: { in: expect.arrayContaining([tipoPreferencial, tipoGeneral]) },
+        OR: [{ id_cine: idCine }, { id_cine: null }],
+      },
+    });
+
+    expect(result.funcion_id).toBe('10');
+    expect(result.sala).toEqual({ filas: 10, columnas: 14 });
+    expect(result.asientos).toHaveLength(3);
+
+    // Asiento 100: disponible, sin usuario, sin bloqueado_hasta, precio preferencial=100
+    expect(result.asientos[0]).toEqual({
+      id_asiento_funcion: '100',
+      fila: 'A',
+      columna: 1,
+      codigo: 'A-01',
+      tipo: 'preferencial',
+      color: '#F59E0B',
+      estado: 'disponible',
+      precio: 100,
+      usuario: null,
+      bloqueado_hasta: null,
+    });
+
+    // Asiento 101: bloqueado pero expirado → estado disponible, usuario y bloqueado_hasta nulos
+    expect(result.asientos[1]).toEqual({
+      id_asiento_funcion: '101',
+      fila: 'A',
+      columna: 2,
+      codigo: 'A-02',
+      tipo: 'general',
+      color: '#3B82F6',
+      estado: 'disponible',
+      precio: 50,
+      usuario: null,
+      bloqueado_hasta: null,
+    });
+
+    // Asiento 102: reservado (no se altera por la regla de expiración)
+    expect(result.asientos[2]).toEqual({
+      id_asiento_funcion: '102',
+      fila: 'A',
+      columna: 3,
+      codigo: 'A-03',
+      tipo: 'preferencial',
+      color: '#F59E0B',
+      estado: 'reservado',
+      precio: 100,
+      usuario: { id: '7', email: 'cliente@cinema.com' },
+      bloqueado_hasta: '2026-06-29T13:00:00.000Z',
+    });
+
+    jest.useRealTimers();
+  });
+
+  it('lanza NotFoundException FUNCION_NO_ENCONTRADA si no existe', async () => {
+    const prismaMock = {
+      funciones: { findUnique: jest.fn().mockResolvedValue(null) },
+      preciosCine: { findMany: jest.fn() },
+    };
+    const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
+
+    await expect(svc.getMapaAdmin(999n)).rejects.toMatchObject({
+      response: { code: 'FUNCION_NO_ENCONTRADA' },
+    });
+    expect(prismaMock.preciosCine.findMany).not.toHaveBeenCalled();
+  });
+
+  it('lanza ConflictException PRECIO_NO_CONFIGURADO si falta precio para algún tipo', async () => {
+    const prismaMock = {
+      funciones: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 10n,
+          salas: { filas: 1, columnas: 1, id_cine: 1n },
+          asientosFuncions: [
+            {
+              id: 100n,
+              estado: 'disponible',
+              bloqueado_hasta: new Date(),
+              id_usuario: null,
+              usuarios: null,
+              asientos: {
+                fila: 'A',
+                columna: 1,
+                codigo: 'A-01',
+                id_tipo_asiento: 5n,
+                tipoAsiento: { id: 5n, nombre: 'preferencial', color: null },
+              },
+            },
+          ],
+        }),
+      },
+      preciosCine: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
+
+    await expect(svc.getMapaAdmin(10n)).rejects.toMatchObject({
+      response: { code: 'PRECIO_NO_CONFIGURADO' },
+    });
+  });
+
+  it('prefiere precio override por cine sobre default global', async () => {
+    const idCine = 1n;
+    const tipo = 5n;
+    const prismaMock = {
+      funciones: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 10n,
+          salas: { filas: 1, columnas: 1, id_cine: idCine },
+          asientosFuncions: [
+            {
+              id: 100n,
+              estado: 'disponible',
+              bloqueado_hasta: new Date(),
+              id_usuario: null,
+              usuarios: null,
+              asientos: {
+                fila: 'A',
+                columna: 1,
+                codigo: 'A-01',
+                id_tipo_asiento: tipo,
+                tipoAsiento: { id: tipo, nombre: 'preferencial', color: null },
+              },
+            },
+          ],
+        }),
+      },
+      preciosCine: {
+        findMany: jest.fn().mockResolvedValue([
+          { id_cine: null, id_tipo_asiento: tipo, precio: 50 },     // global
+          { id_cine: idCine, id_tipo_asiento: tipo, precio: 120 },  // override cine
+        ]),
+      },
+    };
+    const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
+    const result = await svc.getMapaAdmin(10n);
+    expect(result.asientos[0].precio).toBe(120);
+  });
+});
