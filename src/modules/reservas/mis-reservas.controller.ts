@@ -14,7 +14,6 @@ import {
   ApiNotFoundResponse,
   ApiConflictResponse,
   ApiUnauthorizedResponse,
-  ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-auth.guard';
@@ -23,6 +22,8 @@ import type { CurrentUserPayload } from 'src/modules/auth/decorators/current-use
 import { ReservasService } from './reservas.service';
 import { BoletoResponseDto } from './dto/boleto.response.dto';
 import { CancelarPorClienteResponseDto } from './dto/cancelar-por-cliente.response.dto';
+import { ListMisReservasQueryDto } from './dto/list-mis-reservas-query.dto';
+import { MisReservasPageResponseDto } from './dto/mis-reservas-page.response.dto';
 
 @ApiTags('me/reservas')
 @ApiBearerAuth()
@@ -32,23 +33,22 @@ export class MisReservasController {
   constructor(private readonly reservas: ReservasService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar mis reservas (boletos)' })
-  @ApiQuery({
-    name: 'estado',
-    required: false,
-    description: 'Filtrar por estado (pendiente_pago, pagada, cancelada, …)',
-  })
+  @ApiOperation({ summary: 'Listar mis reservas (boletos) paginadas' })
   @ApiOkResponse({
-    description: 'Lista de reservas del usuario autenticado',
-    type: BoletoResponseDto,
-    isArray: true,
+    description: 'Página de reservas del usuario autenticado',
+    type: MisReservasPageResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   list(
     @CurrentUser() user: CurrentUserPayload,
-    @Query('estado') estado?: string,
+    @Query() query: ListMisReservasQueryDto,
   ) {
-    return this.reservas.findMisReservas(user.userId, estado);
+    return this.reservas.findMisReservas(user.userId, {
+      page: query.page,
+      limit: query.limit,
+      estado: query.estado,
+      vista: query.vista,
+    });
   }
 
   @Get(':numero')

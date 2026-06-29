@@ -13,6 +13,7 @@ import { ReservaCanceladaEvent } from './events/reserva-cancelada.event';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotReserva } from '../audit-log/snapshots';
 import { ListReservasQueryDto } from './dto/list-reservas-query.dto';
+import { puedeReservar } from '../../common/utils/cartelera-window';
 
 // ──── Boleto view shape ───────────────────────────────────────────────────────
 export interface BoletoAsiento {
@@ -62,12 +63,23 @@ export class ReservasService {
   ) {
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(idFuncion) },
-      select: { id: true, salas: { select: { id_cine: true } } },
+      select: {
+        id: true,
+        salas: { select: { id_cine: true } },
+        peliculas: { select: { fecha_estreno: true } },
+      },
     });
     if (!funcion) {
       throw new NotFoundException({
         code: 'FUNCION_NO_ENCONTRADA',
         message: 'La función no existe',
+      });
+    }
+
+    if (!puedeReservar(funcion.peliculas.fecha_estreno)) {
+      throw new ConflictException({
+        code: 'PELICULA_PROXIMAMENTE',
+        message: 'La película aún no abrió reservas (está próximamente)',
       });
     }
 
@@ -400,18 +412,58 @@ export class ReservasService {
     );
   }
 
-  async findMisReservas(userId: string, estado?: string): Promise<BoletoView[]> {
+  async findMisReservas(
+    userId: string,
+    opts: {
+      page?: number;
+      limit?: number;
+      estado?: string;
+      vista?: 'proximos' | 'pasados' | 'cancelados';
+    } = {},
+  ): Promise<{
+    data: BoletoView[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = Math.max(1, opts.page ?? 1);
+    const limit = Math.min(100, Math.max(1, opts.limit ?? 5));
     const where: Record<string, unknown> = { id_usuario: BigInt(userId) };
-    if (estado) where['estado'] = estado;
 
-    const reservas = await this.prisma.reservas.findMany({
-      where,
-      orderBy: { created_at: 'desc' },
-      include: this.incluirBoleto,
-    });
+    if (opts.vista === 'proximos') {
+      where['estado'] = {
+        in: [EstadoReserva.PAGADA, EstadoReserva.PENDIENTE_PAGO],
+      };
+      where['funciones'] = { fecha_hora: { gte: new Date() } };
+    } else if (opts.vista === 'pasados') {
+      where['estado'] = EstadoReserva.PAGADA;
+      where['funciones'] = { fecha_hora: { lt: new Date() } };
+    } else if (opts.vista === 'cancelados') {
+      where['estado'] = {
+        in: [EstadoReserva.CANCELADA, EstadoReserva.EXPIRADA],
+      };
+    } else if (opts.estado) {
+      where['estado'] = opts.estado;
+    }
+
+    const [total, reservas] = await this.prisma.$transaction([
+      this.prisma.reservas.count({ where }),
+      this.prisma.reservas.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: this.incluirBoleto,
+      }),
+    ]);
 
     const preciosPorTipo = await this.buildPreciosPorTipo(reservas);
-    return reservas.map((r) => this.toBoletoView(r, preciosPorTipo));
+    return {
+      data: reservas.map((r) => this.toBoletoView(r, preciosPorTipo)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOneByNumero(numero: string, userId: string): Promise<BoletoView> {
