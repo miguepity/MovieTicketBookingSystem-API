@@ -121,7 +121,10 @@ export class FuncionesService {
   async findOne(id: number) {
     const funcion = await this.prisma.funciones.findUnique({
       where: { id: BigInt(id) },
-      include: { peliculas: true, salas: true },
+      include: {
+        peliculas: true,
+        salas: { include: { cines: { include: { ciudades: true } } } },
+      },
     });
     if (!funcion) throw new NotFoundException(`La función con ID ${id} no existe.`);
     return this.serializeFuncion(funcion);
