@@ -92,7 +92,6 @@ export class PeliculasService {
       },
     });
   }
-  2;
 
   async uploadPoster(id: bigint, dto: UploadPosterDto) {
     return this.prisma.peliculas.update({
@@ -191,5 +190,13 @@ export class PeliculasService {
         typeof value === 'bigint' ? value.toString() : value,
       ),
     );
+  }
+
+  async getAll() {
+    return this.prisma.peliculas.findMany({
+      orderBy: {
+        titulo: 'asc',
+      },
+    });
   }
 }
