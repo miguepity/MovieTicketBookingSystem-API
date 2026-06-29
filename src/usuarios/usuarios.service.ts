@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +10,8 @@ import * as bcrypt from 'bcrypt';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ClientesFilterDto } from './dto/clientes-filter.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -280,5 +283,122 @@ export class UsuariosService {
   async deleteAllUsers() {
     await this.prisma.usuarios.deleteMany({});
     return { message: 'Todos los usuarios han sido eliminados.' };
+  }
+
+  async adminCreateUser(dto: AdminCreateUserDto) {
+    const existing = await this.prisma.usuarios.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    const rol = await this.prisma.roles.findUnique({ where: { id: BigInt(dto.rolId) } });
+    if (!rol) {
+      throw new NotFoundException('Rol no encontrado');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.prisma.usuarios.create({
+      data: {
+        nombre: dto.nombre,
+        email: dto.email,
+        password_hash: passwordHash,
+        telefono: dto.telefono,
+        id_rol: BigInt(dto.rolId),
+        estado: 'activo',
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        estado: true,
+        created_at: true,
+        roles: { select: { id: true, nombre: true } },
+      },
+    });
+
+    return {
+      ...user,
+      id: user.id.toString(),
+      roles: { id: user.roles.id.toString(), nombre: user.roles.nombre },
+    };
+  }
+
+  async updateUserRole(id: number, dto: UpdateUserRoleDto) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: BigInt(id) },
+    });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado.`);
+    }
+
+    const rol = await this.prisma.roles.findUnique({ where: { id: BigInt(dto.rolId) } });
+    if (!rol) {
+      throw new NotFoundException('Rol no encontrado');
+    }
+
+    const actualizado = await this.prisma.usuarios.update({
+      where: { id: BigInt(id) },
+      data: { id_rol: BigInt(dto.rolId) },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        roles: { select: { id: true, nombre: true } },
+      },
+    });
+
+    return {
+      ...actualizado,
+      id: actualizado.id.toString(),
+      roles: { id: actualizado.roles.id.toString(), nombre: actualizado.roles.nombre },
+    };
+  }
+
+  async findAllUsuarios(filtro: ClientesFilterDto = {} as ClientesFilterDto) {
+    const page = Number(filtro.page) || 1;
+    const limit = Number(filtro.limit) || 20;
+
+    const where = {
+      ...(filtro.estado && { estado: filtro.estado }),
+      ...(filtro.q && {
+        OR: [
+          { nombre: { contains: filtro.q, mode: 'insensitive' as const } },
+          { email: { contains: filtro.q, mode: 'insensitive' as const } },
+          { telefono: { contains: filtro.q, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
+
+    const [usuarios, total] = await this.prisma.$transaction([
+      this.prisma.usuarios.findMany({
+        where,
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          telefono: true,
+          estado: true,
+          created_at: true,
+          roles: { select: { id: true, nombre: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.usuarios.count({ where }),
+    ]);
+
+    return {
+      data: usuarios.map(({ id, roles, ...u }) => ({
+        ...u,
+        id: id.toString(),
+        roles: { id: roles.id.toString(), nombre: roles.nombre },
+      })),
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 }

@@ -6,11 +6,21 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { ClientesFilterDto } from './dto/clientes-filter.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
+
+  @Post('admin-create')
+  @ApiOperation({ summary: 'Crear un usuario con rol específico (uso admin)' })
+  async adminCreateUser(
+    @Body(new ValidationPipe({ whitelist: true })) dto: AdminCreateUserDto,
+  ) {
+    return this.usuariosService.adminCreateUser(dto);
+  }
 
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar el nombre, email y/o teléfono de un usuario' })
@@ -51,6 +61,12 @@ export class UsuariosController {
     return this.usuariosService.findAllClientes(filtro);
   }
 
+  @Get('todos')
+  @ApiOperation({ summary: 'Listar todos los usuarios con sus roles (paginado)' })
+  async findAllUsuarios(@Query() filtro: ClientesFilterDto) {
+    return this.usuariosService.findAllUsuarios(filtro);
+  }
+
   @Get('search')
   @ApiOperation({
     summary: 'Buscar clientes por nombre, correo o teléfono',
@@ -82,6 +98,16 @@ export class UsuariosController {
   })
   getClientesSuscritos() {
     return this.usuariosService.findClientesSuscritos();
+  }
+
+  @Patch(':id/rol')
+  @ApiOperation({ summary: 'Actualizar el rol de un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario' })
+  async updateUserRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ValidationPipe({ whitelist: true })) dto: UpdateUserRoleDto,
+  ) {
+    return this.usuariosService.updateUserRole(id, dto);
   }
 
   @Get(':id')
