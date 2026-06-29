@@ -129,6 +129,30 @@ export class ReservasService {
       );
     }
 
+    const user_id = findReserva.id_usuario
+    const findPago = await this.prisma.pagos.findFirst({
+      where: { id_reserva: id, reservas: {
+        id_usuario: user_id
+      }},
+    });
+    if (!findPago) {
+      throw new NotFoundException('Pago no existe');
+    }
+
+    await this.prisma.pagos.update({
+      where: { id: findPago.id },
+      data: { estado: 'Reembolsado' }
+    });
+
+    await this.prisma.reembolsos.create({
+      data: {
+        id_pago: BigInt(findPago.id),
+        monto: findPago.monto_final,
+        estado: 'Pendiente',
+        fecha_procesado: null,
+      },
+    })
+
     const asientosReservados = await this.prisma.reservaAsientos.findMany({
       where: { id_reserva: BigInt(id) },
     });

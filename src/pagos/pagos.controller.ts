@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  Patch
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { PagosService } from './pagos.service';
@@ -41,5 +42,12 @@ export class PagosController {
   @ApiParam({ name: 'id', description: 'ID del pago' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.pagosService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un pago por ID' })
+  @ApiParam({ name: 'id', description: 'Actualizar estado del pago' })
+  async updatePago(@Param('id', ParseIntPipe) id: number, @Body('estado') estado: string) {
+    return await this.pagosService.cambiarEstadorPago(id, estado);
   }
 }
