@@ -73,6 +73,34 @@ async function seedProd() {
     });
   }
 
+  // Géneros
+  console.log('[Seeding PROD] Upserting genres...');
+  const generosNombres = [
+    'Acción',
+    'Comedia',
+    'Drama',
+    'Terror',
+    'Ciencia Ficción',
+  ];
+  for (const nombre of generosNombres) {
+    await prisma.generos.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre },
+    });
+  }
+
+  // Idiomas
+  console.log('[Seeding PROD] Upserting languages...');
+  const idiomasNombres = ['Español', 'Inglés', 'Subtitulada'];
+  for (const nombre of idiomasNombres) {
+    await prisma.idiomas.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre },
+    });
+  }
+
   console.log('[Seeding PROD] Completed!');
 }
 
