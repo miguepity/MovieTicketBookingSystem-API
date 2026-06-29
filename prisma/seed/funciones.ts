@@ -18,7 +18,9 @@ export async function seedFunciones(
   salas: SalasMap,
 ): Promise<FuncionesMap> {
   const all: FuncionSeed[] = [];
-  const baseDate = new Date('2026-06-15T15:00:00.000Z');
+  const baseDate = new Date();
+  baseDate.setUTCDate(baseDate.getUTCDate() + 1);
+  baseDate.setUTCHours(15, 0, 0, 0);
 
   for (let i = 0; i < 12; i++) {
     const pelicula = peliculas.all[i % peliculas.all.length];
