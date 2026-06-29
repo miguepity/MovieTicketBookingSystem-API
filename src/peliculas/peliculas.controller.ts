@@ -92,6 +92,18 @@ export class PeliculasController {
     return this.peliculasService.buscar(query);
   }
 
+  @Get('todas')
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Listar todas las películas (activas e inactivas) — solo Admin' })
+  @ApiResponse({ status: 200, description: 'Lista completa de películas retornada exitosamente.' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado. Se requiere rol ADMIN.' })
+  findAll() {
+    return this.peliculasService.findAll();
+  }
+
   @Get(':id/cines/:cineId/funciones')
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard, RolesGuard)

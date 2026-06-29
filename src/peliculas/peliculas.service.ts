@@ -219,6 +219,35 @@ export class PeliculasService {
     };
   }
 
+  async findAll() {
+    const peliculas = await this.prisma.peliculas.findMany({
+      include: {
+        idiomas: true,
+        generos: true,
+      },
+      orderBy: { titulo: 'asc' },
+    });
+
+    return {
+      message: 'Películas encontradas',
+      total: peliculas.length,
+      data: peliculas.map((p) => ({
+        id: Number(p.id),
+        titulo: p.titulo,
+        sinopsis: p.sinopsis,
+        poster_url: p.poster_url,
+        fecha_estreno: p.fecha_estreno,
+        activo: p.activo,
+        genero: p.generos
+          ? { id: Number(p.generos.id), nombre: p.generos.nombre }
+          : null,
+        idioma: p.idiomas
+          ? { id: Number(p.idiomas.id), nombre: p.idiomas.nombre }
+          : null,
+      })),
+    };
+  }
+
   async getCinesByPelicula(id: string) {
     await this.findOneOrFail(id);
 
