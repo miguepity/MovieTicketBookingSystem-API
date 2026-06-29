@@ -285,3 +285,133 @@ describe('ReservasService.reenviarBoletoUsuario', () => {
     expect(mail.sendConfirmacionEmail).not.toHaveBeenCalled();
   });
 });
+
+describe('ReservasService.reenviarBoletoAdmin', () => {
+  let service: ReservasService;
+  let prisma: any;
+  let mail: { sendConfirmacionEmail: jest.Mock; sendCancelacionEmail: jest.Mock };
+  let auditLog: { registrar: jest.Mock };
+
+  const reservaPayload = {
+    id: 1n,
+    numero_reserva: 'RES-1',
+    estado: 'pagada',
+    ultimo_reenvio_at: new Date(),
+    usuarios: { nombre: 'Test', email: 'test@example.com' },
+    funciones: {
+      fecha_hora: new Date('2026-07-01T20:00:00Z'),
+      peliculas: { titulo: 'Pelicula Test' },
+      salas: { nombre: 'Sala 1', cines: { nombre: 'Cine Test' } },
+    },
+    reservaAsientos: [
+      { asientosfuncion: { asientos: { codigo: 'A01', tipoAsiento: { nombre: 'General' } } } },
+    ],
+    pagos: [],
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      reservas: {
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        update: jest.fn(),
+      },
+    };
+    mail = {
+      sendConfirmacionEmail: jest.fn().mockResolvedValue(undefined),
+      sendCancelacionEmail: jest.fn().mockResolvedValue(undefined),
+    };
+    auditLog = { registrar: jest.fn().mockResolvedValue(undefined) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReservasService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogService, useValue: auditLog },
+        { provide: ReembolsosService, useValue: { calcularMonto: jest.fn(), crearReembolso: jest.fn() } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: MailService, useValue: mail },
+      ],
+    }).compile();
+    service = moduleRef.get(ReservasService);
+  });
+
+  it('reenvía sin chequear cooldown y registra AuditLog', async () => {
+    prisma.reservas.findUnique.mockResolvedValue({ id: 1n, numero_reserva: 'RES-1', estado: 'pagada' });
+    prisma.reservas.findUniqueOrThrow.mockResolvedValue(reservaPayload);
+
+    const out = await service.reenviarBoletoAdmin('1', 99n);
+    expect(out).toEqual({ ok: true });
+    expect(mail.sendConfirmacionEmail).toHaveBeenCalled();
+    expect(auditLog.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ accion: 'ADMIN_REENVIO_BOLETO' }),
+    );
+    expect(prisma.reservas.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ReservasService.reenviarComprobanteReembolso', () => {
+  let service: ReservasService;
+  let prisma: any;
+  let mail: { sendConfirmacionEmail: jest.Mock; sendCancelacionEmail: jest.Mock };
+  let auditLog: { registrar: jest.Mock };
+
+  const reembolsadaPayload = {
+    id: 2n,
+    numero_reserva: 'RES-2',
+    estado: 'reembolsada',
+    usuarios: { nombre: 'Test', email: 'test@example.com' },
+    funciones: {
+      fecha_hora: new Date('2026-07-01T20:00:00Z'),
+      peliculas: { titulo: 'Pelicula Test' },
+      salas: { nombre: 'Sala 1', cines: { nombre: 'Cine Test' } },
+    },
+    reservaAsientos: [
+      { asientosfuncion: { asientos: { codigo: 'A01', tipoAsiento: { nombre: 'General' } } } },
+    ],
+    pagos: [],
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      reservas: {
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+      },
+    };
+    mail = {
+      sendConfirmacionEmail: jest.fn().mockResolvedValue(undefined),
+      sendCancelacionEmail: jest.fn().mockResolvedValue(undefined),
+    };
+    auditLog = { registrar: jest.fn().mockResolvedValue(undefined) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReservasService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogService, useValue: auditLog },
+        { provide: ReembolsosService, useValue: { calcularMonto: jest.fn(), crearReembolso: jest.fn() } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: MailService, useValue: mail },
+      ],
+    }).compile();
+    service = moduleRef.get(ReservasService);
+  });
+
+  it('falla si la reserva no está reembolsada', async () => {
+    prisma.reservas.findUnique.mockResolvedValue({ id: 1n, numero_reserva: 'RES-1', estado: 'pagada' });
+
+    await expect(service.reenviarComprobanteReembolso('1', 99n)).rejects.toThrow();
+    expect(mail.sendCancelacionEmail).not.toHaveBeenCalled();
+  });
+
+  it('happy path: estado=reembolsada → mail.sendCancelacionEmail + auditLog', async () => {
+    prisma.reservas.findUnique.mockResolvedValue({ id: 2n, numero_reserva: 'RES-2', estado: 'reembolsada' });
+    prisma.reservas.findUniqueOrThrow.mockResolvedValue(reembolsadaPayload);
+
+    const out = await service.reenviarComprobanteReembolso('2', 99n);
+    expect(out).toEqual({ ok: true });
+    expect(mail.sendCancelacionEmail).toHaveBeenCalled();
+    expect(auditLog.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ accion: 'ADMIN_REENVIO_COMPROBANTE_REEMBOLSO' }),
+    );
+  });
+});

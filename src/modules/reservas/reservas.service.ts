@@ -1145,6 +1145,111 @@ export class ReservasService {
     return { ok: true };
   }
 
+  async reenviarBoletoAdmin(idReserva: string, idAuditor: bigint): Promise<{ ok: true }> {
+    const id = BigInt(idReserva);
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id },
+      select: { id: true, estado: true, numero_reserva: true },
+    });
+    if (!reserva) throw new NotFoundException('Reserva no encontrada');
+    if (reserva.estado !== EstadoReserva.PAGADA) {
+      throw new BadRequestException('Solo se pueden reenviar boletos pagados');
+    }
+
+    await this.enviarConfirmacionPorReserva(id);
+    await this.auditLog.registrar({
+      id_usuario: idAuditor,
+      id_auditor: idAuditor,
+      accion: 'ADMIN_REENVIO_BOLETO',
+      entidad: 'Reserva',
+      entidad_id: id,
+      detalle: `Reenvío del boleto ${reserva.numero_reserva} por admin`,
+    });
+    return { ok: true };
+  }
+
+  async reenviarComprobanteReembolso(idReserva: string, idAuditor: bigint): Promise<{ ok: true }> {
+    const id = BigInt(idReserva);
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { id },
+      select: { id: true, estado: true, numero_reserva: true },
+    });
+    if (!reserva) throw new NotFoundException('Reserva no encontrada');
+    if (reserva.estado !== EstadoReserva.REEMBOLSADA) {
+      throw new BadRequestException('Solo se puede reenviar comprobante de reservas reembolsadas');
+    }
+
+    await this.enviarCancelacionPorReserva(id);
+    await this.auditLog.registrar({
+      id_usuario: idAuditor,
+      id_auditor: idAuditor,
+      accion: 'ADMIN_REENVIO_COMPROBANTE_REEMBOLSO',
+      entidad: 'Reserva',
+      entidad_id: id,
+      detalle: `Reenvío del comprobante de reembolso ${reserva.numero_reserva} por admin`,
+    });
+    return { ok: true };
+  }
+
+  private async enviarCancelacionPorReserva(idReserva: bigint): Promise<void> {
+    const reserva = await this.prisma.reservas.findUniqueOrThrow({
+      where: { id: idReserva },
+      include: {
+        usuarios: { select: { nombre: true, email: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { titulo: true } },
+            salas: { include: { cines: { select: { nombre: true } } } },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: { asientos: { include: { tipoAsiento: { select: { nombre: true } } } } },
+            },
+          },
+        },
+        pagos: {
+          orderBy: { created_at: 'desc' as const },
+          take: 1,
+          include: {
+            reembolsos: {
+              take: 1,
+              orderBy: { created_at: 'desc' as const },
+            },
+          },
+        },
+      },
+    });
+
+    const pago = reserva.pagos[0] ?? null;
+    const reembolso = pago?.reembolsos[0] ?? null;
+    const fechaFuncion = new Intl.DateTimeFormat('es', {
+      dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Tegucigalpa',
+    }).format(reserva.funciones.fecha_hora);
+
+    try {
+      await this.mail.sendCancelacionEmail({
+        nombre: reserva.usuarios.nombre,
+        email: reserva.usuarios.email,
+        numeroReserva: reserva.numero_reserva,
+        pelicula: reserva.funciones.peliculas.titulo,
+        cine: `${reserva.funciones.salas.cines.nombre} — Sala ${reserva.funciones.salas.nombre}`,
+        fechaFuncion,
+        asientos: reserva.reservaAsientos.map((ra) => ({
+          codigo: ra.asientosfuncion.asientos.codigo,
+          tipo: ra.asientosfuncion.asientos.tipoAsiento.nombre,
+        })),
+        montoPagado: pago ? pago.monto_final.toFixed(2) : undefined,
+        estadoReembolso: reembolso?.estado ?? 'sin_reembolso',
+        montoReembolso: reembolso ? reembolso.monto.toFixed(2) : undefined,
+      });
+    } catch (err) {
+      this.logger.error('Falló envío de cancelación reserva=' + idReserva, err);
+      throw err;
+    }
+  }
+
   private async enviarConfirmacionPorReserva(idReserva: bigint): Promise<void> {
     const reserva = await this.prisma.reservas.findUniqueOrThrow({
       where: { id: idReserva },

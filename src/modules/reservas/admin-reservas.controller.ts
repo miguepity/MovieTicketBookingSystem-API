@@ -1,8 +1,11 @@
 import {
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -30,6 +33,7 @@ import {
   AdminCancelarReservaResponseDto,
 } from './dto/admin-reserva.response.dto';
 import { ReservaCobrarResponseDto } from './dto/reserva-cobrar.response.dto';
+import { ReenviarBoletoResponseDto } from './dto/reenviar-boleto.response.dto';
 
 @ApiTags('admin/reservas')
 @ApiBearerAuth()
@@ -80,6 +84,28 @@ export class AdminReservasController {
   @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
   one(@Param('id') id: string) {
     return this.reservas.findOneAdmin(BigInt(id));
+  }
+
+  @Post(':id/reenviar-boleto')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin reenvía boleto al cliente (sin cooldown)' })
+  @ApiOkResponse({ type: ReenviarBoletoResponseDto })
+  adminReenviarBoleto(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ): Promise<ReenviarBoletoResponseDto> {
+    return this.reservas.reenviarBoletoAdmin(id, BigInt(user.userId));
+  }
+
+  @Post(':id/reenviar-comprobante-reembolso')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin reenvía comprobante de reembolso' })
+  @ApiOkResponse({ type: ReenviarBoletoResponseDto })
+  adminReenviarComprobanteReembolso(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ): Promise<ReenviarBoletoResponseDto> {
+    return this.reservas.reenviarComprobanteReembolso(id, BigInt(user.userId));
   }
 
   @Patch(':id/cancelar')
