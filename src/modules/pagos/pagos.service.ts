@@ -70,8 +70,17 @@ export class PagosService {
 
     if ((reserva.estado as EstadoReserva) !== EstadoReserva.PENDIENTE_PAGO) {
       throw new ConflictException({
-        code: 'RESERVA_NO_PAGABLE',
-        message: `La reserva está en estado ${reserva.estado}`,
+        code: (reserva.estado as EstadoReserva) === EstadoReserva.EXPIRADA ? 'RESERVA_EXPIRADA' : 'RESERVA_NO_PAGABLE',
+        message: (reserva.estado as EstadoReserva) === EstadoReserva.EXPIRADA
+          ? 'La reserva expiró y los asientos se liberaron'
+          : `La reserva está en estado ${reserva.estado}`,
+      });
+    }
+
+    if (reserva.expira_en && reserva.expira_en <= new Date()) {
+      throw new ConflictException({
+        code: 'RESERVA_EXPIRADA',
+        message: 'La reserva expiró antes de procesar el pago',
       });
     }
 
@@ -115,15 +124,38 @@ export class PagosService {
 
     const result = await this.prisma.$transaction(async (tx) => {
       const claim = await tx.reservas.updateMany({
-        where: { id: reserva.id, estado: EstadoReserva.PENDIENTE_PAGO },
+        where: {
+          id: reserva.id,
+          estado: EstadoReserva.PENDIENTE_PAGO,
+          expira_en: { gt: new Date() },
+        },
         data: { estado: EstadoReserva.PAGADA },
       });
       if (claim.count !== 1) {
+        const actual = await tx.reservas.findUnique({
+          where: { id: reserva.id },
+          select: { estado: true },
+        });
+        if (actual?.estado === EstadoReserva.PAGADA) {
+          throw new ConflictException({
+            code: 'PAGO_DUPLICADO',
+            message: 'La reserva ya fue pagada por otra operación',
+          });
+        }
         throw new ConflictException({
-          code: 'RESERVA_NO_PAGABLE',
-          message: 'La reserva ya fue pagada o cambió de estado',
+          code: 'RESERVA_EXPIRADA',
+          message: 'La reserva expiró antes de procesar el pago',
         });
       }
+
+      const referenciaResuelta =
+        input.referenciaExterna ??
+        (input.metodo === MetodoPago.TARJETA
+          ? `TARJ-${Date.now().toString(36).toUpperCase()}-${Math.random()
+              .toString(36)
+              .slice(2, 6)
+              .toUpperCase()}`
+          : null);
 
       const pago = await tx.pagos.create({
         data: {
@@ -134,7 +166,7 @@ export class PagosService {
           monto_final: new Prisma.Decimal(montoFinal.toFixed(2)),
           metodo: input.metodo,
           estado: PagoEstado.exitoso,
-          referencia_externa: input.referenciaExterna ?? null,
+          referencia_externa: referenciaResuelta,
         },
       });
 
@@ -205,7 +237,7 @@ export class PagosService {
 
     const reserva = await this.prisma.reservas.findUnique({
       where: { id: BigInt(input.idReserva) },
-      select: { id_usuario: true },
+      select: { id_usuario: true, estado: true, expira_en: true },
     });
     if (!reserva) {
       throw new NotFoundException({
@@ -214,12 +246,44 @@ export class PagosService {
       });
     }
 
-    return this.crear({
+    if ((reserva.estado as EstadoReserva) !== EstadoReserva.PENDIENTE_PAGO) {
+      throw new ConflictException({
+        code: (reserva.estado as EstadoReserva) === EstadoReserva.EXPIRADA ? 'RESERVA_EXPIRADA' : 'RESERVA_NO_PAGABLE',
+        message: (reserva.estado as EstadoReserva) === EstadoReserva.EXPIRADA
+          ? 'La reserva expiró y los asientos se liberaron'
+          : `La reserva está en estado ${reserva.estado}`,
+      });
+    }
+
+    if (reserva.expira_en && reserva.expira_en <= new Date()) {
+      throw new ConflictException({
+        code: 'RESERVA_EXPIRADA',
+        message: 'La reserva expiró antes de procesar el pago',
+      });
+    }
+
+    const result = await this.crear({
       idReserva: input.idReserva,
       idUsuarioActual: reserva.id_usuario.toString(),
       metodo: MetodoPago.EFECTIVO,
       codigoCupon: input.codigoCupon,
     });
+
+    await this.auditLog.registrar({
+      id_usuario: reserva.id_usuario,
+      id_auditor: BigInt(input.idUsuarioActual),
+      accion: 'PAGO_EFECTIVO_COBRAR',
+      entidad: 'Pago',
+      entidad_id: BigInt(result.id_pago),
+      detalle: `Pago en efectivo cobrado en taquilla por admin ${input.idUsuarioActual} para reserva ${input.idReserva}`,
+      valor_nuevo: {
+        id_pago: result.id_pago,
+        monto_final: result.monto_final,
+        numero_reserva: result.numero_reserva,
+      },
+    });
+
+    return result;
   }
 
   // ──── Admin helpers ─────────────────────────────────────────────────────────

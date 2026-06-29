@@ -13,7 +13,8 @@ describe('PagosService.crear', () => {
 
   beforeEach(async () => {
     prisma = {
-      reservas: { findUnique: jest.fn() },
+      reservas: { findUnique: jest.fn(), updateMany: jest.fn() },
+      usuarios: { findUnique: jest.fn() },
       preciosCine: { findMany: jest.fn() },
       pagos: { create: jest.fn(), findUniqueOrThrow: jest.fn() },
       asientosFuncion: { updateMany: jest.fn() },
@@ -39,6 +40,7 @@ describe('PagosService.crear', () => {
       id_usuario: 9n,
       numero_reserva: 'RES-20260101-ABCDE',
       estado: 'pendiente_pago',
+      expira_en: new Date(Date.now() + 30 * 60_000),
       funciones: { salas: { id_cine: 1n } },
       reservaAsientos: [
         {
@@ -56,7 +58,7 @@ describe('PagosService.crear', () => {
     prisma.preciosCine.findMany.mockResolvedValueOnce([
       { id_tipo_asiento: 1n, precio: { toString: () => '100' } },
     ]);
-    prisma.reservas.updateMany = jest.fn().mockResolvedValueOnce({ count: 1 });
+    prisma.reservas.updateMany.mockResolvedValueOnce({ count: 1 });
     prisma.pagos.create.mockResolvedValueOnce({
       id: 42n,
       estado: 'aprobado',
@@ -96,5 +98,75 @@ describe('PagosService.crear', () => {
         }),
       }),
     );
+  });
+
+  describe('expiración de reserva', () => {
+    const inputTarjetaBase = {
+      idReserva: '1',
+      idUsuarioActual: '10',
+      metodo: 'tarjeta' as const,
+      referenciaExterna: 'STRIPE_TEST_001',
+    };
+
+    const reservaBase = (expiraEn: Date) => ({
+      id: 1n,
+      id_usuario: 10n,
+      estado: 'pendiente_pago',
+      expira_en: expiraEn,
+      funciones: { salas: { id_cine: 1n } },
+      reservaAsientos: [
+        {
+          id_asiento_funcion: 100n,
+          asientosfuncion: {
+            id: 100n,
+            asientos: {
+              id_tipo_asiento: 1n,
+              tipoAsiento: { nombre: 'Standard' },
+            },
+          },
+        },
+      ],
+    });
+
+    it('crear tira RESERVA_EXPIRADA cuando expira_en está en el pasado', async () => {
+      const pasado = new Date(Date.now() - 60_000);
+      prisma.reservas.findUnique.mockResolvedValueOnce(reservaBase(pasado) as any);
+
+      await expect(service.crear(inputTarjetaBase)).rejects.toMatchObject({
+        response: { code: 'RESERVA_EXPIRADA' },
+      });
+    });
+
+    it('crear tira RESERVA_EXPIRADA cuando el claim condicional falla (race)', async () => {
+      const futuro = new Date(Date.now() + 60_000);
+      prisma.reservas.findUnique.mockResolvedValueOnce(reservaBase(futuro) as any);
+      prisma.preciosCine.findMany.mockResolvedValueOnce([
+        { id_tipo_asiento: 1n, precio: { toString: () => '100' } },
+      ]);
+      prisma.reservas.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(service.crear(inputTarjetaBase)).rejects.toMatchObject({
+        response: { code: 'RESERVA_EXPIRADA' },
+      });
+    });
+
+    it('crearEfectivo tira RESERVA_EXPIRADA cuando expira_en está en el pasado', async () => {
+      const pasado = new Date(Date.now() - 60_000);
+      prisma.usuarios.findUnique.mockResolvedValueOnce({
+        id: 99n,
+        roles: { nombre: 'admin' },
+      });
+      prisma.reservas.findUnique.mockResolvedValueOnce({
+        id_usuario: 10n,
+        estado: 'pendiente_pago',
+        expira_en: pasado,
+      } as any);
+
+      await expect(
+        service.crearEfectivo({ idReserva: '1', idUsuarioActual: '99' } as any),
+      ).rejects.toMatchObject({
+        response: { code: 'RESERVA_EXPIRADA' },
+      });
+    });
   });
 });
