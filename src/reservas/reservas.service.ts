@@ -101,7 +101,10 @@ export class ReservasService {
   }
 
   async findAll(userId: number, userRole: string) {
-    const filtro = userRole === 'ADMIN' ? {} : { id_usuario: BigInt(userId) };
+    // ADMIN y RECEPCIONISTA gestionan taquilla: ven todas las reservas.
+    // Cualquier otro rol (CLIENTE) solo ve las suyas.
+    const puedeVerTodas = userRole === 'ADMIN' || userRole === 'RECEPCIONISTA';
+    const filtro = puedeVerTodas ? {} : { id_usuario: BigInt(userId) };
 
     const reservas = await this.prisma.reservas.findMany({
       where: filtro,
@@ -161,7 +164,8 @@ export class ReservasService {
 
     if (!reserva) throw new NotFoundException(`La reserva con ID ${id} no existe.`);
 
-    if (userRole !== 'ADMIN' && Number(reserva.id_usuario) !== userId) {
+    const puedeVerTodas = userRole === 'ADMIN' || userRole === 'RECEPCIONISTA';
+    if (!puedeVerTodas && Number(reserva.id_usuario) !== userId) {
       throw new ForbiddenException('No tienes permiso para ver esta reserva.');
     }
 
