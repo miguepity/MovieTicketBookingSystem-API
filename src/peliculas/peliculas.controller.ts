@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Delete,
   Put,
   Query,
   Req,
@@ -270,5 +271,39 @@ export class PeliculasController {
   @ApiResponse({ status: 404, description: 'Pelicula no encontrada.' })
   notifySubscribedClients(@Param('id') id: string) {
     return this.peliculasService.notifySubscribedClients(id);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Eliminar una película permanentemente' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la película a eliminar',
+    example: '1',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Película eliminada exitosamente.',
+  })
+  @ApiResponse({ status: 400, description: 'No se puede eliminar (tiene funciones asociadas).' })
+  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado. Se requiere rol ADMIN.',
+  })
+  @ApiResponse({ status: 404, description: 'Película no encontrada.' })
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.peliculasService.remove(id, req.user.id);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener detalle de una película por ID' })
+  @ApiParam({ name: 'id', description: 'ID de la película', example: '1' })
+  @ApiResponse({ status: 200, description: 'Detalles de la película.' })
+  @ApiResponse({ status: 404, description: 'Película no encontrada.' })
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.peliculasService.findOne(id);
   }
 }

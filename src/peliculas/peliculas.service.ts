@@ -181,7 +181,7 @@ export class PeliculasService {
     if (dto.ciudad_id) {
       where.funciones = {
         some: {
-          estado: { not: 'CANCELADA' },
+          estado: 'DISPONIBLE',
           salas: {
             cines: {
               id_ciudad: BigInt(dto.ciudad_id),
@@ -196,6 +196,12 @@ export class PeliculasService {
       include: {
         idiomas: true,
         generos: true,
+        funciones: {
+          where: {
+            estado: 'DISPONIBLE',
+            fecha_hora: { gte: new Date() },
+          },
+        },
       },
       orderBy: { titulo: 'asc' },
     });
@@ -209,6 +215,7 @@ export class PeliculasService {
         sinopsis: p.sinopsis,
         poster_url: p.poster_url,
         fecha_estreno: p.fecha_estreno,
+        tiene_funciones_disponibles: p.funciones.length > 0,
         genero: p.generos
           ? { id: Number(p.generos.id), nombre: p.generos.nombre }
           : null,
@@ -224,6 +231,12 @@ export class PeliculasService {
       include: {
         idiomas: true,
         generos: true,
+        funciones: {
+          where: {
+            estado: 'DISPONIBLE',
+            fecha_hora: { gte: new Date() },
+          },
+        },
       },
       orderBy: { titulo: 'asc' },
     });
@@ -238,6 +251,7 @@ export class PeliculasService {
         poster_url: p.poster_url,
         fecha_estreno: p.fecha_estreno,
         activo: p.activo,
+        tiene_funciones_disponibles: p.funciones.length > 0,
         genero: p.generos
           ? { id: Number(p.generos.id), nombre: p.generos.nombre }
           : null,
@@ -341,6 +355,36 @@ export class PeliculasService {
     };
   }
 
+  async remove(id: string, auditorId: number) {
+    const pelicula = await this.findOneOrFail(id);
+
+    // Validar si tiene funciones asociadas
+    const tieneFunciones = await this.prisma.funciones.findFirst({
+      where: { id_pelicula: BigInt(id) },
+    });
+
+    if (tieneFunciones) {
+      throw new BadRequestException(
+        'No se puede eliminar la película porque tiene funciones asociadas.',
+      );
+    }
+
+    await this.prisma.peliculas.delete({
+      where: { id: BigInt(id) },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        id_usuario: BigInt(auditorId),
+        id_auditor: BigInt(auditorId),
+        accion: 'PELICULA_ELIMINADA',
+        detalle: `Película "${pelicula.titulo}" (ID: ${id}) eliminada permanentemente`,
+      },
+    });
+
+    return { message: 'Película eliminada exitosamente' };
+  }
+
   private async findOneOrFail(id: string) {
     const pelicula = await this.prisma.peliculas.findUnique({
       where: { id: BigInt(id) },
@@ -351,6 +395,39 @@ export class PeliculasService {
     }
 
     return pelicula;
+  }
+
+
+  async findOne(id: number) {
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        idiomas: true,
+        generos: true,
+      },
+    });
+
+    if (!pelicula) {
+      throw new NotFoundException(`Película con id ${id} no encontrada`);
+    }
+
+    return {
+      message: 'Película encontrada',
+      data: {
+        id: Number(pelicula.id),
+        titulo: pelicula.titulo,
+        sinopsis: pelicula.sinopsis,
+        poster_url: pelicula.poster_url,
+        fecha_estreno: pelicula.fecha_estreno,
+        activo: pelicula.activo,
+        genero: pelicula.generos
+          ? { id: Number(pelicula.generos.id), nombre: pelicula.generos.nombre }
+          : null,
+        idioma: pelicula.idiomas
+          ? { id: Number(pelicula.idiomas.id), nombre: pelicula.idiomas.nombre }
+          : null,
+      },
+    };
   }
 
   async buscarFuncionesConAsientos(peliculaId: number, cineId: number) {
