@@ -149,7 +149,7 @@ export class SalasController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    description: 'Obtener todas las salas de un cine',
+    description: 'Obtener todas las salas',
     responses: {
       200: {
         description: 'Lista de salas',
@@ -163,13 +163,6 @@ export class SalasController {
                 columnas: 4,
                 id_cine: '1',
               },
-              {
-                id: '2',
-                nombre: 'Sala 2',
-                filas: 5,
-                columnas: 6,
-                id_cine: '1',
-              },
             ],
           },
         },
@@ -177,9 +170,8 @@ export class SalasController {
       500: { description: 'Error interno del servidor' },
     },
   })
-  @ApiParam({ name: 'id', description: 'ID del cine' })
-  async getSalas(@Param('id', ParseIntPipe) id?: number) {
-    const salas = await this.salasService.getSalas(id);
+  async getSalas() {
+    const salas = await this.salasService.getSalas();
     return salas.map((s) => ({
       ...s,
       id: s.id.toString(),

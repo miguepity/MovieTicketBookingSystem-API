@@ -22,40 +22,68 @@ export class FuncionesService {
   ) {}
 
   async create(createFuncioneDto: CreateFuncioneDto) {
-    const fechaHora = new Date(createFuncioneDto.fecha_hora);
+    const fechaHoraInicio = new Date(createFuncioneDto.fecha_hora);
 
-    // Validar que no exista una función duplicada en la misma sala y horario
-    const funcionExistente = await this.prisma.funciones.findFirst({
+    // Obtener la duración de la pelicula que se quiere programar
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: BigInt(createFuncioneDto.id_pelicula) },
+    });
+
+    if (!pelicula) {
+      throw new NotFoundException('Pelicula no encontrada');
+    }
+
+    const tiempoLimpieza = 15; // minutos de limpieza entre funciones
+    const duracionTotal = pelicula.duracion_minutos + tiempoLimpieza;
+    const fechaHoraFin = new Date(
+      fechaHoraInicio.getTime() + duracionTotal * 60000,
+    );
+
+    // Buscar funciones activas en la misma sala que puedan solaparse
+    const funcionesEnSala = await this.prisma.funciones.findMany({
       where: {
         id_sala: BigInt(createFuncioneDto.id_sala),
-        fecha_hora: fechaHora,
         estado: 'active',
+      },
+      include: {
+        peliculas: { select: { duracion_minutos: true } },
       },
     });
 
-    if (funcionExistente) {
-      throw new ConflictException(
-        'Ya existe una función activa en esa sala y horario',
+    for (const funcionExistente of funcionesEnSala) {
+      const existenteInicio = new Date(funcionExistente.fecha_hora);
+      const existenteDuracion =
+        funcionExistente.peliculas.duracion_minutos + tiempoLimpieza;
+      const existenteFin = new Date(
+        existenteInicio.getTime() + existenteDuracion * 60000,
       );
+
+      // Verificar solapamiento: nueva funcion empieza antes de que termine la existente
+      // Y la nueva funcion termina despues de que empieza la existente
+      const haySolapamiento =
+        fechaHoraInicio < existenteFin && fechaHoraFin > existenteInicio;
+
+      if (haySolapamiento) {
+        throw new ConflictException(
+          `Ya existe una función en esa sala que se solapa con el horario ${existenteInicio.toLocaleString()} - ${existenteFin.toLocaleString()}`,
+        );
+      }
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // 1. Create the function
       const funcion = await tx.funciones.create({
         data: {
           id_pelicula: BigInt(createFuncioneDto.id_pelicula),
           id_sala: BigInt(createFuncioneDto.id_sala),
-          fecha_hora: fechaHora,
+          fecha_hora: fechaHoraInicio,
           estado: 'active',
         },
       });
 
-      // 2. Get all seats for the room
       const asientos = await tx.asientos.findMany({
         where: { id_sala: BigInt(createFuncioneDto.id_sala) },
       });
 
-      // 3. Create AsientosFuncion for each seat
       if (asientos.length > 0) {
         await tx.asientosFuncion.createMany({
           data: asientos.map((asiento) => ({
@@ -70,7 +98,6 @@ export class FuncionesService {
       return funcion;
     });
   }
-
   async cancel(id: string) {
     const funcion = await this.prisma.funciones.update({
       where: { id: BigInt(id) },
