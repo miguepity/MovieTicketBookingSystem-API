@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   Logger,
@@ -207,12 +208,38 @@ export class FuncionesService {
         data: {
           estado: 'disponible',
           version: asiento.version + 1,
-          bloqueado_hasta: undefined,
+          id_usuario: null,
+          bloqueado_hasta: new Date(),
         },
       });
     }
 
     console.log('Asientos bloqueados liberados: ', asientosALiberar.length);
+  }
+
+  async misBloqueos(id_funcion: bigint, id_usuario: bigint) {
+    const asientos = await this.prisma.asientosFuncion.findMany({
+      where: {
+        id_funcion: id_funcion,
+        id_usuario: id_usuario,
+        estado: 'bloqueado',
+      },
+      include: { asientos: true },
+      orderBy: [
+        { asientos: { fila: 'asc' } },
+        { asientos: { columna: 'asc' } },
+      ],
+    });
+
+    return asientos.map((af) => ({
+      id: af.id.toString(),
+      id_asiento: af.id_asiento.toString(),
+      codigo: af.asientos.codigo,
+      fila: af.asientos.fila,
+      columna: af.asientos.columna,
+      tipo: af.asientos.tipo,
+      bloqueado_hasta: af.bloqueado_hasta,
+    }));
   }
 
   async getAsientos(id: number) {
@@ -242,12 +269,17 @@ export class FuncionesService {
         tipo: af.asientos.tipo,
         estado: af.estado,
         bloqueado_hasta: af.bloqueado_hasta,
+        id_usuario: af.id_usuario?.toString() ?? null,
       });
       return acc;
     }, {});
   }
 
-  async bloquearAsientos(id_asiento: bigint, id_funcion: bigint) {
+  async bloquearAsientos(
+    id_asiento: bigint,
+    id_funcion: bigint,
+    id_usuario: bigint,
+  ) {
     const asientoExistente = await this.prisma.asientosFuncion.findFirst({
       where: {
         id_asiento: id_asiento,
@@ -269,6 +301,7 @@ export class FuncionesService {
           id_asiento: asientoExistente.id_asiento.toString(),
           id_funcion: asientoExistente.id_funcion.toString(),
           id: asientoExistente.id.toString(),
+          id_usuario: asientoExistente.id_usuario?.toString() ?? null,
         },
       });
     }
@@ -278,6 +311,7 @@ export class FuncionesService {
       data: {
         estado: 'bloqueado',
         version: asientoExistente.version + 1,
+        id_usuario: id_usuario,
         bloqueado_hasta: new Date(
           Date.now() + parseInt(process.env.SEAT_BLOCK_SECONDS || '180') * 1000,
         ),
@@ -285,5 +319,46 @@ export class FuncionesService {
     });
 
     return updatedAsiento;
+  }
+
+  async liberarAsiento(
+    id_asiento: bigint,
+    id_funcion: bigint,
+    id_usuario: bigint,
+  ) {
+    const asiento = await this.prisma.asientosFuncion.findFirst({
+      where: {
+        id_asiento: id_asiento,
+        id_funcion: id_funcion,
+      },
+    });
+
+    if (!asiento) {
+      throw new NotFoundException(
+        'Asiento no encontrado para la función especificada',
+      );
+    }
+
+    if (asiento.estado !== 'bloqueado') {
+      throw new BadRequestException('El asiento no está bloqueado');
+    }
+
+    if (asiento.id_usuario !== id_usuario) {
+      throw new ForbiddenException(
+        'No puedes liberar un asiento bloqueado por otro usuario',
+      );
+    }
+
+    await this.prisma.asientosFuncion.update({
+      where: { id: asiento.id },
+      data: {
+        estado: 'disponible',
+        version: asiento.version + 1,
+        id_usuario: null,
+        bloqueado_hasta: new Date(),
+      },
+    });
+
+    return { message: 'Asiento liberado exitosamente' };
   }
 }

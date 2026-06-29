@@ -56,12 +56,15 @@ export class ReservasService {
   async create(createReservaDto: CreateReservaDto) {
     const { id_usuario, id_funcion, asientosIds } = createReservaDto;
 
-    // Verificar que los asientos estén disponibles
+    // Verificar que los asientos estén disponibles o bloqueados por este usuario
     const asientos = await this.prisma.asientosFuncion.findMany({
       where: {
         id: { in: asientosIds.map((id) => BigInt(id)) },
         id_funcion: BigInt(id_funcion),
-        estado: 'disponible',
+        OR: [
+          { estado: 'disponible' },
+          { estado: 'bloqueado', id_usuario: BigInt(id_usuario) },
+        ],
       },
     });
 

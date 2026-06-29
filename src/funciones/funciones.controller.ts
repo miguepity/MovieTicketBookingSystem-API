@@ -8,12 +8,20 @@ import {
   ParseIntPipe,
   Patch,
   Put,
+  Request,
 } from '@nestjs/common';
 import { FuncionesService } from './funciones.service';
 import { CreateFuncioneDto } from './dto/create-funcione.dto';
-import { ApiOperation, ApiTags, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiTags,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { BloquearAsientoDto } from './dto/bloquear-asiento.dto';
+import { LiberarAsientoDto } from './dto/liberar-asiento.dto';
 import { UpdateFuncioneDto } from './dto/update-funcione.dto';
 
 @ApiTags('Funciones')
@@ -84,6 +92,8 @@ export class FuncionesController {
   @Get('/:id/asientos')
   @ApiOperation({
     summary: 'Estado actual de todos los asientos de una función',
+    description:
+      'Retorna el mapa completo de asientos agrupado por fila. Cada asiento incluye su estado, bloqueado_hasta e id_usuario (null si no está bloqueado, o el ID del usuario que lo bloqueó).',
   })
   @ApiParam({ name: 'id', description: 'ID de la función' })
   @ApiResponse({
@@ -95,35 +105,91 @@ export class FuncionesController {
     return this.funcionesService.getAsientos(id);
   }
 
-  @Post('/:id/asientos/bloquear')
+  @Get('/:id/asientos/mis-bloqueos')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    description: 'Bloquea asientos para una función específica',
-    responses: {
-      201: {
-        description: 'Asiento bloqueado exitosamente',
-        content: {
-          'application/json': {
-            example: {
-              id: '1',
-              id_asiento: 'A1',
-              id_funcion: '1',
-              estado: 'blocked',
-            },
-          },
+    summary:
+      'Obtener los asientos bloqueados por el usuario autenticado en una función',
+    description: [
+      '## Patrón de referencia: verificación de propiedad vía JWT',
+      '',
+      'Este endpoint muestra cómo implementar un endpoint que **filtra recursos por el usuario autenticado** extraído del token JWT.',
+      'Sirve como template para otros módulos que necesiten:',
+      '',
+      '- `@UseGuards(AuthGuard)` — valida el token Bearer',
+      '- `@Request() req` — accede a `req.user.userId` inyectado por el guard',
+      '- `BigInt(req.user.userId)` — convierte el ID para queries con Prisma',
+      '- Filtrar resultados con `where: { id_usuario }` en el servicio',
+      '',
+      '---',
+      '',
+      'Retorna la lista de asientos que el usuario tiene bloqueados actualmente en esta función.',
+      'Útil para que el frontend muestre qué asientos ya seleccionó el usuario y puedan liberarse manualmente.',
+    ].join('\n'),
+  })
+  @ApiParam({ name: 'id', description: 'ID de la función' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de asientos bloqueados por el usuario',
+    schema: {
+      example: [
+        {
+          id: '45',
+          id_asiento: '12',
+          codigo: 'A5',
+          fila: 'A',
+          columna: 5,
+          tipo: 'regular',
+          bloqueado_hasta: '2026-06-28T18:05:00.000Z',
         },
-      },
-      400: { description: 'Solicitud inválida' },
-      401: { description: 'No autorizado' },
+      ],
     },
   })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado: token inválido o ausente',
+  })
+  async misBloqueos(@Param('id') funcion_id: string, @Request() req: any) {
+    const userId = BigInt(req.user.userId);
+    return await this.funcionesService.misBloqueos(BigInt(funcion_id), userId);
+  }
+
+  @Post('/:id/asientos/bloquear')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Bloquear un asiento de una función',
+    description:
+      'Bloquea un asiento para una función específica. El asiento queda asociado al usuario autenticado por el tiempo configurado en SEAT_BLOCK_SECONDS.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Asiento bloqueado exitosamente',
+    schema: {
+      example: {
+        id: '1',
+        id_asiento: '1',
+        id_funcion: '1',
+        estado: 'bloqueado',
+        id_usuario: '1',
+        bloqueado_hasta: '2026-06-28T18:03:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 409, description: 'El asiento ya está bloqueado' })
   async bloquearAsientos(
     @Body() body: BloquearAsientoDto,
     @Param('id') funcion_id: string,
+    @Request() req: any,
   ) {
+    const userId = BigInt(req.user.userId);
     const asiento = await this.funcionesService.bloquearAsientos(
       BigInt(body.id_asiento),
       BigInt(funcion_id),
+      userId,
     );
 
     return {
@@ -131,7 +197,43 @@ export class FuncionesController {
       id: asiento.id.toString(),
       id_asiento: asiento.id_asiento.toString(),
       id_funcion: asiento.id_funcion.toString(),
+      id_usuario: asiento.id_usuario?.toString() ?? null,
     };
+  }
+
+  @Post('/:id/asientos/liberar')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Liberar un asiento bloqueado',
+    description:
+      'Libera un asiento previamente bloqueado. Solo el mismo usuario que lo bloqueó puede liberarlo.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Asiento liberado exitosamente',
+    schema: {
+      example: { message: 'Asiento liberado exitosamente' },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'El asiento no está bloqueado' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'No puedes liberar un asiento bloqueado por otro usuario',
+  })
+  @ApiResponse({ status: 404, description: 'Asiento no encontrado' })
+  async liberarAsiento(
+    @Body() body: LiberarAsientoDto,
+    @Param('id') funcion_id: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user.userId);
+    return await this.funcionesService.liberarAsiento(
+      BigInt(body.id_asiento),
+      BigInt(funcion_id),
+      userId,
+    );
   }
 
   @Get(':peliculaId/cines/:cineId/funciones')
