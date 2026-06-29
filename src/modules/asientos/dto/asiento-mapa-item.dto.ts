@@ -16,6 +16,14 @@ export class AsientoMapaItemDto {
   @ApiProperty({ type: String, description: 'Tipo de asiento', example: 'Estándar' })
   tipo!: string;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Color del tipo de asiento (hex) para pintar el mapa',
+    example: '#a8a29e',
+  })
+  tipo_color!: string | null;
+
   @ApiProperty({ type: String, description: 'Estado del asiento (DISPONIBLE, BLOQUEADO, RESERVADO)', example: 'DISPONIBLE' })
   estado!: string;
 
