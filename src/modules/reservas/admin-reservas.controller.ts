@@ -52,22 +52,12 @@ export class AdminReservasController {
   }
 
   @Get('by-numero/:numero/cobrar')
-  @ApiOperation({
-    summary: 'Detalle de reserva para taquilla, con precios por asiento calculados',
-    description:
-      'Devuelve la reserva completa (cliente, película, sala, cine, asientos) con el precio unitario de cada asiento resuelto desde precios_cine. El monto_total es la suma sin descuento de cupón. No filtra por estado: el frontend gestiona "no cobrable" para estados distintos a pendiente_pago.',
-  })
-  @ApiParam({ name: 'numero', description: 'numero_reserva único (e.g. RES-20260626-ABCDE)' })
-  @ApiOkResponse({
-    description: 'Detalle listo para taquilla',
-    type: ReservaCobrarResponseDto,
-  })
+  @ApiOperation({ summary: 'Detalle de reserva por número para cobro en taquilla (admin)' })
+  @ApiParam({ name: 'numero', description: 'Número de reserva (ej. RES-20240101-ABCDE)' })
+  @ApiOkResponse({ description: 'Detalle de la reserva con precios por asiento' })
   @ApiNotFoundResponse({ description: 'Reserva no encontrada' })
-  @ApiConflictResponse({
-    description: 'Algún asiento no tiene precio configurado en precios_cine para este cine',
-  })
-  cobrarByNumero(@Param('numero') numero: string) {
-    return this.reservas.findCobrarByNumero(numero);
+  getByNumeroCobrar(@Param('numero') numero: string) {
+    return this.reservas.findByNumeroForCobrar(numero);
   }
 
   @Get(':id')
