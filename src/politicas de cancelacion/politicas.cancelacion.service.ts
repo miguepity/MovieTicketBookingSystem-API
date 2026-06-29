@@ -74,4 +74,23 @@ export class PoliticasCancelacionService {
       data: this.formatPolitica(updated),
     };
   }
+
+  async removePoliticas(dtoP: PoliticaParamDto) {
+    const findPolitica = await this.prisma.politicaCancelacion.findUnique({
+      where: { id: BigInt(dtoP.id) },
+    });
+
+    if (!findPolitica) {
+      throw new NotFoundException('Política de cancelación no encontrada.');
+    }
+
+    await this.prisma.politicaCancelacion.delete({
+      where: { id: BigInt(dtoP.id) },
+    });
+
+    return {
+      success: true,
+      message: 'Política de cancelación eliminada con éxito.',
+    };
+  }
 }

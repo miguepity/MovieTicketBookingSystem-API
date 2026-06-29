@@ -7,8 +7,6 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReservasBodyDto } from './dto/reservas.body.dto';
 import { ReservasFilterDto } from './dto/reservas.filter.dto';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Injectable()
 export class ReservasService {
@@ -270,23 +268,6 @@ export class ReservasService {
     ]);
 
     // Fix: was `filas.join` (always identical rows), must be `f.join` (each row)
-    const csv = [columnas, ...filas.map((f) => f.join(', '))].join('\n');
-
-    const reservasDir = path.join(process.cwd(), 'reporte de reserva');
-    if (!fs.existsSync(reservasDir)) {
-      fs.mkdirSync(reservasDir, { recursive: true });
-    }
-
-    const filePath = path.join(
-      reservasDir,
-      `reportes_reservas_${Date.now()}.csv`,
-    );
-    fs.writeFileSync(filePath, csv);
-
-    return {
-      message: 'Archivo CSV generado en carpeta reporte de reserva',
-      filePath,
-      reservas,
-    };
+    return [columnas, ...filas.map((f) => f.join(', '))].join('\n');
   }
 }

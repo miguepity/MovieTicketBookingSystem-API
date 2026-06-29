@@ -32,11 +32,10 @@ export class CineService {
     if (!findCinema) {
       throw new NotFoundException('Cinema not Found');
     }
-    await this.prisma.cines.update({
+    return this.prisma.cines.update({
       where: { id: dtoP.id },
       data: dtoB,
     });
-    return 'Cinema edited succesfully';
   }
 
   async getFuncionesDisponibles(id_cine: number) {

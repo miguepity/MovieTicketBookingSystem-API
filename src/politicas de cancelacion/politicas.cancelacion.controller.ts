@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Patch,
+  Delete,
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
@@ -48,5 +49,12 @@ export class PoliticasCancelacionController {
     @Body() dto: UpdatePoliticasDto,
   ) {
     return this.politicasService.updatePoliticas({ id }, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar una política de cancelación' })
+  @ApiParam({ name: 'id', description: 'ID de la política' })
+  removePolitica(@Param('id', ParseIntPipe) id: number) {
+    return this.politicasService.removePoliticas({ id });
   }
 }
