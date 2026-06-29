@@ -5,6 +5,7 @@ import {
   Get,
   Put,
   Patch,
+  Delete,
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
@@ -52,5 +53,12 @@ export class SalasController {
     @Body() dtoB: UpdateSalaDto,
   ) {
     return this.salaService.updateSala({ id }, dtoB);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar una sala' })
+  @ApiParam({ name: 'id', description: 'ID de la sala' })
+  deleteSala(@Param('id', ParseIntPipe) id: number) {
+    return this.salaService.deleteSala({ id });
   }
 }
