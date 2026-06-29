@@ -7,6 +7,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { BLOQUEO_DURACION_MINUTOS } from 'src/common/constants/bloqueo.constants';
+import { esTipoFueraDeServicio } from 'src/common/constants/tipo-asiento.constants';
 
 @Injectable()
 export class AsientosService {
@@ -89,13 +90,28 @@ export class AsientosService {
 
     const candidatos = await this.prisma.asientosFuncion.findMany({
       where: { id: { in: idsBig }, id_funcion: funcion.id },
-      select: { id: true, estado: true },
+      select: {
+        id: true,
+        estado: true,
+        asientos: { select: { tipoAsiento: { select: { nombre: true } } } },
+      },
     });
 
     if (candidatos.length !== idsBig.length) {
       throw new BadRequestException({
         code: 'ASIENTO_INVALIDO',
         message: 'Uno o más asientos no pertenecen a esta función',
+      });
+    }
+
+    const fueraDeServicio = candidatos.filter((c) =>
+      esTipoFueraDeServicio(c.asientos.tipoAsiento?.nombre),
+    );
+    if (fueraDeServicio.length > 0) {
+      throw new ConflictException({
+        code: 'ASIENTO_NO_DISPONIBLE',
+        message: 'Uno o más asientos están fuera de servicio',
+        ids: fueraDeServicio.map((c) => c.id.toString()),
       });
     }
 
