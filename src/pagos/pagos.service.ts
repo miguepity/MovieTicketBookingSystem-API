@@ -97,7 +97,7 @@ export class PagosService {
       }),
       this.prisma.reservas.update({
         where: { id: BigInt(dto.id_reserva) },
-        data: { estado: 'pagada' },
+        data: { estado: 'Confirmada' },
       }),
     ]);
 

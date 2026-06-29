@@ -54,6 +54,7 @@ export class ReembolsosService {
       include: {
         reservas: {
           select: {
+            id: true,
             usuarios: {
               select: {
                 email: true
@@ -96,9 +97,7 @@ export class ReembolsosService {
       where: { id: BigInt(id) },
       include: {
         funciones: true,
-        pagos: {
-          select: { monto_final: true },
-        },
+        pagos: { select: { monto_final: true } },
       },
     });
     if (!reserva) {
@@ -126,15 +125,15 @@ export class ReembolsosService {
       throw new NotFoundException('No aplica ninguna politica');
     }
 
-    const calculoReembolso =
-      (Number(reserva.pagos[0].monto_final) *
-        Number(politica.porcentaje_reembolso)) /
-      100;
+    const montoTotal = Number(reserva.pagos[0].monto_final);
+    const porcentaje = Number(politica.porcentaje_reembolso);
+
+    const calculoReembolso = Math.round((montoTotal * porcentaje) / 100 * 100) / 100;
 
     return {
       reserva: reserva.numero_reserva,
-      monto_total: reserva.pagos[0].monto_final,
-      porcentaje_de_reembolso: politica.porcentaje_reembolso,
+      monto_total: montoTotal,                 
+      porcentaje_de_reembolso: porcentaje,      
       monto_de_reembolso: calculoReembolso,
     };
   }

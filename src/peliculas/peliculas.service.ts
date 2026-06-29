@@ -66,11 +66,6 @@ export class PeliculasService {
             fecha_hora: true,
             estado: true,
             formato: true,
-            asientosFuncions: {
-              select: {
-                id: true,
-              }
-            },
             salas: {
               select: {
                 id: true,

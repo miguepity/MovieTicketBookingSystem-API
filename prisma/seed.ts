@@ -442,7 +442,7 @@ async function main() {
       numero_reserva: 'RES-000001',
       id_usuario: BigInt(cliente1.id),
       id_funcion: BigInt(funcion1.id),
-      estado: 'pendiente',
+      estado: 'Confirmada',
     },
   });
   console.log('✅ Reserva de ejemplo creada');
@@ -507,7 +507,7 @@ async function main() {
       monto_descuento: '0.00',
       monto_final: '150.00',
       metodo: 'tarjeta',
-      estado: 'completado',
+      estado: 'Completado',
     },
   });
   console.log('✅ Pago de ejemplo creado');
