@@ -2,10 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAuditLogDto {
-  @ApiProperty({ description: 'ID del usuario afectado' })
-  @IsNotEmpty()
+  @ApiProperty({ description: 'ID del usuario afectado', required: false })
+  @IsOptional()
   @IsNumber()
-  id_usuario: number;
+  id_usuario?: number;
 
   @ApiProperty({ description: 'ID del auditor que realiza la acción' })
   @IsNotEmpty()

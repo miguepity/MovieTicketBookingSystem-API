@@ -62,7 +62,7 @@ export class UsuariosService {
     return { ...actualizado, id: actualizado.id.toString() };
   }
 
-  async updateStatus(id: number, dto: UpdateStatusDto) {
+  async updateStatus(id: number, dto: UpdateStatusDto, auditorId: number | null = null) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
     });
@@ -79,7 +79,7 @@ export class UsuariosService {
 
     await this.auditLogs.logAction({
       id_usuario: id,
-      id_auditor: id,
+      id_auditor: auditorId ?? id,
       accion: dto.status === 'activo' ? 'USUARIO_ACTIVADO' : 'USUARIO_SUSPENDIDO',
       detalle: `Estado cambiado a "${dto.status}"`,
     });
@@ -273,7 +273,7 @@ export class UsuariosService {
     };
   }
 
-  async deleteUser(id: number) {
+  async deleteUser(id: number, auditorId: number | null = null) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
     });
@@ -284,7 +284,7 @@ export class UsuariosService {
 
     await this.auditLogs.logAction({
       id_usuario: id,
-      id_auditor: id,
+      id_auditor: auditorId ?? id,
       accion: 'USUARIO_ELIMINADO',
       detalle: `Usuario ${usuario.email} eliminado`,
     });
@@ -343,7 +343,7 @@ export class UsuariosService {
     };
   }
 
-  async updateUserRole(id: number, dto: UpdateUserRoleDto) {
+  async updateUserRole(id: number, dto: UpdateUserRoleDto, auditorId: number | null = null) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
     });
@@ -369,7 +369,7 @@ export class UsuariosService {
 
     await this.auditLogs.logAction({
       id_usuario: id,
-      id_auditor: id,
+      id_auditor: auditorId ?? id,
       accion: 'ROL_ACTUALIZADO',
       detalle: `Rol actualizado a "${rol.nombre}"`,
     });

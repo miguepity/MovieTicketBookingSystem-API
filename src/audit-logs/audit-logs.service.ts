@@ -13,8 +13,8 @@ export class AuditLogsService {
   async logAction(dto: CreateAuditLogDto) {
     return this.prisma.auditLog.create({
       data: {
-        id_usuario: BigInt(dto.id_usuario),
-        id_auditor: BigInt(dto.id_auditor),
+        id_usuario: dto.id_usuario != null ? BigInt(dto.id_usuario) : null,
+        id_auditor: dto.id_auditor != null ? BigInt(dto.id_auditor) : null,
         accion: dto.accion,
         detalle: dto.detalle,
       },
@@ -65,13 +65,10 @@ export class AuditLogsService {
       data: data.map((log) => ({
         ...log,
         id: log.id.toString(),
-        id_usuario: log.id_usuario.toString(),
-        id_auditor: log.id_auditor.toString(),
-        usuarios: { ...log.usuarios, id: log.usuarios.id.toString() },
-        realizado_por: {
-          ...log.realizado_por,
-          id: log.realizado_por.id.toString(),
-        },
+        id_usuario: log.id_usuario?.toString() ?? null,
+        id_auditor: log.id_auditor?.toString() ?? null,
+        usuarios: log.usuarios ? { ...log.usuarios, id: log.usuarios.id.toString() } : null,
+        realizado_por: log.realizado_por ? { ...log.realizado_por, id: log.realizado_por.id.toString() } : null,
       })),
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };

@@ -1,4 +1,10 @@
-import { Controller, ValidationPipe, ParseIntPipe, Delete } from '@nestjs/common';
+import {
+  Controller,
+  ValidationPipe,
+  ParseIntPipe,
+  Delete,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
 import { Body, Put, Param, Patch, Post, Get, Query } from '@nestjs/common';
@@ -8,11 +14,28 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 import { ClientesFilterDto } from './dto/clientes-filter.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { JwtService } from '@nestjs/jwt';
+import type { Request } from 'express';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(
+    private readonly usuariosService: UsuariosService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  private extractAuditorId(req: Request): number | null {
+    try {
+      const auth = req.headers['authorization'];
+      if (!auth) return null;
+      const token = auth.replace('Bearer ', '');
+      const payload = this.jwtService.decode(token) as { sub?: string } | null;
+      return payload?.sub ? Number(payload.sub) : null;
+    } catch {
+      return null;
+    }
+  }
 
   @Post('admin-create')
   @ApiOperation({ summary: 'Crear un usuario con rol específico (uso admin)' })
@@ -23,7 +46,9 @@ export class UsuariosController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Actualizar el nombre, email y/o teléfono de un usuario' })
+  @ApiOperation({
+    summary: 'Actualizar el nombre, email y/o teléfono de un usuario',
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
   async updateProfile(
     @Param('id', ParseIntPipe) id: number,
@@ -51,8 +76,13 @@ export class UsuariosController {
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateStatusDto: UpdateStatusDto,
+    @Req() req: Request,
   ) {
-    return this.usuariosService.updateStatus(id, updateStatusDto);
+    return this.usuariosService.updateStatus(
+      id,
+      updateStatusDto,
+      this.extractAuditorId(req),
+    );
   }
 
   @Get()
@@ -62,15 +92,15 @@ export class UsuariosController {
   }
 
   @Get('todos')
-  @ApiOperation({ summary: 'Listar todos los usuarios con sus roles (paginado)' })
+  @ApiOperation({
+    summary: 'Listar todos los usuarios con sus roles (paginado)',
+  })
   async findAllUsuarios(@Query() filtro: ClientesFilterDto) {
     return this.usuariosService.findAllUsuarios(filtro);
   }
 
   @Get('search')
-  @ApiOperation({
-    summary: 'Buscar clientes por nombre, correo o teléfono',
-  })
+  @ApiOperation({ summary: 'Buscar clientes por nombre, correo o teléfono' })
   @ApiQuery({ name: 'q', required: false, description: 'Texto a buscar' })
   searchClientes(@Query('q') q?: string) {
     return this.usuariosService.searchClientes(q);
@@ -106,8 +136,13 @@ export class UsuariosController {
   async updateUserRole(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ValidationPipe({ whitelist: true })) dto: UpdateUserRoleDto,
+    @Req() req: Request,
   ) {
-    return this.usuariosService.updateUserRole(id, dto);
+    return this.usuariosService.updateUserRole(
+      id,
+      dto,
+      this.extractAuditorId(req),
+    );
   }
 
   @Get(':id')
@@ -120,8 +155,8 @@ export class UsuariosController {
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un usuario por ID' })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
-  deleteUser(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosService.deleteUser(id);
+  deleteUser(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    return this.usuariosService.deleteUser(id, this.extractAuditorId(req));
   }
 
   @Delete()
