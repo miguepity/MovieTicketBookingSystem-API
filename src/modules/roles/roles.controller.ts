@@ -31,6 +31,8 @@ import { DeleteResponseDto } from '../../common/dto/delete-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles as RolesDecorator } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Roles')
 @Controller('roles')
@@ -70,8 +72,11 @@ export class RolesController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  create(@Body() createRolDto: CreateRolDto) {
-    return this.rolesService.create(createRolDto);
+  create(
+    @Body() createRolDto: CreateRolDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.rolesService.create(createRolDto, BigInt(user.userId));
   }
 
   @Patch(':id')
@@ -84,8 +89,12 @@ export class RolesController {
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
   @ApiConflictResponse({ description: 'El nombre ya está en uso' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  update(@Param('id') id: string, @Body() updateRolDto: UpdateRolDto) {
-    return this.rolesService.update(id, updateRolDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateRolDto: UpdateRolDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.rolesService.update(id, updateRolDto, BigInt(user.userId));
   }
 
   @Delete(':id')
@@ -99,7 +108,7 @@ export class RolesController {
     description: 'No se puede eliminar porque tiene usuarios asociados',
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  remove(@Param('id') id: string) {
-    return this.rolesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.rolesService.remove(id, BigInt(user.userId));
   }
 }

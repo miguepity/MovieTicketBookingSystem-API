@@ -8,10 +8,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Rol } from './entities/rol.entity';
 import { CreateRolDto } from './dto/create-rol.dto';
 import { UpdateRolDto } from './dto/update-rol.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class RolesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async findAll(nombre?: string): Promise<Rol[]> {
     const trimmed = nombre?.trim();
@@ -34,30 +38,67 @@ export class RolesService {
     return rol;
   }
 
-  async create(createRolDto: CreateRolDto): Promise<Rol> {
+  async create(createRolDto: CreateRolDto, auditorId: bigint): Promise<Rol> {
     await this.assertNombreDisponible(createRolDto.nombre);
-    return this.prisma.roles.create({
+    const nuevo = await this.prisma.roles.create({
       data: createRolDto,
     });
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'ROL_CREAR',
+      entidad: 'Rol',
+      entidad_id: nuevo.id,
+      detalle: `Rol ${nuevo.id.toString()} (${nuevo.nombre}) creado`,
+      valor_nuevo: { nombre: nuevo.nombre },
+    });
+    return nuevo;
   }
 
-  async update(id: string, updateRolDto: UpdateRolDto): Promise<Rol> {
+  async update(
+    id: string,
+    updateRolDto: UpdateRolDto,
+    auditorId: bigint,
+  ): Promise<Rol> {
     const rolId = this.parseId(id);
-    await this.assertRolExists(rolId);
+    const previo = await this.prisma.roles.findUnique({
+      where: { id: rolId },
+      select: { id: true, nombre: true },
+    });
+    if (!previo) {
+      throw new NotFoundException('Rol no encontrado');
+    }
 
     if (updateRolDto.nombre !== undefined) {
       await this.assertNombreDisponible(updateRolDto.nombre, rolId);
     }
 
-    return this.prisma.roles.update({
+    const updated = await this.prisma.roles.update({
       where: { id: rolId },
       data: updateRolDto,
     });
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'ROL_EDITAR',
+      entidad: 'Rol',
+      entidad_id: updated.id,
+      detalle: `Rol ${updated.id.toString()} (${updated.nombre}) editado`,
+      valor_anterior: { nombre: previo.nombre },
+      valor_nuevo: { nombre: updated.nombre },
+    });
+    return updated;
   }
 
-  async remove(id: string): Promise<{ id: bigint }> {
+  async remove(id: string, auditorId: bigint): Promise<{ id: bigint }> {
     const rolId = this.parseId(id);
-    await this.assertRolExists(rolId);
+    const previo = await this.prisma.roles.findUnique({
+      where: { id: rolId },
+      select: { id: true, nombre: true },
+    });
+    if (!previo) {
+      throw new NotFoundException('Rol no encontrado');
+    }
 
     const usuariosCount = await this.prisma.usuarios.count({
       where: { id_rol: rolId },
@@ -72,6 +113,15 @@ export class RolesService {
       where: { id: rolId },
       select: { id: true },
     });
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'ROL_ELIMINAR',
+      entidad: 'Rol',
+      entidad_id: rolId,
+      detalle: `Rol ${rolId.toString()} (${previo.nombre}) eliminado`,
+      valor_anterior: { nombre: previo.nombre },
+    });
     return deleted;
   }
 
@@ -80,16 +130,6 @@ export class RolesService {
       return BigInt(id);
     } catch {
       throw new BadRequestException('ID inválido');
-    }
-  }
-
-  private async assertRolExists(id: bigint): Promise<void> {
-    const rol = await this.prisma.roles.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!rol) {
-      throw new NotFoundException('Rol no encontrado');
     }
   }
 

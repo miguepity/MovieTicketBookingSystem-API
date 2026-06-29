@@ -132,14 +132,15 @@ export class PeliculaController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
           new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp|jpg)$/ }),
         ],
       }),
     )
     file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.peliculaService.uploadPoster(id, file);
+    return this.peliculaService.uploadPoster(id, file, BigInt(user.userId));
   }
 
   @Get(':id/cines')

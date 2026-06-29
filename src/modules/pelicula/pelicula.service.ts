@@ -31,7 +31,11 @@ export class PeliculaService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  async uploadPoster(id: string, file: Express.Multer.File) {
+  async uploadPoster(
+    id: string,
+    file: Express.Multer.File,
+    auditorId: bigint,
+  ) {
     if (!file) {
       throw new BadRequestException('Archivo de imagen requerido');
     }
@@ -39,7 +43,7 @@ export class PeliculaService {
     const peliculaId = this.parseId(id);
     const existing = await this.prisma.peliculas.findUnique({
       where: { id: peliculaId },
-      select: { id: true },
+      select: { id: true, poster_url: true, titulo: true },
     });
     if (!existing) {
       throw new NotFoundException('Película no encontrada');
@@ -50,11 +54,24 @@ export class PeliculaService {
       `pelicula_${peliculaId.toString()}`,
     );
 
-    return this.prisma.peliculas.update({
+    const updated = await this.prisma.peliculas.update({
       where: { id: peliculaId },
       data: { poster_url: result.secure_url },
       select: { id: true, poster_url: true },
     });
+
+    await this.auditLog.registrar({
+      id_usuario: auditorId,
+      id_auditor: auditorId,
+      accion: 'PELICULA_POSTER_ACTUALIZAR',
+      entidad: 'Pelicula',
+      entidad_id: peliculaId,
+      detalle: `Poster de película "${existing.titulo}" actualizado`,
+      valor_anterior: { poster_url: existing.poster_url },
+      valor_nuevo: { poster_url: updated.poster_url },
+    });
+
+    return updated;
   }
 
   async findOne(id: bigint, idUsuario?: bigint) {

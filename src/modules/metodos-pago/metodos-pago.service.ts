@@ -10,6 +10,7 @@ import { MetodoPago } from '../../common/enums/metodo-pago.enum';
 import { MarcaTarjeta } from '../../common/enums/marca-tarjeta.enum';
 import { CrearMetodoPagoDto } from './dto/crear-metodo-pago.dto';
 import { MetodoPagoResponseDto } from './dto/metodo-pago-response.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 type MetodoRow = {
   id: bigint;
@@ -46,6 +47,7 @@ export class MetodosPagoService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aes: AesGcmService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async list(userId: bigint): Promise<MetodoPagoResponseDto[]> {
@@ -65,6 +67,15 @@ export class MetodosPagoService {
         const m = await this.prisma.metodosPago.create({
           data: { id_usuario: userId, tipo: MetodoPago.EFECTIVO },
         });
+        await this.auditLog.registrar({
+          id_usuario: userId,
+          id_auditor: userId,
+          accion: 'METODO_PAGO_CREAR',
+          entidad: 'MetodoPago',
+          entidad_id: m.id,
+          detalle: `Método de pago efectivo creado`,
+          valor_nuevo: { tipo: MetodoPago.EFECTIVO },
+        });
         return toResponse(m);
       } catch (e) {
         if (isUniqueViolation(e)) {
@@ -74,7 +85,6 @@ export class MetodosPagoService {
       }
     }
 
-    // tarjeta — DTO validation guarantees these fields exist
     const numero = dto.numero!;
     const ultimos4 = numero.slice(-4);
     const pan_cifrado = this.aes.encrypt(numero);
@@ -90,20 +100,47 @@ export class MetodosPagoService {
         pan_cifrado,
       },
     });
+    await this.auditLog.registrar({
+      id_usuario: userId,
+      id_auditor: userId,
+      accion: 'METODO_PAGO_CREAR',
+      entidad: 'MetodoPago',
+      entidad_id: m.id,
+      detalle: `Método de pago tarjeta ${dto.marca} ****${ultimos4} creado`,
+      valor_nuevo: {
+        tipo: MetodoPago.TARJETA,
+        marca: dto.marca,
+        ultimos4,
+        expiracion: dto.expiracion,
+      },
+    });
     return toResponse(m);
   }
 
   async remove(userId: bigint, id: bigint): Promise<void> {
+    const previo = await this.prisma.metodosPago.findFirst({
+      where: { id, id_usuario: userId },
+      select: { tipo: true, marca: true, ultimos4: true },
+    });
     const r = await this.prisma.metodosPago.deleteMany({
       where: { id, id_usuario: userId },
     });
     if (r.count === 0) {
       throw new NotFoundException();
     }
+    await this.auditLog.registrar({
+      id_usuario: userId,
+      id_auditor: userId,
+      accion: 'METODO_PAGO_BORRAR',
+      entidad: 'MetodoPago',
+      entidad_id: id,
+      detalle: `Método de pago ${previo?.tipo ?? ''} ${previo?.marca ?? ''} ${previo?.ultimos4 ? `****${previo.ultimos4}` : ''} eliminado`.trim(),
+      valor_anterior: previo ?? undefined,
+    });
   }
 
   async setDefault(userId: bigint, id: bigint): Promise<MetodoPagoResponseDto> {
-    return this.prisma.$transaction(async (tx) => {
+    const m = await this.prisma.$transaction(async (tx) => {
       const target = await tx.metodosPago.findFirst({
         where: { id, id_usuario: userId },
       });
@@ -114,11 +151,20 @@ export class MetodosPagoService {
         where: { id_usuario: userId, predeterminado: true },
         data: { predeterminado: false },
       });
-      const m = await tx.metodosPago.update({
+      return tx.metodosPago.update({
         where: { id },
         data: { predeterminado: true },
       });
-      return toResponse(m);
     });
+    await this.auditLog.registrar({
+      id_usuario: userId,
+      id_auditor: userId,
+      accion: 'METODO_PAGO_SET_DEFAULT',
+      entidad: 'MetodoPago',
+      entidad_id: id,
+      detalle: `Método de pago ${m.id.toString()} marcado como predeterminado`,
+      valor_nuevo: { predeterminado: true },
+    });
+    return toResponse(m);
   }
 }
