@@ -31,12 +31,12 @@ export class CreatePeliculaDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
-  id_idioma?: bigint;
+  id_idioma?: number;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
-  id_genero?: bigint;
+  id_genero?: number;
 
   @ApiPropertyOptional({ example: '2026-07-01' })
   @IsOptional()
@@ -50,5 +50,5 @@ export class CreatePeliculaDto {
 
   @ApiProperty({ example: 1 })
   @IsNumber()
-  id_usuario!: bigint;
+  id_usuario!: number;
 }
