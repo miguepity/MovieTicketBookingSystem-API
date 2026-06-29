@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsInt, IsArray, ArrayNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsInt, IsArray, ArrayNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateReservaDto {
   @ApiProperty({ example: 1, description: 'ID de la función seleccionada' })
@@ -15,6 +15,6 @@ export class CreateReservaDto {
 
   @ApiProperty({ example: 2, description: 'ID del cliente (opcional, solo para recepcionistas)', required: false })
   @IsInt()
-  @IsNotEmpty()
+  @IsOptional()
   id_usuario_cliente?: number;
 }
