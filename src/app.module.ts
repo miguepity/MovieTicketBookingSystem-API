@@ -33,6 +33,7 @@ import { CryptoModule } from './common/crypto/crypto.module';
 import { MetodosPagoModule } from './modules/metodos-pago/metodos-pago.module';
 import { CalificacionesModule } from './modules/calificaciones/calificaciones.module';
 import { BoletosModule } from './modules/boletos/boletos.module';
+import { SuscripcionesEstrenoModule } from './modules/suscripciones-estreno/suscripciones-estreno.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { BoletosModule } from './modules/boletos/boletos.module';
     MetodosPagoModule,
     CalificacionesModule,
     BoletosModule,
+    SuscripcionesEstrenoModule,
   ],
   controllers: [AppController],
   providers: [
