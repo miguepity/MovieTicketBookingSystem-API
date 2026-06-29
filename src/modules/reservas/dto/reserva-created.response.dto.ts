@@ -30,4 +30,11 @@ export class ReservaCreatedResponseDto {
 
   @ApiProperty({ type: String, example: '25.00' })
   total_estimado!: string;
+
+  @ApiProperty({
+    format: 'date-time',
+    description: 'Fecha y hora límite para completar el pago (ISO 8601)',
+    example: '2026-06-28T15:30:00.000Z',
+  })
+  expira_en!: string;
 }

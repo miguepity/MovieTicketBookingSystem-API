@@ -82,6 +82,9 @@ export class AdminReservaRowDto {
   @ApiProperty({ type: String, format: 'date-time', example: '2026-06-25T10:05:00.000Z' })
   updated_at!: Date;
 
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date-time', example: '2026-06-25T10:20:00.000Z' })
+  expira_en!: string | null;
+
   @ApiPropertyOptional({ type: String, nullable: true, example: '100.00' })
   monto_total!: string | null;
 

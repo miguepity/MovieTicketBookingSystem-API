@@ -1,0 +1,1 @@
+export const RESERVA_TIMEOUT_MINUTOS = 30;

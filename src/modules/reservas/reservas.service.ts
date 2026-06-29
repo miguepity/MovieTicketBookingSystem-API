@@ -14,6 +14,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotReserva } from '../audit-log/snapshots';
 import { ListReservasQueryDto } from './dto/list-reservas-query.dto';
 import { puedeReservar } from '../../common/utils/cartelera-window';
+import { RESERVA_TIMEOUT_MINUTOS } from 'src/common/constants/reserva.constants';
 
 // ──── Boleto view shape ───────────────────────────────────────────────────────
 export interface BoletoAsiento {
@@ -45,6 +46,7 @@ export interface BoletoView {
   monto_total: string | null;
   ultimos4_snapshot: string | null;
   marca_snapshot: string | null;
+  expira_en: string | null;
 }
 
 @Injectable()
@@ -87,7 +89,7 @@ export class ReservasService {
     const idsBig = idsAsientoFuncion.map((s) => BigInt(s));
     const idUserBig = BigInt(idUsuarioActual);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const asientos = await tx.asientosFuncion.findMany({
         where: { id: { in: idsBig }, id_funcion: funcion.id },
         include: {
@@ -155,12 +157,15 @@ export class ReservasService {
 
       const numeroReserva = await this.generarNumeroUnico(tx);
 
+      const expiraEn = new Date(Date.now() + RESERVA_TIMEOUT_MINUTOS * 60_000);
+
       const reserva = await tx.reservas.create({
         data: {
           numero_reserva: numeroReserva,
           id_usuario: idUserBig,
           id_funcion: funcion.id,
           estado: EstadoReserva.PENDIENTE_PAGO,
+          expira_en: expiraEn,
         },
       });
 
@@ -185,8 +190,51 @@ export class ReservasService {
           tipo: a.asientos.tipoAsiento.nombre,
         })),
         total_estimado: totalEstimado.toFixed(2),
+        expira_en: expiraEn.toISOString(),
+        _reservaId: reserva.id,
+        _userId: idUserBig,
       };
     });
+
+    const reservaCreada = await this.prisma.reservas.findUniqueOrThrow({
+      where: { id: result._reservaId },
+      include: {
+        usuarios: { select: { nombre: true } },
+        funciones: {
+          include: {
+            peliculas: { select: { titulo: true } },
+            salas: { select: { nombre: true } },
+          },
+        },
+        reservaAsientos: {
+          include: {
+            asientosfuncion: {
+              include: { asientos: { select: { fila: true, columna: true } } },
+            },
+          },
+        },
+        pagos: { select: { monto_final: true } },
+      },
+    });
+
+    await this.auditLog.registrar({
+      id_usuario: result._userId,
+      id_auditor: result._userId,
+      accion: 'RESERVA_CREAR',
+      entidad: 'Reserva',
+      entidad_id: result._reservaId,
+      detalle: `Reserva ${reservaCreada.numero_reserva} creada`,
+      valor_nuevo: snapshotReserva(reservaCreada),
+    });
+
+    return {
+      id_reserva: result.id_reserva,
+      numero_reserva: result.numero_reserva,
+      estado: result.estado,
+      asientos: result.asientos,
+      total_estimado: result.total_estimado,
+      expira_en: result.expira_en,
+    };
   }
 
   async cancelar(idReserva: string, idUsuarioActual: string) {
@@ -372,6 +420,7 @@ export class ReservasService {
       monto_total: pago ? pago.monto_final.toString() : null,
       ultimos4_snapshot: pago?.ultimos4_snapshot ?? null,
       marca_snapshot: pago?.marca_snapshot ?? null,
+      expira_en: r.expira_en ? r.expira_en.toISOString() : null,
     };
   }
 
@@ -679,6 +728,7 @@ export class ReservasService {
       estado: r.estado,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      expira_en: r.expira_en ? r.expira_en.toISOString() : null,
       monto_total: pago ? pago.monto_final.toString() : null,
       cliente: {
         id: r.usuarios.id.toString(),
@@ -881,7 +931,7 @@ export class ReservasService {
       numero_reserva: r.numero_reserva,
       estado: r.estado,
       created_at: r.created_at,
-      expira_en: r.expira_en ?? null,
+      expira_en: r.expira_en ? r.expira_en.toISOString() : null,
       cliente: {
         id: r.usuarios.id.toString(),
         nombre: r.usuarios.nombre,
