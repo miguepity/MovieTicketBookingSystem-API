@@ -1,24 +1,55 @@
 import { CalificacionesService } from './calificaciones.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+
+const buildAuditLog = (): AuditLogService =>
+  ({
+    registrar: jest.fn().mockResolvedValue(undefined),
+  }) as unknown as AuditLogService;
 
 describe('CalificacionesService.obtenerMia', () => {
   let service: CalificacionesService;
-  let prisma: { calificacionPelicula: { findUnique: jest.Mock } };
+  let prisma: {
+    reservas: { findFirst: jest.Mock };
+    calificacionPelicula: { findUnique: jest.Mock };
+  };
 
   beforeEach(() => {
-    prisma = { calificacionPelicula: { findUnique: jest.fn() } };
-    service = new CalificacionesService(prisma as unknown as PrismaService);
+    prisma = {
+      reservas: { findFirst: jest.fn() },
+      calificacionPelicula: { findUnique: jest.fn() },
+    };
+    service = new CalificacionesService(
+      prisma as unknown as PrismaService,
+      buildAuditLog(),
+    );
   });
 
-  it('devuelve la puntuación cuando existe', async () => {
-    prisma.calificacionPelicula.findUnique.mockResolvedValue({ puntuacion: 4 });
-    const r = await service.obtenerMia(1n, 2n);
-    expect(r).toEqual({ puntuacion: 4 });
+  it('retorna elegible=true y puntuacion existente cuando hay reserva pagada con función pasada', async () => {
+    prisma.reservas.findFirst.mockResolvedValueOnce({ id: 1n } as any);
+    prisma.calificacionPelicula.findUnique.mockResolvedValueOnce({ puntuacion: 4 } as any);
+
+    const result = await service.obtenerMia(10n, 20n);
+
+    expect(result).toEqual({ elegible: true, puntuacion: 4 });
   });
 
-  it('lanza NotFound cuando no existe', async () => {
-    prisma.calificacionPelicula.findUnique.mockResolvedValue(null);
-    await expect(service.obtenerMia(1n, 2n)).rejects.toThrow('NotFound');
+  it('retorna elegible=true y puntuacion=null cuando asistió pero no calificó', async () => {
+    prisma.reservas.findFirst.mockResolvedValueOnce({ id: 1n } as any);
+    prisma.calificacionPelicula.findUnique.mockResolvedValueOnce(null);
+
+    const result = await service.obtenerMia(10n, 20n);
+
+    expect(result).toEqual({ elegible: true, puntuacion: null });
+  });
+
+  it('retorna elegible=false cuando no asistió a ninguna función pasada y pagada', async () => {
+    prisma.reservas.findFirst.mockResolvedValueOnce(null);
+    prisma.calificacionPelicula.findUnique.mockResolvedValueOnce(null);
+
+    const result = await service.obtenerMia(10n, 20n);
+
+    expect(result).toEqual({ elegible: false, puntuacion: null });
   });
 });
 
@@ -36,7 +67,10 @@ describe('CalificacionesService.calificar', () => {
       calificacionPelicula: { findUnique: jest.fn(), upsert: jest.fn() },
       peliculas: { findUnique: jest.fn() },
     };
-    service = new CalificacionesService(prisma as unknown as PrismaService);
+    service = new CalificacionesService(
+      prisma as unknown as PrismaService,
+      buildAuditLog(),
+    );
   });
 
   it('lanza 403 si el usuario no asistió a una función pasada', async () => {
@@ -48,6 +82,9 @@ describe('CalificacionesService.calificar', () => {
     prisma.reservas = {
       findFirst: jest.fn().mockResolvedValue({ id: 99n }),
     };
+    prisma.calificacionPelicula.findUnique = jest
+      .fn()
+      .mockResolvedValue(null);
     prisma.calificacionPelicula.upsert = jest
       .fn()
       .mockResolvedValue({ puntuacion: 4 });
@@ -68,19 +105,25 @@ describe('CalificacionesService.calificar', () => {
 describe('CalificacionesService.borrar', () => {
   let service: CalificacionesService;
   let prisma: {
-    calificacionPelicula: { delete: jest.Mock };
+    calificacionPelicula: { delete: jest.Mock; findUnique: jest.Mock };
     peliculas: { findUnique: jest.Mock };
   };
 
   beforeEach(() => {
     prisma = {
-      calificacionPelicula: { delete: jest.fn() },
+      calificacionPelicula: { delete: jest.fn(), findUnique: jest.fn() },
       peliculas: { findUnique: jest.fn() },
     };
-    service = new CalificacionesService(prisma as unknown as PrismaService);
+    service = new CalificacionesService(
+      prisma as unknown as PrismaService,
+      buildAuditLog(),
+    );
   });
 
   it('borra la calificación y devuelve rating actualizado', async () => {
+    prisma.calificacionPelicula.findUnique = jest
+      .fn()
+      .mockResolvedValue({ puntuacion: 5 });
     prisma.calificacionPelicula.delete = jest
       .fn()
       .mockResolvedValue({ id: 1n });
@@ -94,6 +137,9 @@ describe('CalificacionesService.borrar', () => {
   });
 
   it('lanza NotFound si no existe', async () => {
+    prisma.calificacionPelicula.findUnique = jest
+      .fn()
+      .mockResolvedValue(null);
     prisma.calificacionPelicula.delete = jest
       .fn()
       .mockRejectedValue({ code: 'P2025' });

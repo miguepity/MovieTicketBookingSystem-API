@@ -1,8 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CalificacionMiaResponseDto {
-  @ApiProperty({ example: 4 })
-  puntuacion!: number;
+  @ApiProperty({
+    description: 'true si el usuario asistió a al menos una función pasada y pagada de esta película',
+    example: true,
+  })
+  elegible!: boolean;
+
+  @ApiProperty({
+    description: 'Puntuación previa del usuario (1-5), o null si no calificó',
+    nullable: true,
+    type: Number,
+    example: 4,
+  })
+  puntuacion!: number | null;
 }
 
 export class CalificarResponseDto {

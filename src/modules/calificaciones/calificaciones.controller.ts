@@ -40,7 +40,6 @@ export class CalificacionesController {
   @ApiOperation({ summary: 'Obtener mi calificación para una película' })
   @ApiParam({ name: 'id', description: 'ID de la película', example: '1' })
   @ApiOkResponse({ type: CalificacionMiaResponseDto, description: 'Calificación encontrada' })
-  @ApiNotFoundResponse({ description: 'No has calificado esta película' })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   obtenerMia(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.calificacionesService.obtenerMia(
