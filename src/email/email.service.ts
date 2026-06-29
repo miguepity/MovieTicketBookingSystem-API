@@ -126,26 +126,23 @@ export class EmailService {
       dateStyle: 'full',
     });
 
-    await this.transporter.sendMail({
-      from: process.env.SMTP_FROM ?? 'no-reply@movieticketing.com',
-      to,
-      subject: `Nueva película disponible: ${tituloPelicula}`,
-      html: `
-      <h2>Hola, ${nombre}</h2>
-      <p>¡Hay una nueva película en cartelera!</p>
-      <table>
-        <tr><td><strong>Título:</strong></td><td>${tituloPelicula}</td></tr>
-        <tr><td><strong>Género:</strong></td><td>${genero}</td></tr>
-        <tr><td><strong>Fecha de estreno:</strong></td><td>${fechaFormateada}</td></tr>
-      </table>
-      <br/>
-      <a href="${linkDetalle}" style="padding: 10px 20px; background-color: #e50914; color: white; text-decoration: none; border-radius: 4px;">
-        Ver detalles
-      </a>
-      <br/><br/>
-      <p><em>El equipo de MovieTicket</em></p>
-    `,
-    });
+    try {
+      await emailjs.send(
+        process.env.EMAILJS_SERVICE_ID,
+        process.env.EMAILJS_TEMPLATE_ID,
+        {
+          to_email: to,
+          message: `Hola, ${nombre}. ¡Hay una nueva película en cartelera! Título: ${tituloPelicula} | Género: ${genero} | Estreno: ${fechaFormateada}. Ver detalles: ${linkDetalle}`,
+        },
+      );
+      this.logger.log(`Correo de nueva película enviado a ${to} vía EmailJS`);
+    } catch (error) {
+      this.logger.error(
+        'Error al enviar correo de nueva película con EmailJS:',
+        error,
+      );
+      throw error;
+    }
   }
 
   async sendPasswordReset(
