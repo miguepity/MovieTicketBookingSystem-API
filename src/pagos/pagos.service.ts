@@ -42,7 +42,7 @@ export class PagosService {
           monto_descuento: dto.monto_descuento,
           monto_final: dto.monto_final,
           metodo: dto.metodo,
-          estado: 'completado',
+          estado: 'Completado',
         },
       }),
       this.prisma.reservas.update({
@@ -92,7 +92,7 @@ export class PagosService {
           monto_descuento: dto.monto_descuento,
           monto_final: dto.monto_final,
           metodo: 'efectivo',
-          estado: 'completado',
+          estado: 'Completado',
         },
       }),
       this.prisma.reservas.update({
@@ -129,5 +129,19 @@ export class PagosService {
 
     if (!pago) throw new NotFoundException(`Pago #${id} no encontrado`);
     return pago;
+  }
+
+  async cambiarEstadorPago(id: number, estado: string) {
+    const pago = await this.prisma.pagos.findUnique({
+      where: { id: BigInt(id) },
+    });
+    
+    if (!pago) throw new NotFoundException(`Pago #${id} no encontrado`);
+
+    await this.prisma.pagos.update({
+      where: {id: BigInt(id)},
+      data: {estado}
+    });
+    return {message: 'Pago actualizado con exito.'};
   }
 }

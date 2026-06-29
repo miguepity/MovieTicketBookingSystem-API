@@ -18,10 +18,10 @@ export class ReembolsosService {
     if (!findPago) {
       throw new NotFoundException('No se encontró el pago');
     }
-    if (findPago.estado === 'reembolsado') {
+    if (findPago.estado === 'Reembolsado') {
       throw new BadRequestException('El pago ya fue reembolsado');
     }
-    if (findPago.estado !== 'completado') {
+    if (findPago.estado !== 'Completado') {
       throw new BadRequestException(
         'Solo se pueden reembolsar pagos completados',
       );
@@ -32,13 +32,13 @@ export class ReembolsosService {
         data: {
           id_pago: BigInt(dto.id_pago),
           monto: dto.monto,
-          estado: 'pendiente',
+          estado: 'Pendiente',
           fecha_procesado: null,
         },
       }),
       this.prisma.pagos.update({
         where: { id: BigInt(dto.id_pago) },
-        data: { estado: 'reembolsado' },
+        data: { estado: 'Reembolsado' },
       }),
     ]);
 
@@ -51,14 +51,21 @@ export class ReembolsosService {
   async getPaymentHistory(dto: FilterBodyDto) {
     const findPagos = await this.prisma.pagos.findMany({
       where: { estado: dto.estado_pagos },
+      include: {
+        reservas: {
+          select: {
+            usuarios: {
+              select: {
+                email: true
+              }
+            }
+          }
+        }
+      }
     });
     const findRembolsos = await this.prisma.reembolsos.findMany({
       where: { estado: dto.estado_reembolsos },
     });
-
-    if (findPagos.length === 0 && findRembolsos.length === 0) {
-      throw new NotFoundException('No existe historial de pagos y reembolsos');
-    }
 
     // Fix: filter callbacks were missing `return`, so they always yielded undefined (empty results)
     const filterPagos = dto.fecha_limite_pagos
@@ -130,5 +137,20 @@ export class ReembolsosService {
       porcentaje_de_reembolso: politica.porcentaje_reembolso,
       monto_de_reembolso: calculoReembolso,
     };
+  }
+
+  async cambiarEstadorReembolso(id: number, estado: string) {
+    const reembolso = await this.prisma.reembolsos.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!reembolso) throw new NotFoundException(`Reembolso #${id} no encontrado`);
+    
+    await this.prisma.reembolsos.update({
+      where: {id: BigInt(id)},
+      data: {estado, fecha_procesado: new Date()}
+    });
+
+    return {message: 'Reembolso actualizado con exito.'};
   }
 }

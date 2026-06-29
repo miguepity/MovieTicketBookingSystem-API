@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Query,
+  Patch
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { ReembolsosService } from './reembolsos.services';
@@ -34,5 +35,12 @@ export class ReembolsosController {
   @ApiParam({ name: 'id', description: 'ID de la reserva' })
   calculoDeReembolso(@Param('id', ParseIntPipe) id: number) {
     return this.reembolsoService.calcularReembolso(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un reembolso por ID' })
+  @ApiParam({ name: 'id', description: 'Actualizar estado del reembolso' })
+  async updatePago(@Param('id', ParseIntPipe) id: number, @Body('estado') estado: string) {
+    return await this.reembolsoService.cambiarEstadorReembolso(id, estado);
   }
 }

@@ -2,12 +2,12 @@ import { IsString, IsDateString, IsOptional } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FilterBodyDto {
-  @ApiPropertyOptional({ example: 'PENDIENTE' })
+  @ApiPropertyOptional({ example: 'Pendiente' })
   @IsOptional()
   @IsString()
   estado_pagos!: string;
 
-  @ApiPropertyOptional({ example: 'COMPLETO' })
+  @ApiPropertyOptional({ example: 'Completo' })
   @IsOptional()
   @IsString()
   estado_reembolsos!: string;
