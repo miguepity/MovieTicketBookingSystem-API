@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -23,7 +23,7 @@ export class BoletosController {
     @Res() res: Response,
   ) {
     const numero = this.codes.verificar(codigoFirmado);
-    if (!numero) throw new NotFoundException('Boleto no encontrado');
+    if (!numero) return this.respondNotFound(res);
 
     const reserva = await this.prisma.reservas.findUnique({
       where: { numero_reserva: numero },
@@ -43,7 +43,7 @@ export class BoletosController {
     });
 
     if (!reserva || reserva.estado !== EstadoReserva.PAGADA) {
-      throw new NotFoundException('Boleto no encontrado');
+      return this.respondNotFound(res);
     }
 
     const pago = reserva.pagos[0];
@@ -56,7 +56,7 @@ export class BoletosController {
         idioma: reserva.funciones.peliculas.idiomas?.nombre ?? null,
       },
       cine: { nombre: reserva.funciones.salas.cines.nombre },
-      sala: { nombre: reserva.funciones.salas.nombre, formato: null },
+      sala: { nombre: reserva.funciones.salas.nombre },
       funcion: { fecha_hora: reserva.funciones.fecha_hora },
       asientos: reserva.reservaAsientos.map((ra) => ({
         codigo: ra.asientosfuncion.asientos.codigo,
@@ -76,6 +76,11 @@ export class BoletosController {
     res.setHeader('Content-Disposition', `${disposition}; filename="boleto-${numero}.pdf"`);
     res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.send(buffer);
+  }
+
+  private respondNotFound(res: Response): void {
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Boleto no encontrado</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#fdfafa;color:#1c1718;display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;padding:24px}.card{max-width:420px;text-align:center}.icon{font-size:48px;margin-bottom:16px}.title{font-size:22px;font-weight:700;margin:0 0 8px}.body{font-size:15px;color:#7a6f6f;line-height:1.5;margin:0}</style></head><body><div class="card"><div class="icon">🎬</div><h1 class="title">Boleto no encontrado</h1><p class="body">El enlace expiró o no corresponde a un boleto válido. Si querés revisar tus reservas, iniciá sesión en CineTickets.</p></div></body></html>`;
+    res.status(404).setHeader('Content-Type', 'text/html; charset=utf-8').send(html);
   }
 
   private metodoLabel(pago: { metodo: string; marca_snapshot: string | null; ultimos4_snapshot: string | null } | undefined): string {

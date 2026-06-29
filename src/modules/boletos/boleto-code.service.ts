@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 
 @Injectable()
 export class BoletoCodeService {
-  private readonly secret = process.env.JWT_SECRET ?? 'dev-fallback-secret';
+  private readonly secret = process.env.PDF_HMAC_SECRET ?? process.env.JWT_SECRET ?? 'dev-fallback-secret';
 
   firmar(numeroReserva: string): string {
     return `${numeroReserva}-${this.hmac(numeroReserva)}`;

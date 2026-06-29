@@ -34,6 +34,7 @@ $ pnpm install
 ## Environment Variables
 
 - `PDF_PUBLIC_BASE_URL` — base URL pública desde donde se sirve el PDF del boleto. El QR del boleto codifica `${PDF_PUBLIC_BASE_URL}/boletos/<codigoFirmado>.pdf`. En desarrollo local típicamente `http://localhost:3000`; para probar el QR desde el celular, reemplazar por la IP LAN del dev (ej. `http://192.168.1.42:3000`).
+- `PDF_HMAC_SECRET` — clave HMAC usada para firmar los códigos de boleto en las URLs públicas de PDF. Opcional: si no se define, se usa `JWT_SECRET` como fallback. Definir una clave dedicada evita que la rotación del JWT invalide los QRs de boletos ya emitidos.
 
 ## Compile and run the project
 

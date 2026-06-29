@@ -14,7 +14,7 @@ describe('BoletosPdfService', () => {
     numero_reserva: 'RES-A8K2X9',
     pelicula: { titulo: 'Dune: Parte Tres', poster_url: null, duracion_min: 165, idioma: 'Español' },
     cine: { nombre: 'Multiplaza San Pedro Sula' },
-    sala: { nombre: '5', formato: 'IMAX' },
+    sala: { nombre: '5' },
     funcion: { fecha_hora: new Date('2026-07-14T19:30:00Z') },
     asientos: [
       { codigo: 'F7', tipo: 'Standard' },

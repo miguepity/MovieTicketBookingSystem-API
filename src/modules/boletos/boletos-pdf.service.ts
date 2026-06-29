@@ -13,7 +13,7 @@ export interface PdfReservaInput {
     idioma: string | null;
   };
   cine: { nombre: string };
-  sala: { nombre: string; formato?: string | null };
+  sala: { nombre: string };
   funcion: { fecha_hora: Date };
   asientos: Array<{ codigo: string; tipo: string }>;
   pago: {
@@ -135,8 +135,7 @@ export class BoletosPdfService {
 
     let rowY = subY + 28;
     rowY = this.drawInfoRow(doc, infoX, infoW, rowY, 'CINE', input.cine.nombre);
-    rowY = this.drawInfoRow(doc, infoX, infoW, rowY, 'SALA',
-      input.sala.formato ? `${input.sala.nombre} · ${input.sala.formato}` : input.sala.nombre);
+    rowY = this.drawInfoRow(doc, infoX, infoW, rowY, 'SALA', input.sala.nombre);
     rowY = this.drawInfoRow(doc, infoX, infoW, rowY, 'FUNCIÓN',
       this.fmtFecha(input.funcion.fecha_hora));
 

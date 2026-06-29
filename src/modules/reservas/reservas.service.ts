@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
   ForbiddenException,
@@ -53,6 +54,8 @@ export interface BoletoView {
 
 @Injectable()
 export class ReservasService {
+  private readonly logger = new Logger(ReservasService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly reembolsosService: ReembolsosService,
@@ -1169,21 +1172,26 @@ export class ReservasService {
       dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Tegucigalpa',
     }).format(reserva.funciones.fecha_hora);
 
-    await this.mail.sendConfirmacionEmail({
-      nombre: reserva.usuarios.nombre,
-      email: reserva.usuarios.email,
-      numeroReserva: reserva.numero_reserva,
-      pelicula: reserva.funciones.peliculas.titulo,
-      cine: `${reserva.funciones.salas.cines.nombre} — Sala ${reserva.funciones.salas.nombre}`,
-      fechaFuncion,
-      asientos: reserva.reservaAsientos.map((ra) => ({
-        codigo: ra.asientosfuncion.asientos.codigo,
-        tipo: ra.asientosfuncion.asientos.tipoAsiento.nombre,
-      })),
-      montoOriginal: pago ? pago.monto_original.toFixed(2) : '0.00',
-      montoDescuento: pago ? pago.monto_descuento.toFixed(2) : '0.00',
-      montoFinal: pago ? pago.monto_final.toFixed(2) : '0.00',
-      metodo: pago?.metodo ?? 'efectivo',
-    });
+    try {
+      await this.mail.sendConfirmacionEmail({
+        nombre: reserva.usuarios.nombre,
+        email: reserva.usuarios.email,
+        numeroReserva: reserva.numero_reserva,
+        pelicula: reserva.funciones.peliculas.titulo,
+        cine: `${reserva.funciones.salas.cines.nombre} — Sala ${reserva.funciones.salas.nombre}`,
+        fechaFuncion,
+        asientos: reserva.reservaAsientos.map((ra) => ({
+          codigo: ra.asientosfuncion.asientos.codigo,
+          tipo: ra.asientosfuncion.asientos.tipoAsiento.nombre,
+        })),
+        montoOriginal: pago ? pago.monto_original.toFixed(2) : '0.00',
+        montoDescuento: pago ? pago.monto_descuento.toFixed(2) : '0.00',
+        montoFinal: pago ? pago.monto_final.toFixed(2) : '0.00',
+        metodo: pago?.metodo ?? 'efectivo',
+      });
+    } catch (err) {
+      this.logger.error('Falló envío de confirmación reserva=' + idReserva, err);
+      throw err;
+    }
   }
 }
