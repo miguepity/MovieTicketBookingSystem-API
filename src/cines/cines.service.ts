@@ -22,7 +22,13 @@ export class CineService {
   }
 
   async findAll() {
-    return this.prisma.cines.findMany();
+    return this.prisma.cines.findMany({
+      include: {
+        _count: {
+          select: { salas: true },
+        },
+      },
+    });
   }
 
   async editCine(dtoP: ParamDto, dtoB: EditBodyDto) {
