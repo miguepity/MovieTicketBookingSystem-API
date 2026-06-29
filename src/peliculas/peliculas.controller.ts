@@ -106,9 +106,6 @@ export class PeliculasController {
   }
 
   @Get(':id/cines/:cineId/funciones')
-  @ApiBearerAuth('token')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
   @ApiOperation({ summary: 'Obtener funciones para una película y un cine específicos' })
   @ApiParam({ name: 'id', description: 'ID de la película', example: '1' })
   @ApiParam({ name: 'cineId', description: 'ID del cine', example: '1' })
