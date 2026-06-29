@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed, loadCines } from './_bootstrap';
 import type { CinesMap } from './cines';
 
 const SALAS: ReadonlyArray<readonly [string, string, number, number]> = [
@@ -28,34 +28,50 @@ export interface SalasMap {
 }
 
 export async function seedSalas(cines: CinesMap): Promise<SalasMap> {
-  const all: SalaSeed[] = [];
+  const candidatos = SALAS.map(([nombre, cineNombre, filas, columnas]) => ({
+    nombre,
+    id_cine: cines.byNombre[cineNombre].id,
+    filas,
+    columnas,
+  }));
 
-  for (const [nombre, cineNombre, filas, columnas] of SALAS) {
-    const id_cine = cines.byNombre[cineNombre].id;
-    const existing = await prisma.salas.findFirst({
-      where: { nombre, id_cine },
-      select: {
-        id: true,
-        nombre: true,
-        id_cine: true,
-        filas: true,
-        columnas: true,
-      },
-    });
-    const sala =
-      existing ??
-      (await prisma.salas.create({
-        data: { nombre, id_cine, filas, columnas },
-        select: {
-          id: true,
-          nombre: true,
-          id_cine: true,
-          filas: true,
-          columnas: true,
-        },
-      }));
-    all.push(sala);
-  }
+  const key = (n: string, c: bigint) => `${n}|${c}`;
+  const where = {
+    OR: candidatos.map((c) => ({ nombre: c.nombre, id_cine: c.id_cine })),
+  };
+  const select = {
+    id: true,
+    nombre: true,
+    id_cine: true,
+    filas: true,
+    columnas: true,
+  };
 
-  return { all };
+  const existentes = await prisma.salas.findMany({ where, select });
+  const existentesSet = new Set(
+    existentes.map((e) => key(e.nombre, e.id_cine)),
+  );
+  const aCrear = candidatos.filter(
+    (c) => !existentesSet.has(key(c.nombre, c.id_cine)),
+  );
+  if (aCrear.length) await prisma.salas.createMany({ data: aCrear });
+
+  const todos = await prisma.salas.findMany({ where, select });
+  const orden = new Map(
+    candidatos.map((c, i) => [key(c.nombre, c.id_cine), i]),
+  );
+  todos.sort(
+    (a, b) =>
+      (orden.get(key(a.nombre, a.id_cine)) ?? 0) -
+      (orden.get(key(b.nombre, b.id_cine)) ?? 0),
+  );
+
+  return { all: todos };
+}
+
+if (require.main === module) {
+  void runSeed('salas', async (p) => {
+    const cines = await loadCines(p);
+    await seedSalas(cines);
+  });
 }

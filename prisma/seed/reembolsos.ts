@@ -1,5 +1,5 @@
 import { ReembolsoEstado, PagoEstado } from '../../generated/prisma/client';
-import { prisma } from './client';
+import { prisma, runSeed, loadPagos } from './_bootstrap';
 import type { PagosMap } from './pagos';
 
 export async function seedReembolsos(pagos: PagosMap): Promise<void> {
@@ -15,14 +15,23 @@ export async function seedReembolsos(pagos: PagosMap): Promise<void> {
     if (existing) continue;
 
     const monto = pago.monto_final * 0.5;
-    const estado: ReembolsoEstado = i % 3 === 0 ? ReembolsoEstado.procesado : ReembolsoEstado.pendiente;
+    const estado: ReembolsoEstado =
+      i % 3 === 0 ? ReembolsoEstado.procesado : ReembolsoEstado.pendiente;
     await prisma.reembolsos.create({
       data: {
         id_pago: pago.id,
         monto,
         estado,
-        fecha_procesado: estado === ReembolsoEstado.procesado ? new Date() : null,
+        fecha_procesado:
+          estado === ReembolsoEstado.procesado ? new Date() : null,
       },
     });
   }
+}
+
+if (require.main === module) {
+  void runSeed('reembolsos', async (p) => {
+    const pagos = await loadPagos(p);
+    await seedReembolsos(pagos);
+  });
 }

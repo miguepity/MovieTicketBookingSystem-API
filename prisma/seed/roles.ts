@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed } from './_bootstrap';
 import { upsertByNombre } from './helpers';
 
 const ROLES = ['admin', 'cliente'];
@@ -11,4 +11,10 @@ export async function seedRoles(): Promise<RolesMap> {
     map[nombre] = await upsertByNombre(prisma.roles, nombre);
   }
   return map;
+}
+
+if (require.main === module) {
+  void runSeed('roles', async () => {
+    await seedRoles();
+  });
 }

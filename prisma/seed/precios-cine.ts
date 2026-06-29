@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed, loadCines, loadTiposAsiento } from './_bootstrap';
 import type { CinesMap } from './cines';
 import type { TiposAsientoMap } from './tipos-asiento';
 
@@ -13,26 +13,32 @@ export async function seedPreciosCine(
   cines: CinesMap,
   tipos: TiposAsientoMap,
 ): Promise<number> {
-  let count = 0;
+  const candidatos: {
+    id_cine: bigint;
+    id_tipo_asiento: bigint;
+    precio: number;
+  }[] = [];
   for (const cine of cines.all) {
     for (const tipo of tipos.all) {
-      const precio = PRECIO_POR_TIPO[tipo.nombre] ?? PRECIO_DEFAULT;
-      await prisma.preciosCine.upsert({
-        where: {
-          id_cine_id_tipo_asiento: {
-            id_cine: cine.id,
-            id_tipo_asiento: tipo.id,
-          },
-        },
-        update: {},
-        create: {
-          id_cine: cine.id,
-          id_tipo_asiento: tipo.id,
-          precio,
-        },
+      candidatos.push({
+        id_cine: cine.id,
+        id_tipo_asiento: tipo.id,
+        precio: PRECIO_POR_TIPO[tipo.nombre] ?? PRECIO_DEFAULT,
       });
-      count++;
     }
   }
-  return count;
+  if (candidatos.length === 0) return 0;
+  await prisma.preciosCine.createMany({
+    data: candidatos,
+    skipDuplicates: true,
+  });
+  return candidatos.length;
+}
+
+if (require.main === module) {
+  void runSeed('precios-cine', async (p) => {
+    const cines = await loadCines(p);
+    const tipos = await loadTiposAsiento(p);
+    await seedPreciosCine(cines, tipos);
+  });
 }

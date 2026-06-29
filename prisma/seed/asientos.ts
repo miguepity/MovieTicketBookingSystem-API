@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed, loadSalas, loadTiposAsiento } from './_bootstrap';
 import type { SalasMap } from './salas';
 import type { TiposAsientoMap } from './tipos-asiento';
 
@@ -64,4 +64,12 @@ export async function seedAsientos(
   }
 
   return { bySala };
+}
+
+if (require.main === module) {
+  void runSeed('asientos', async (p) => {
+    const salas = await loadSalas(p);
+    const tipos = await loadTiposAsiento(p);
+    await seedAsientos(salas, tipos);
+  });
 }

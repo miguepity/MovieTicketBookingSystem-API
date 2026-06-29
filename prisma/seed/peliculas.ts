@@ -1,4 +1,10 @@
-import { prisma } from './client';
+import {
+  prisma,
+  runSeed,
+  loadIdiomas,
+  loadGeneros,
+  loadUsuarios,
+} from './_bootstrap';
 import type { IdiomasMap } from './idiomas';
 import type { GenerosMap } from './generos';
 
@@ -35,7 +41,13 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'Denis Villeneuve',
       guion: 'Denis Villeneuve, Jon Spaihts',
       fotografia: 'Greig Fraser',
-      reparto: ['Timothée Chalamet', 'Zendaya', 'Rebecca Ferguson', 'Josh Brolin', 'Austin Butler'],
+      reparto: [
+        'Timothée Chalamet',
+        'Zendaya',
+        'Rebecca Ferguson',
+        'Josh Brolin',
+        'Austin Butler',
+      ],
       musica: 'Hans Zimmer',
       pais: 'Estados Unidos',
       productora: 'Legendary Pictures',
@@ -54,7 +66,12 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'Kelsey Mann',
       guion: 'Meg LeFauve, Dave Holstein',
       fotografia: 'Adam Newport-Berra',
-      reparto: ['Amy Poehler', 'Maya Hawke', 'Kensington Tallman', 'Liza Lapira'],
+      reparto: [
+        'Amy Poehler',
+        'Maya Hawke',
+        'Kensington Tallman',
+        'Liza Lapira',
+      ],
       musica: 'Andrea Datzman',
       pais: 'Estados Unidos',
       productora: 'Pixar Animation Studios',
@@ -63,7 +80,8 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
   },
   {
     titulo: 'La Sociedad de la Nieve',
-    sinopsis: 'La historia real de los supervivientes del vuelo 571 en los Andes.',
+    sinopsis:
+      'La historia real de los supervivientes del vuelo 571 en los Andes.',
     idioma: 'Español',
     genero: 'Drama',
     fecha: '2026-01-04',
@@ -73,7 +91,12 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'J.A. Bayona',
       guion: 'J.A. Bayona, Bernat Vilaplana',
       fotografia: 'Pedro Luque',
-      reparto: ['Enzo Vogrincic', 'Agustín Pardella', 'Matías Recalt', 'Esteban Bigliardi'],
+      reparto: [
+        'Enzo Vogrincic',
+        'Agustín Pardella',
+        'Matías Recalt',
+        'Esteban Bigliardi',
+      ],
       musica: 'Michael Giacchino',
       pais: 'España',
       productora: 'Mistery Productions',
@@ -92,7 +115,12 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'Adam Wingard',
       guion: 'Terry Rossio, Simon Barrett',
       fotografia: 'Ben Seresin',
-      reparto: ['Rebecca Hall', 'Brian Tyree Henry', 'Dan Stevens', 'Kaylee Hottle'],
+      reparto: [
+        'Rebecca Hall',
+        'Brian Tyree Henry',
+        'Dan Stevens',
+        'Kaylee Hottle',
+      ],
       musica: 'Antonio Di Iorio',
       pais: 'Estados Unidos',
       productora: 'Legendary Pictures',
@@ -111,7 +139,13 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'Bong Joon-ho',
       guion: 'Bong Joon-ho, Han Jin-won',
       fotografia: 'Hong Kyung-pyo',
-      reparto: ['Song Kang-ho', 'Lee Sun-kyun', 'Cho Yeo-jeong', 'Choi Woo-shik', 'Park So-dam'],
+      reparto: [
+        'Song Kang-ho',
+        'Lee Sun-kyun',
+        'Cho Yeo-jeong',
+        'Choi Woo-shik',
+        'Park So-dam',
+      ],
       musica: 'Jung Jae-il',
       pais: 'Corea del Sur',
       productora: 'Barunson E&A',
@@ -144,12 +178,19 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
     genero: 'Animación',
     fecha: '2026-04-08',
     duracion_min: 94,
-    tagline: 'El Guerrero Dragón necesita un sucesor. El universo necesita a Po.',
+    tagline:
+      'El Guerrero Dragón necesita un sucesor. El universo necesita a Po.',
     ficha_tecnica: {
       direccion: 'Mike Mitchell',
       guion: 'Darren Lemke, Glenn Berger',
       fotografia: 'Yong Duk Jhun',
-      reparto: ['Jack Black', 'Awkwafina', 'Viola Davis', 'Bryan Cranston', 'Ian McShane'],
+      reparto: [
+        'Jack Black',
+        'Awkwafina',
+        'Viola Davis',
+        'Bryan Cranston',
+        'Ian McShane',
+      ],
       musica: 'Hans Zimmer, Steve Mazzaro',
       pais: 'Estados Unidos',
       productora: 'DreamWorks Animation',
@@ -168,7 +209,12 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'Alex Garland',
       guion: 'Alex Garland',
       fotografia: 'Rob Hardy',
-      reparto: ['Kirsten Dunst', 'Wagner Moura', 'Cailee Spaeny', 'Stephen McKinley Henderson'],
+      reparto: [
+        'Kirsten Dunst',
+        'Wagner Moura',
+        'Cailee Spaeny',
+        'Stephen McKinley Henderson',
+      ],
       musica: 'Ben Salisbury, Geoff Barrow',
       pais: 'Reino Unido / Estados Unidos',
       productora: 'DNA Films',
@@ -187,7 +233,12 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'Justin Baldoni',
       guion: 'Christy Hall',
       fotografia: 'Bart Freundlich',
-      reparto: ['Blake Lively', 'Justin Baldoni', 'Jenny Slate', 'Hasan Minhaj'],
+      reparto: [
+        'Blake Lively',
+        'Justin Baldoni',
+        'Jenny Slate',
+        'Hasan Minhaj',
+      ],
       musica: 'Evan Lurie',
       pais: 'Estados Unidos',
       productora: 'Wayfarer Studios',
@@ -206,7 +257,12 @@ const PELICULAS: ReadonlyArray<PeliculaData> = [
       direccion: 'George Miller',
       guion: 'George Miller, Nico Lathouris',
       fotografia: 'Simon Duggan',
-      reparto: ['Anya Taylor-Joy', 'Chris Hemsworth', 'Tom Burke', 'Alyla Browne'],
+      reparto: [
+        'Anya Taylor-Joy',
+        'Chris Hemsworth',
+        'Tom Burke',
+        'Alyla Browne',
+      ],
       musica: 'Junkie XL',
       pais: 'Australia / Estados Unidos',
       productora: 'Kennedy Miller Mitchell',
@@ -229,31 +285,43 @@ export async function seedPeliculas(
   generos: GenerosMap,
   admin: { id: bigint },
 ): Promise<PeliculasMap> {
-  const all: PeliculaSeed[] = [];
+  const titulos = PELICULAS.map((p) => p.titulo);
 
-  for (const p of PELICULAS) {
-    const existing = await prisma.peliculas.findFirst({
-      where: { titulo: p.titulo },
-      select: { id: true, titulo: true },
-    });
-    const pelicula =
-      existing ??
-      (await prisma.peliculas.create({
-        data: {
-          titulo: p.titulo,
-          sinopsis: p.sinopsis,
-          id_idioma: idiomas[p.idioma].id,
-          id_genero: generos[p.genero].id,
-          fecha_estreno: new Date(p.fecha),
-          id_usuario: admin.id,
-          duracion_min: p.duracion_min,
-          tagline: p.tagline,
-          ficha_tecnica: p.ficha_tecnica,
-        },
-        select: { id: true, titulo: true },
-      }));
-    all.push(pelicula);
-  }
+  const existentes = await prisma.peliculas.findMany({
+    where: { titulo: { in: titulos } },
+    select: { id: true, titulo: true },
+  });
+  const existentesSet = new Set(existentes.map((e) => e.titulo));
+  const aCrear = PELICULAS.filter((p) => !existentesSet.has(p.titulo)).map(
+    (p) => ({
+      titulo: p.titulo,
+      sinopsis: p.sinopsis,
+      id_idioma: idiomas[p.idioma].id,
+      id_genero: generos[p.genero].id,
+      fecha_estreno: new Date(p.fecha),
+      id_usuario: admin.id,
+      duracion_min: p.duracion_min,
+      tagline: p.tagline,
+      ficha_tecnica: p.ficha_tecnica,
+    }),
+  );
+  if (aCrear.length) await prisma.peliculas.createMany({ data: aCrear });
 
-  return { all };
+  const todos = await prisma.peliculas.findMany({
+    where: { titulo: { in: titulos } },
+    select: { id: true, titulo: true },
+  });
+  const orden = new Map(PELICULAS.map((p, i) => [p.titulo, i]));
+  todos.sort((a, b) => (orden.get(a.titulo) ?? 0) - (orden.get(b.titulo) ?? 0));
+
+  return { all: todos };
+}
+
+if (require.main === module) {
+  void runSeed('peliculas', async (p) => {
+    const idiomas = await loadIdiomas(p);
+    const generos = await loadGeneros(p);
+    const usuarios = await loadUsuarios(p);
+    await seedPeliculas(idiomas, generos, usuarios.admin);
+  });
 }

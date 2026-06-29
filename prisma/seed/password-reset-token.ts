@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { prisma } from './client';
+import { prisma, runSeed, loadUsuarios } from './_bootstrap';
 import type { UsuariosMap } from './usuarios';
 
 export async function seedPasswordResetTokens(
@@ -27,4 +27,11 @@ export async function seedPasswordResetTokens(
       },
     });
   }
+}
+
+if (require.main === module) {
+  void runSeed('password-reset-token', async (p) => {
+    const usuarios = await loadUsuarios(p);
+    await seedPasswordResetTokens(usuarios);
+  });
 }

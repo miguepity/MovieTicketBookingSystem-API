@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed } from './_bootstrap';
 import { upsertByNombre } from './helpers';
 
 const GENEROS = [
@@ -22,4 +22,10 @@ export async function seedGeneros(): Promise<GenerosMap> {
     map[nombre] = await upsertByNombre(prisma.generos, nombre);
   }
   return map;
+}
+
+if (require.main === module) {
+  void runSeed('generos', async () => {
+    await seedGeneros();
+  });
 }

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { prisma } from './seed/client';
+import { prisma } from './seed/_bootstrap';
 import { seedRoles } from './seed/roles';
 import { seedCiudades } from './seed/ciudades';
 import { seedIdiomas } from './seed/idiomas';

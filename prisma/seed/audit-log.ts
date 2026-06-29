@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed, loadUsuarios } from './_bootstrap';
 import type { UsuariosMap } from './usuarios';
 
 const ACCIONES = [
@@ -18,24 +18,39 @@ const ACCIONES = [
 
 export async function seedAuditLog(usuarios: UsuariosMap): Promise<void> {
   const auditor = usuarios.admin;
-
-  for (let i = 0; i < ACCIONES.length; i++) {
-    const accion = ACCIONES[i];
+  const candidatos = ACCIONES.map((accion, i) => {
     const usuario = usuarios.all[i % usuarios.all.length];
+    return {
+      accion,
+      id_usuario: usuario.id,
+      id_auditor: auditor.id,
+      detalle: `Acción ${accion} ejecutada por ${usuario.email}`,
+    };
+  });
 
-    const existing = await prisma.auditLog.findFirst({
-      where: { accion, id_usuario: usuario.id, id_auditor: auditor.id },
-      select: { id: true },
-    });
-    if (existing) continue;
+  const key = (a: string, u: bigint, au: bigint) => `${a}|${u}|${au}`;
+  const existentes = await prisma.auditLog.findMany({
+    where: {
+      OR: candidatos.map((c) => ({
+        accion: c.accion,
+        id_usuario: c.id_usuario,
+        id_auditor: c.id_auditor,
+      })),
+    },
+    select: { accion: true, id_usuario: true, id_auditor: true },
+  });
+  const existentesSet = new Set(
+    existentes.map((e) => key(e.accion, e.id_usuario, e.id_auditor)),
+  );
+  const aCrear = candidatos.filter(
+    (c) => !existentesSet.has(key(c.accion, c.id_usuario, c.id_auditor)),
+  );
+  if (aCrear.length) await prisma.auditLog.createMany({ data: aCrear });
+}
 
-    await prisma.auditLog.create({
-      data: {
-        id_usuario: usuario.id,
-        id_auditor: auditor.id,
-        accion,
-        detalle: `Acción ${accion} ejecutada por ${usuario.email}`,
-      },
-    });
-  }
+if (require.main === module) {
+  void runSeed('audit-log', async (p) => {
+    const usuarios = await loadUsuarios(p);
+    await seedAuditLog(usuarios);
+  });
 }

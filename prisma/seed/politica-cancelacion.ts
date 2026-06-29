@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed, loadCines } from './_bootstrap';
 import type { CinesMap } from './cines';
 
 const REGLAS_DEFAULT: ReadonlyArray<{
@@ -15,7 +15,11 @@ const REGLAS_DEFAULT: ReadonlyArray<{
   { horas_antes_minimo: 24, horas_antes_maximo: 48, porcentaje_reembolso: 75 },
   { horas_antes_minimo: 48, horas_antes_maximo: 72, porcentaje_reembolso: 85 },
   { horas_antes_minimo: 72, horas_antes_maximo: 168, porcentaje_reembolso: 95 },
-  { horas_antes_minimo: 168, horas_antes_maximo: null, porcentaje_reembolso: 100 },
+  {
+    horas_antes_minimo: 168,
+    horas_antes_maximo: null,
+    porcentaje_reembolso: 100,
+  },
 ];
 
 export async function seedPoliticaCancelacion(cines: CinesMap): Promise<void> {
@@ -40,4 +44,11 @@ export async function seedPoliticaCancelacion(cines: CinesMap): Promise<void> {
       },
     });
   }
+}
+
+if (require.main === module) {
+  void runSeed('politica-cancelacion', async (p) => {
+    const cines = await loadCines(p);
+    await seedPoliticaCancelacion(cines);
+  });
 }

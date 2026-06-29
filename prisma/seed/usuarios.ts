@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcryptjs';
-import { prisma } from './client';
+import { prisma, runSeed, loadRoles } from './_bootstrap';
 import type { RolesMap } from './roles';
 
 const USUARIOS = [
@@ -66,4 +66,11 @@ export async function seedUsuarios(roles: RolesMap): Promise<UsuariosMap> {
   );
 
   return { admin, cliente, clientes, all: result };
+}
+
+if (require.main === module) {
+  void runSeed('usuarios', async (p) => {
+    const roles = await loadRoles(p);
+    await seedUsuarios(roles);
+  });
 }

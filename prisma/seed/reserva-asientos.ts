@@ -1,4 +1,9 @@
-import { prisma } from './client';
+import {
+  prisma,
+  runSeed,
+  loadReservas,
+  loadAsientosFuncion,
+} from './_bootstrap';
 import type { ReservasMap } from './reservas';
 import type { AsientosFuncionMap } from './asientos-funcion';
 
@@ -28,4 +33,12 @@ export async function seedReservaAsientos(
       })),
     });
   }
+}
+
+if (require.main === module) {
+  void runSeed('reserva-asientos', async (p) => {
+    const reservas = await loadReservas(p);
+    const asientosFuncion = await loadAsientosFuncion(p);
+    await seedReservaAsientos(reservas, asientosFuncion);
+  });
 }

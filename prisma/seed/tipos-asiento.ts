@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed } from './_bootstrap';
 
 const TIPOS: ReadonlyArray<{ nombre: string; color: string }> = [
   { nombre: 'general', color: '#3B82F6' },
@@ -26,4 +26,10 @@ export async function seedTiposAsiento(): Promise<TiposAsientoMap> {
   }
 
   return { byNombre, all };
+}
+
+if (require.main === module) {
+  void runSeed('tipos-asiento', async () => {
+    await seedTiposAsiento();
+  });
 }

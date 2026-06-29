@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed } from './_bootstrap';
 import { upsertByNombre } from './helpers';
 
 const IDIOMAS = [
@@ -22,4 +22,10 @@ export async function seedIdiomas(): Promise<IdiomasMap> {
     map[nombre] = await upsertByNombre(prisma.idiomas, nombre);
   }
   return map;
+}
+
+if (require.main === module) {
+  void runSeed('idiomas', async () => {
+    await seedIdiomas();
+  });
 }

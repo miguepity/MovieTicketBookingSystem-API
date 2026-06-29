@@ -1,4 +1,4 @@
-import { prisma } from './client';
+import { prisma, runSeed, loadAsientos, loadFunciones } from './_bootstrap';
 import type { AsientosMap } from './asientos';
 import type { FuncionesMap } from './funciones';
 
@@ -51,4 +51,12 @@ export async function seedAsientosFuncion(
   }
 
   return { all };
+}
+
+if (require.main === module) {
+  void runSeed('asientos-funcion', async (p) => {
+    const asientos = await loadAsientos(p);
+    const funciones = await loadFunciones(p);
+    await seedAsientosFuncion(asientos, funciones);
+  });
 }

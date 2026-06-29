@@ -1,5 +1,5 @@
 import { Prisma, PagoEstado } from '../../generated/prisma/client';
-import { prisma } from './client';
+import { prisma, runSeed, loadUsuarios, loadFunciones } from './_bootstrap';
 import { EstadoReserva } from '../../src/common/enums/estado-reserva.enum';
 import { EstadoAsiento } from '../../src/common/enums/estado-asiento.enum';
 import { EstadoReembolso } from '../../src/common/enums/estado-reembolso.enum';
@@ -157,4 +157,12 @@ export async function seedDatosInconclusos(
     });
     await reembolsoPendienteConPolitica(pago.id, politica?.id ?? null);
   }
+}
+
+if (require.main === module) {
+  void runSeed('datos-inconclusos', async (p) => {
+    const usuarios = await loadUsuarios(p);
+    const funciones = await loadFunciones(p);
+    await seedDatosInconclusos(usuarios, funciones);
+  });
 }
