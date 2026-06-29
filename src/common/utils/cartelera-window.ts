@@ -1,6 +1,7 @@
 export function finDeSemanaProxima(now: Date = new Date()): Date {
   const d = new Date(now);
-  const diasHastaDomingo = (7 - d.getUTCDay()) % 7;
+  const day = d.getUTCDay();
+  const diasHastaDomingo = day === 0 ? 7 : 7 - day;
   d.setUTCDate(d.getUTCDate() + diasHastaDomingo);
   d.setUTCHours(23, 59, 59, 999);
   return d;
