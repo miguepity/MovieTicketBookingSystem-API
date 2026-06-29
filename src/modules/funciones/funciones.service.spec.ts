@@ -216,7 +216,7 @@ describe('FuncionesService.update / cancelar', () => {
   });
 });
 
-describe('getMapaAdmin', () => {
+describe('FuncionesService.getMapaAsientosAdmin', () => {
   it('devuelve mapa con precio (override por cine), usuario y estado calculado', async () => {
     const now = new Date('2026-06-29T12:00:00Z');
     jest.useFakeTimers().setSystemTime(now);
@@ -286,7 +286,7 @@ describe('getMapaAdmin', () => {
     };
 
     const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
-    const result = await svc.getMapaAdmin(idFuncion);
+    const result = await svc.getMapaAsientosAdmin(idFuncion);
 
     expect(prismaMock.preciosCine.findMany).toHaveBeenCalledWith({
       where: {
@@ -351,7 +351,7 @@ describe('getMapaAdmin', () => {
     };
     const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
 
-    await expect(svc.getMapaAdmin(999n)).rejects.toMatchObject({
+    await expect(svc.getMapaAsientosAdmin(999n)).rejects.toMatchObject({
       response: { code: 'FUNCION_NO_ENCONTRADA' },
     });
     expect(prismaMock.preciosCine.findMany).not.toHaveBeenCalled();
@@ -385,7 +385,7 @@ describe('getMapaAdmin', () => {
     };
     const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
 
-    await expect(svc.getMapaAdmin(10n)).rejects.toMatchObject({
+    await expect(svc.getMapaAsientosAdmin(10n)).rejects.toMatchObject({
       response: { code: 'PRECIO_NO_CONFIGURADO' },
     });
   });
@@ -424,7 +424,7 @@ describe('getMapaAdmin', () => {
       },
     };
     const svc = new FuncionesService(prismaMock as any, {} as any, {} as any);
-    const result = await svc.getMapaAdmin(10n);
+    const result = await svc.getMapaAsientosAdmin(10n);
     expect(result.asientos[0].precio).toBe(120);
   });
 });

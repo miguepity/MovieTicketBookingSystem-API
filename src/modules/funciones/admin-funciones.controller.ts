@@ -45,7 +45,7 @@ export class AdminFuncionesController {
 
   @Get(':id/asientos')
   @ApiOperation({ summary: 'Mapa de asientos de una función (vista admin)' })
-  @ApiParam({ name: 'id', description: 'ID de la función', example: '12' })
+  @ApiParam({ name: 'id', description: 'ID de la función', example: '1' })
   @ApiOkResponse({ type: AdminMapaAsientosResponseDto })
   @ApiNotFoundResponse({ description: 'La función no existe' })
   @ApiConflictResponse({
@@ -54,6 +54,6 @@ export class AdminFuncionesController {
   getMapaAsientos(
     @Param('id') id: string,
   ): Promise<AdminMapaAsientosResponseDto> {
-    return this.svc.getMapaAdmin(BigInt(id));
+    return this.svc.getMapaAsientosAdmin(BigInt(id));
   }
 }

@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { EstadoAsiento } from 'src/common/enums/estado-asiento.enum';
 import { BLOQUEO_DURACION_MINUTOS } from 'src/common/constants/bloqueo.constants';
 import { esTipoFueraDeServicio } from 'src/common/constants/tipo-asiento.constants';
+import { findFuncionWithAsientos } from '../funciones/funciones.queries';
 
 @Injectable()
 export class AsientosService {
@@ -26,25 +27,11 @@ export class AsientosService {
   async getMapa(idFuncion: string, idUsuarioActual: string | null) {
     await this.liberarExpirados();
 
-    const funcion = await this.prisma.funciones.findUnique({
-      where: { id: BigInt(idFuncion) },
-      include: {
-        salas: { select: { filas: true, columnas: true } },
-        asientosFuncions: {
-          include: {
-            asientos: {
-              include: {
-                tipoAsiento: { select: { nombre: true, color: true } },
-              },
-            },
-          },
-          orderBy: [
-            { asientos: { fila: 'asc' } },
-            { asientos: { columna: 'asc' } },
-          ],
-        },
-      },
-    });
+    const funcion = await findFuncionWithAsientos(
+      this.prisma,
+      BigInt(idFuncion),
+      { includeUsuario: false },
+    );
 
     if (!funcion) {
       throw new NotFoundException({

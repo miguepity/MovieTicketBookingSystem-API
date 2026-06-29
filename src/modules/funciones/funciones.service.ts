@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { AdminMapaAsientosResponseDto } from './dto/admin-mapa-asientos.response.dto';
+import { findFuncionWithAsientos } from './funciones.queries';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFuncionDto } from './dto/create-funcion.dto';
@@ -264,8 +265,7 @@ export class FuncionesService {
         id: f.id,
         fecha_hora: f.fecha_hora,
         fecha_hora_fin: new Date(
-          f.fecha_hora.getTime() +
-            Number(f.peliculas.duracion_min) * 60000,
+          f.fecha_hora.getTime() + Number(f.peliculas.duracion_min) * 60000,
         ),
         pelicula: { titulo: f.peliculas.titulo },
       }));
@@ -318,26 +318,11 @@ export class FuncionesService {
     return updated;
   }
 
-  async getMapaAdmin(idFuncion: bigint): Promise<AdminMapaAsientosResponseDto> {
-    const funcion = await this.prisma.funciones.findUnique({
-      where: { id: idFuncion },
-      include: {
-        salas: { select: { filas: true, columnas: true, id_cine: true } },
-        asientosFuncions: {
-          include: {
-            asientos: {
-              include: {
-                tipoAsiento: { select: { id: true, nombre: true, color: true } },
-              },
-            },
-            usuarios: { select: { id: true, email: true } },
-          },
-          orderBy: [
-            { asientos: { fila: 'asc' } },
-            { asientos: { columna: 'asc' } },
-          ],
-        },
-      },
+  async getMapaAsientosAdmin(
+    idFuncion: bigint,
+  ): Promise<AdminMapaAsientosResponseDto> {
+    const funcion = await findFuncionWithAsientos(this.prisma, idFuncion, {
+      includeUsuario: true,
     });
 
     if (!funcion) {
@@ -349,7 +334,11 @@ export class FuncionesService {
 
     const idCine = funcion.salas.id_cine;
     const tipos = Array.from(
-      new Set(funcion.asientosFuncions.map((af) => af.asientos.id_tipo_asiento.toString())),
+      new Set(
+        funcion.asientosFuncions.map((af) =>
+          af.asientos.id_tipo_asiento.toString(),
+        ),
+      ),
     ).map((s) => BigInt(s));
 
     const preciosRows = tipos.length
@@ -385,8 +374,7 @@ export class FuncionesService {
       funcion_id: funcion.id.toString(),
       sala: { filas: funcion.salas.filas, columnas: funcion.salas.columnas },
       asientos: funcion.asientosFuncions.map((af) => {
-        const expirado =
-          af.estado === 'bloqueado' && af.bloqueado_hasta < now;
+        const expirado = af.estado === 'bloqueado' && af.bloqueado_hasta < now;
         const estado = expirado ? 'disponible' : af.estado;
         const disponible = estado === 'disponible';
 
@@ -403,8 +391,7 @@ export class FuncionesService {
             disponible || !af.usuarios
               ? null
               : { id: af.usuarios.id.toString(), email: af.usuarios.email },
-          bloqueado_hasta:
-            disponible ? null : af.bloqueado_hasta.toISOString(),
+          bloqueado_hasta: disponible ? null : af.bloqueado_hasta.toISOString(),
         };
       }),
     };

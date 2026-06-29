@@ -3,12 +3,12 @@ import { test, expect } from '@playwright/test';
 import { loginAs, authHeaders } from '../helpers/auth';
 import {
   getFuncionConAsientosLibres,
-  setBloqueadoHasta,
   resetAsientoFuncion,
 } from '../helpers/seed-funcion';
 import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { AdminMapaAsientosResponseDto } from '../../src/modules/funciones/dto/admin-mapa-asientos.response.dto';
+import { errorCode } from '../helpers/response-types';
 
 function prisma() {
   return new PrismaClient({
@@ -38,11 +38,8 @@ test.describe('GET /admin/funciones/:id/asientos — errores', () => {
       headers: authHeaders(admin.token),
     });
     expect(res.status()).toBe(404);
-    const body = (await res.json()) as {
-      code?: string;
-      message?: { code?: string };
-    };
-    expect(body.code ?? body.message?.code).toBe('FUNCION_NO_ENCONTRADA');
+    const body = await res.json();
+    expect(errorCode(body)).toBe('FUNCION_NO_ENCONTRADA');
   });
 });
 
@@ -172,12 +169,15 @@ test.describe('GET /admin/funciones/:id/asientos — usuario poblado', () => {
     asientoId = seed.asientosDisponibles[0].id;
 
     // Bloquear con bloqueado_hasta en el FUTURO (válido)
-    await setBloqueadoHasta(asientoId, new Date(Date.now() + 600_000));
     const p = prisma();
     try {
       await p.asientosFuncion.update({
         where: { id: BigInt(asientoId) },
-        data: { estado: 'bloqueado', id_usuario: BigInt(cliente.userId) },
+        data: {
+          estado: 'bloqueado',
+          id_usuario: BigInt(cliente.userId),
+          bloqueado_hasta: new Date(Date.now() + 600_000),
+        },
       });
     } finally {
       await p.$disconnect();

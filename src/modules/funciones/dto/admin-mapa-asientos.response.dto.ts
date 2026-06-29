@@ -59,7 +59,8 @@ export class AdminAsientoMapaItemDto {
 
   @ApiProperty({
     type: Number,
-    description: 'Precio resuelto del asiento',
+    description:
+      'Precio resuelto del asiento (formato número decimal; el frontend debe formatear con 2 decimales si necesita precisión monetaria)',
     example: 100,
   })
   precio!: number;
