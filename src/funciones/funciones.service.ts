@@ -22,13 +22,30 @@ export class FuncionesService {
   ) {}
 
   async create(createFuncioneDto: CreateFuncioneDto) {
+    const fechaHora = new Date(createFuncioneDto.fecha_hora);
+
+    // Validar que no exista una función duplicada en la misma sala y horario
+    const funcionExistente = await this.prisma.funciones.findFirst({
+      where: {
+        id_sala: BigInt(createFuncioneDto.id_sala),
+        fecha_hora: fechaHora,
+        estado: 'active',
+      },
+    });
+
+    if (funcionExistente) {
+      throw new ConflictException(
+        'Ya existe una función activa en esa sala y horario',
+      );
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       // 1. Create the function
       const funcion = await tx.funciones.create({
         data: {
           id_pelicula: BigInt(createFuncioneDto.id_pelicula),
           id_sala: BigInt(createFuncioneDto.id_sala),
-          fecha_hora: new Date(createFuncioneDto.fecha_hora),
+          fecha_hora: fechaHora,
           estado: 'active',
         },
       });
