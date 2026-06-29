@@ -194,8 +194,11 @@ export class ReservasService {
       }
     }
 
+    const reservasNumber = await this.prisma.reservas.findMany();
+
     const page = dto.page ?? 1;
     const limit = dto.limit ?? 10;
+    const total = reservasNumber.length
 
     const reservas = await this.prisma.reservas.findMany({
       where: {
@@ -249,7 +252,7 @@ export class ReservasService {
 
     return {
       data: reservas,
-      meta: { page, limit },
+      meta: { page, limit , total},
     };
   }
 
