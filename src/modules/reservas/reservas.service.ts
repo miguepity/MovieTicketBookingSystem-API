@@ -1103,6 +1103,15 @@ export class ReservasService {
 
   private readonly REENVIO_COOLDOWN_S = 60;
 
+  async assertOwnership(numero: string, userId: bigint) {
+    const reserva = await this.prisma.reservas.findFirst({
+      where: { numero_reserva: numero, id_usuario: userId },
+      select: { id: true, numero_reserva: true, estado: true },
+    });
+    if (!reserva) throw new NotFoundException('Reserva no encontrada');
+    return reserva;
+  }
+
   async reenviarBoletoUsuario(
     numeroReserva: string,
     userId: bigint,

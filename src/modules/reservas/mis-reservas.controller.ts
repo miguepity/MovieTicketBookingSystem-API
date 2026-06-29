@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { BoletoCodeService } from 'src/modules/boletos/boleto-code.service';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -34,7 +35,10 @@ import { ReenviarBoletoResponseDto } from './dto/reenviar-boleto.response.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('me/reservas')
 export class MisReservasController {
-  constructor(private readonly reservas: ReservasService) {}
+  constructor(
+    private readonly reservas: ReservasService,
+    private readonly codes: BoletoCodeService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Listar mis reservas (boletos) paginadas' })
@@ -86,6 +90,16 @@ export class MisReservasController {
     @Param('numero') numero: string,
   ) {
     return this.reservas.cancelarPorCliente(numero, user.userId);
+  }
+
+  @Get(':numero/codigo-firmado')
+  @ApiOperation({ summary: 'Código firmado para construir la URL pública del PDF del boleto' })
+  async codigoFirmado(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('numero') numero: string,
+  ): Promise<{ codigo: string }> {
+    const reserva = await this.reservas.assertOwnership(numero, BigInt(user.userId));
+    return { codigo: this.codes.firmar(reserva.numero_reserva) };
   }
 
   @Post(':numero/reenviar-boleto')
