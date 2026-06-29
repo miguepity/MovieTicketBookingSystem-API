@@ -43,6 +43,16 @@ export class CreatePeliculaDto {
   @IsDateString()
   fecha_estreno?: Date;
 
+  @ApiPropertyOptional({ example: '2h 15m' })
+  @IsOptional()
+  @IsString()
+  dur?: string;
+
+  @ApiPropertyOptional({ example: 2026 })
+  @IsOptional()
+  @IsNumber()
+  year?: number;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
