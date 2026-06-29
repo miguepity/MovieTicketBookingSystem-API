@@ -419,22 +419,55 @@ export class FuncionesService {
   }
 
   async remove(id: number, auditorId: number) {
-    await this.findOne(id);
-    try {
-      await this.prisma.funciones.delete({ where: { id: BigInt(id) } });
+    const funcion = await this.prisma.funciones.findUnique({
+      where: { id: BigInt(id) },
+      include: { reservas: true },
+    });
 
-      await this.prisma.auditLog.create({
-        data: {
-          id_usuario: BigInt(auditorId),
-          id_auditor: BigInt(auditorId),
-          accion: 'FUNCION_ELIMINADA',
-          detalle: `Función ${id} eliminada permanentemente`,
-        },
+    if (!funcion) {
+      throw new NotFoundException(`La función con ID ${id} no existe.`);
+    }
+
+    // 🌟 REGLAS DE NEGOCIO:
+    // 1. No se puede eliminar si ya fue cancelada
+    if (funcion.estado === 'CANCELADA') {
+      throw new BadRequestException('No se puede eliminar una función que ya ha sido cancelada.');
+    }
+
+    // 2. No se puede eliminar si hay reservas activas
+    const tieneReservas = funcion.reservas.some(
+      (reserva) => reserva.estado !== 'CANCELADA',
+    );
+
+    if (tieneReservas) {
+      throw new BadRequestException(
+        'No se puede eliminar la función porque existen reservaciones activas vinculadas.',
+      );
+    }
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Eliminar asientos_funcion asociados
+        await tx.asientosFuncion.deleteMany({ where: { id_funcion: BigInt(id) } });
+
+        // Eliminar la función
+        await tx.funciones.delete({ where: { id: BigInt(id) } });
+
+        // Registrar auditoría
+        await tx.auditLog.create({
+          data: {
+            id_usuario: BigInt(auditorId),
+            id_auditor: BigInt(auditorId),
+            accion: 'FUNCION_ELIMINADA',
+            detalle: `Función ${id} eliminada permanentemente por reglas de negocio validadas.`,
+          },
+        });
       });
 
       return { message: `Función con ID ${id} borrada definitivamente.` };
-    } catch {
-      throw new ConflictException('No se puede eliminar físicamente; contiene dependencias de transacciones.');
+    } catch (error) {
+      console.error(error);
+      throw new ConflictException('No se pudo eliminar la función debido a un error en el servidor.');
     }
   }
 
@@ -528,6 +561,25 @@ export class FuncionesService {
       asientosAfectados: asientosFuncionIds,
       expira_at: fechaExpiracion,
     };
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleMarcarFuncionesFinalizadas() {
+    const ahora = new Date();
+
+    const actualizadas = await this.prisma.funciones.updateMany({
+      where: {
+        fecha_hora: { lt: ahora },
+        estado: { in: ['DISPONIBLE', 'AGOTADO'] },
+      },
+      data: {
+        estado: 'FINALIZADA',
+      },
+    });
+
+    if (actualizadas.count > 0) {
+      console.log(`[CRON JOB] Se marcaron ${actualizadas.count} funciones como FINALIZADA.`);
+    }
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
