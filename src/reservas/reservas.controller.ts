@@ -7,7 +7,9 @@ import {
   Param,
   ParseIntPipe,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 
 import { ReservasService } from './reservas.service';
@@ -26,9 +28,14 @@ export class ReservasController {
   }
 
   @Get('export')
-  @ApiOperation({ summary: 'Exportar reservas' })
-  exportReservas() {
-    return this.reservasService.exportReservas();
+  @ApiOperation({ summary: 'Exportar reservas a CSV' })
+  async exportReservas(@Res() res: Response) {
+    const csv = await this.reservasService.exportReservas();
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="reportes_reservas_${Date.now()}.csv"`,
+    });
+    res.send(csv);
   }
   
   @Get(':id')
