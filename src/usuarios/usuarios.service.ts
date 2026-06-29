@@ -13,12 +13,14 @@ import { ClientesFilterDto } from './dto/clientes-filter.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { JwtService } from '@nestjs/jwt';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class UsuariosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   async updateProfile(userId: number, dto: UpdateProfileDto) {
@@ -73,6 +75,13 @@ export class UsuariosService {
     const usuarioActualizado = await this.prisma.usuarios.update({
       where: { id: BigInt(id) },
       data: { estado: dto.status },
+    });
+
+    await this.auditLogs.logAction({
+      id_usuario: id,
+      id_auditor: id,
+      accion: dto.status === 'activo' ? 'USUARIO_ACTIVADO' : 'USUARIO_SUSPENDIDO',
+      detalle: `Estado cambiado a "${dto.status}"`,
     });
 
     return {
@@ -273,6 +282,13 @@ export class UsuariosService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    await this.auditLogs.logAction({
+      id_usuario: id,
+      id_auditor: id,
+      accion: 'USUARIO_ELIMINADO',
+      detalle: `Usuario ${usuario.email} eliminado`,
+    });
+
     await this.prisma.usuarios.delete({
       where: { id: BigInt(id) },
     });
@@ -349,6 +365,13 @@ export class UsuariosService {
         email: true,
         roles: { select: { id: true, nombre: true } },
       },
+    });
+
+    await this.auditLogs.logAction({
+      id_usuario: id,
+      id_auditor: id,
+      accion: 'ROL_ACTUALIZADO',
+      detalle: `Rol actualizado a "${rol.nombre}"`,
     });
 
     return {
