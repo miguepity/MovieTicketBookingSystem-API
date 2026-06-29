@@ -46,14 +46,11 @@ export class PasswordResetService {
     });
 
     const resetLink = `${process.env.APP_URL}/reset-password?token=${token}`;
-    this.emailService
-      .sendPasswordReset(user.email, user.nombre, resetLink)
-      .catch((err: unknown) => {
-        this.logger.error(
-          'Error enviando correo de recuperación de contraseña',
-          err instanceof Error ? err.message : String(err),
-        );
-      });
+    await this.emailService.sendPasswordReset(
+      user.email,
+      user.nombre,
+      resetLink,
+    );
 
     return {
       message:

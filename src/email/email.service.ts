@@ -153,21 +153,25 @@ export class EmailService {
     nombre: string,
     resetLink: string,
   ): Promise<void> {
-    await this.transporter.sendMail({
-      from: process.env.SMTP_FROM ?? 'no-reply@movieticketing.com',
-      to,
-      subject: 'Recuperación de contraseña',
-      html: `
-      <h2>Hola, ${nombre}</h2>
-      <p>Solicitaste restablecer tu contraseña. Este enlace es válido por 1 hora.</p>
-      <a href="${resetLink}" style="padding: 10px 20px; background-color: #e50914; color: white; text-decoration: none; border-radius: 4px;">
-        Restablecer contraseña
-      </a>
-      <br/><br/>
-      <p>Si no solicitaste esto, puedes ignorar este correo.</p>
-      <p><em>El equipo de MovieTicket</em></p>
-    `,
-    });
+    try {
+      await emailjs.send(
+        process.env.EMAILJS_SERVICE_ID,
+        process.env.EMAILJS_TEMPLATE_ID,
+        {
+          to_email: to,
+          message: `Hola, ${nombre}. Solicitaste restablecer tu contraseña. Usa el siguiente enlace (válido por 1 hora): ${resetLink} — Si no solicitaste esto, puedes ignorar este correo.`,
+        },
+      );
+      this.logger.log(`Correo de recuperación enviado a ${to} vía EmailJS`);
+    } catch (error) {
+      this.logger.error(
+        'Error al enviar correo de recuperación con EmailJS:',
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Error al enviar el correo de recuperación de contraseña',
+      );
+    }
   }
 
   async sendNotificacionGeneral(
