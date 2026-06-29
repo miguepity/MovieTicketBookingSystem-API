@@ -47,6 +47,12 @@ export class ReportesReservasListItemResponseDto {
   montoTotal!: number;
 
   @ApiProperty({
+    description: 'Monto efectivamente reembolsado (suma de reembolsos PROCESADO del pago exitoso; 0 si ninguno)',
+    example: 175.00,
+  })
+  montoReembolsado!: number;
+
+  @ApiProperty({
     description: 'Fecha de creación de la reserva',
     type: String,
     format: 'date-time',

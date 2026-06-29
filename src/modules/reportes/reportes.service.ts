@@ -6,6 +6,7 @@ import {
   ReembolsoEstado,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EstadoReembolso } from '../../common/enums/estado-reembolso.enum';
 import { ListReporteReservasQueryDto } from './dto/list-reportes-reservas-query.dto';
 import { ReportesPagosPageResponseDto } from './dto/reportes-pagos-page.response.dto';
 import { ReportesReservasListItemResponseDto } from './dto/reportes-reservas-list-item.response.dto';
@@ -28,7 +29,7 @@ type ReservaWithRelations = Prisma.ReservasGetPayload<{
       };
     };
     reservaAsientos: true;
-    pagos: { orderBy: { created_at: 'desc' } };
+    pagos: { orderBy: { created_at: 'desc' }; include: { reembolsos: true } };
   };
 }>;
 
@@ -49,7 +50,7 @@ const RESERVAS_INCLUDE = {
     },
   },
   reservaAsientos: true,
-  pagos: { orderBy: { created_at: 'desc' } },
+  pagos: { orderBy: { created_at: 'desc' }, include: { reembolsos: true } },
 } satisfies Prisma.ReservasInclude;
 
 const PAGOS_INCLUDE = {
@@ -352,6 +353,11 @@ export class ReportesService {
   ): ReportesReservasListItemResponseDto {
     const pagoExitoso = reservas.pagos.find((p) => p.estado === PagoEstado.exitoso);
     const montoTotal = pagoExitoso ? Number(pagoExitoso.monto_final) : 0;
+    const montoReembolsado = pagoExitoso
+      ? pagoExitoso.reembolsos
+          .filter((r) => r.estado === EstadoReembolso.PROCESADO)
+          .reduce((sum, r) => sum + Number(r.monto), 0)
+      : 0;
 
     return {
       id: reservas.id.toString(),
@@ -380,6 +386,7 @@ export class ReportesService {
       },
       numAsientos: reservas.reservaAsientos.length,
       montoTotal,
+      montoReembolsado,
       createdAt: reservas.created_at,
       updatedAt: reservas.updated_at,
     };
