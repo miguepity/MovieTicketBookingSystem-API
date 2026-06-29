@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsInt,
   IsString,
@@ -6,6 +6,7 @@ import {
   MaxLength,
   Min,
   IsDecimal,
+  IsOptional,
 } from 'class-validator';
 
 export class CreatePagoDto {
@@ -37,4 +38,13 @@ export class CreatePagoDto {
   @IsNotEmpty()
   @MaxLength(20)
   metodo!: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'ID del cupón aplicado, si se usó uno',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  id_cupon?: number;
 }
