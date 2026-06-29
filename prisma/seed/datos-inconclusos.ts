@@ -9,10 +9,6 @@ import type { FuncionesMap } from './funciones';
 
 const ESTADO_PAGO_PENDIENTE = PagoEstado.procesando;
 
-function suffix(prefix: string, n: number): string {
-  return `${prefix}-${n.toString().padStart(4, '0')}`;
-}
-
 async function reservaPendientePago(
   cliente: bigint,
   funcionId: bigint,
@@ -121,24 +117,24 @@ export async function seedDatosInconclusos(
   await reservaPendientePago(
     usuarios.cliente.id,
     funciones.all[0].id,
-    suffix('RES-INCOMPLETA', 1),
+    'RES-20260101-INCO1',
   );
   await reservaPendientePago(
     usuarios.cliente.id,
     funciones.all[1].id,
-    suffix('RES-INCOMPLETA', 2),
+    'RES-20260101-INCO2',
   );
 
   const r3 = await reservaPendientePago(
     usuarios.cliente.id,
     funciones.all[2].id,
-    suffix('RES-PAGOPEND', 1),
+    'RES-20260101-PEND1',
   );
   if (r3) await pagoPendiente(r3);
   const r4 = await reservaPendientePago(
     usuarios.cliente.id,
     funciones.all[3].id,
-    suffix('RES-PAGOPEND', 2),
+    'RES-20260101-PEND2',
   );
   if (r4) await pagoPendiente(r4);
 

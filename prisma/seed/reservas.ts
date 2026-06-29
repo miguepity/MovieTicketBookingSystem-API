@@ -32,7 +32,7 @@ export async function seedReservas(
   const all: ReservaSeed[] = [];
 
   for (let i = 0; i < 30; i++) {
-    const numero_reserva = `R-${(i + 1).toString().padStart(5, '0')}`;
+    const numero_reserva = `RES-20260101-${(i + 1).toString().padStart(5, '0')}`;
     const usuario = usuarios.all[i % usuarios.all.length];
     const funcion = funciones.all[i % funciones.all.length];
     const estado = ESTADOS[i % ESTADOS.length];
