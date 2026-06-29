@@ -5,6 +5,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { PagoExitosoEvent } from 'src/modules/pagos/events/pago-exitoso.event';
 import { ReservaCanceladaEvent } from 'src/modules/reservas/events/reserva-cancelada.event';
 import { FuncionCanceladaEvent } from 'src/modules/funciones/events/funcion-cancelada.event';
+import { PeliculaDisponibleEvent } from 'src/modules/suscripciones-estreno/events/pelicula-disponible.event';
+import { SuscripcionesEstrenoService } from 'src/modules/suscripciones-estreno/suscripciones-estreno.service';
 import { EstadoReserva } from 'src/common/enums/estado-reserva.enum';
 import { EstadoPago } from 'src/common/enums/estado-pago.enum';
 
@@ -15,6 +17,7 @@ export class NotificacionesService {
   constructor(
     private readonly mail: MailService,
     private readonly prisma: PrismaService,
+    private readonly suscripciones: SuscripcionesEstrenoService,
   ) {}
 
   @OnEvent(PagoExitosoEvent.NAME)
@@ -244,6 +247,68 @@ export class NotificacionesService {
         );
       }
     }
+  }
+
+  @OnEvent(PeliculaDisponibleEvent.NAME)
+  async onPeliculaDisponible(event: PeliculaDisponibleEvent): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.log(
+        `EMAIL_TRIGGERS_ENABLED=false — skip avisos de estreno (pelicula=${event.idPelicula})`,
+      );
+      return;
+    }
+
+    const pelicula = await this.prisma.peliculas.findUnique({
+      where: { id: event.idPelicula },
+      select: {
+        id: true,
+        titulo: true,
+        poster_url: true,
+        fecha_estreno: true,
+        generos: { select: { nombre: true } },
+      },
+    });
+    if (!pelicula) {
+      this.logger.warn(`Pelicula ${event.idPelicula} no encontrada para avisos`);
+      return;
+    }
+
+    const pendientes = await this.suscripciones.listarNoNotificadosDePelicula(event.idPelicula);
+    if (pendientes.length === 0) return;
+
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const link = `${frontendUrl}/peliculas/${pelicula.id.toString()}`;
+    const fechaEstreno = pelicula.fecha_estreno
+      ? new Intl.DateTimeFormat('es', { dateStyle: 'long' }).format(pelicula.fecha_estreno)
+      : 'Disponible ahora';
+    const genero = pelicula.generos?.nombre ?? 'Sin clasificar';
+
+    const enviados: bigint[] = [];
+    const BATCH = 25;
+    for (let i = 0; i < pendientes.length; i += BATCH) {
+      const slice = pendientes.slice(i, i + BATCH);
+      const results = await Promise.allSettled(
+        slice.map((p) =>
+          this.mail.sendNuevaPeliculaEmail({
+            nombre: p.nombre,
+            email: p.email,
+            titulo: pelicula.titulo,
+            genero,
+            fechaEstreno,
+            posterUrl: pelicula.poster_url ?? undefined,
+            link,
+          }),
+        ),
+      );
+      results.forEach((r, idx) => {
+        if (r.status === 'fulfilled') enviados.push(slice[idx].suscripcionId);
+      });
+    }
+
+    await this.suscripciones.marcarNotificados(enviados);
+    this.logger.log(
+      `Avisos de estreno enviados: ${enviados.length}/${pendientes.length} para "${pelicula.titulo}"`,
+    );
   }
 
   private isEnabled(): boolean {

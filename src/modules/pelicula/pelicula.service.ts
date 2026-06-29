@@ -19,6 +19,8 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotPelicula } from '../audit-log/snapshots';
 import type { Prisma } from '../../../generated/prisma/client';
 import { puedeReservar } from '../../common/utils/cartelera-window';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PeliculaDisponibleEvent } from 'src/modules/suscripciones-estreno/events/pelicula-disponible.event';
 
 @Injectable()
 export class PeliculaService {
@@ -29,6 +31,7 @@ export class PeliculaService {
     private readonly cloudinary: CloudinaryService,
     private readonly mailService: MailService,
     private readonly auditLog: AuditLogService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async uploadPoster(
@@ -328,6 +331,10 @@ export class PeliculaService {
       valor_nuevo: snapshotPelicula(updated),
     });
 
+    if (existing.activo === false && updated.activo === true) {
+      this.events.emit(PeliculaDisponibleEvent.NAME, new PeliculaDisponibleEvent(updated.id));
+    }
+
     return updated;
   }
 
@@ -520,6 +527,10 @@ export class PeliculaService {
       valor_anterior: snapshotPelicula(existing),
       valor_nuevo: snapshotPelicula(updated),
     });
+
+    if (!existing.activo && updated.activo) {
+      this.events.emit(PeliculaDisponibleEvent.NAME, new PeliculaDisponibleEvent(updated.id));
+    }
 
     return updated;
   }
