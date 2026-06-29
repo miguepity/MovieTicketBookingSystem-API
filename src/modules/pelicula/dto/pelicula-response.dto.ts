@@ -55,4 +55,11 @@ export class PeliculaResponseDto {
 
   @ApiProperty({ required: false, example: 5, nullable: true })
   mi_calificacion?: number | null;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'true si la película está disponible para reservar (fecha_estreno <= próximo domingo 23:59). false si es próximamente.',
+  })
+  puede_reservar!: boolean;
 }

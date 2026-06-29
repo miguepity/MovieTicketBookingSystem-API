@@ -18,6 +18,7 @@ import { EstadoFuncion } from '../../common/enums/estado-funcion.enum';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { snapshotPelicula } from '../audit-log/snapshots';
 import type { Prisma } from '../../../generated/prisma/client';
+import { puedeReservar } from '../../common/utils/cartelera-window';
 
 @Injectable()
 export class PeliculaService {
@@ -71,7 +72,7 @@ export class PeliculaService {
       mi_calificacion = c?.puntuacion ?? null;
     }
 
-    return { ...peli, mi_calificacion };
+    return { ...peli, mi_calificacion, puede_reservar: puedeReservar(peli.fecha_estreno) };
   }
 
   async findAll(query: QueryPeliculaDto = {}) {
@@ -112,7 +113,7 @@ export class PeliculaService {
       };
     }
 
-    const [data, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.peliculas.findMany({
         where,
         skip: (page - 1) * limit,
@@ -121,6 +122,11 @@ export class PeliculaService {
       }),
       this.prisma.peliculas.count({ where }),
     ]);
+
+    const data = rows.map((p) => ({
+      ...p,
+      puede_reservar: puedeReservar(p.fecha_estreno),
+    }));
 
     return { data, total, page, limit };
   }
